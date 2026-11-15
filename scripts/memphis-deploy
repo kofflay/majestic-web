@@ -60,8 +60,10 @@ atomic_set_current() {
 
 write_previous_target() {
   local target="$1"
-  local temporary="$BASE/.previous-release.$"
-  printf '%s\\n' "$target" > "$temporary"
+  local temporary
+  temporary="$(mktemp "$BASE/.previous-release.XXXXXX")"
+  printf '%s' "$target" > "$temporary"
+  echo >> "$temporary"
   chown root:root "$temporary"
   chmod 0640 "$temporary"
   mv -f "$temporary" "$BASE/previous-release"
