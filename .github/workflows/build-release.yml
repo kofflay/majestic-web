@@ -1,6 +1,9 @@
 name: Build production release
 
 on:
+  push:
+    branches:
+      - ops/atomic-deploy
   workflow_dispatch:
 
 permissions:
