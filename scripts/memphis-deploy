@@ -86,10 +86,16 @@ if [[ "${1:-}" == "--rollback" ]]; then
   else
     [[ "$previous_target" == "$RELEASES/"* && -d "$previous_target" ]] || die "recorded previous release is invalid"
     atomic_set_current "$previous_target"
-    systemctl restart "$SERVICE"
-    wait_for_health || die "previous release did not pass health check after rollback"
-    write_previous_target "$current_target"
-    log "rolled back to $previous_target"
+    if systemctl restart "$SERVICE" && wait_for_health; then
+      write_previous_target "$current_target"
+      log "rolled back to $previous_target"
+    else
+      log "rollback target failed health check; restoring $current_target"
+      atomic_set_current "$current_target"
+      systemctl restart "$SERVICE" || true
+      wait_for_health || log "CRITICAL: restored current release also failed health check"
+      die "previous release was not healthy; the previous current release was restored"
+    fi
   fi
   exit 0
 fi
@@ -122,6 +128,7 @@ OLD_TARGET=""
 FIRST_DEPLOY=0
 DROPIN_CREATED=0
 SWITCHED=0
+RELEASE_CREATED=0
 
 if [[ -L "$CURRENT" ]]; then
   OLD_TARGET="$(readlink -f "$CURRENT")"
@@ -145,12 +152,19 @@ rollback_on_error() {
   log "deployment failed; restoring previous application"
 
   if [[ "$SWITCHED" -eq 1 ]]; then
-    if [[ -n "$OLD_TARGET" && -d "$OLD_TARGET" ]]; then
+    if [[ "$FIRST_DEPLOY" -eq 1 ]]; then
+      rm -f "$CURRENT"
+    elif [[ -n "$OLD_TARGET" && -d "$OLD_TARGET" ]]; then
       atomic_set_current "$OLD_TARGET"
     else
       rm -f "$CURRENT"
     fi
   fi
+
+  if [[ "$RELEASE_CREATED" -eq 1 ]]; then
+    rm -rf "$RELEASE"
+  fi
+  rm -rf "$STAGING"
 
   if [[ "$FIRST_DEPLOY" -eq 1 && "$DROPIN_CREATED" -eq 1 ]]; then
     rm -f "$DROPIN"
@@ -216,6 +230,7 @@ PY
   chmod -R u+rwX,g+rX,o-rwx "$STAGING"
   install -d -o "$APP_USER" -g "$APP_GROUP" -m 0770 "$STAGING/.next/cache"
   mv "$STAGING" "$RELEASE"
+  RELEASE_CREATED=1
 fi
 
 if [[ "$FIRST_DEPLOY" -eq 1 ]]; then
