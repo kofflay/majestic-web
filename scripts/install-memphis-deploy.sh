@@ -38,6 +38,7 @@ SERVICE_GROUP="$(systemctl show "$SERVICE" --property=Group --value 2>/dev/null 
 WORKING_DIRECTORY="$(systemctl show "$SERVICE" --property=WorkingDirectory --value 2>/dev/null || true)"
 EXEC_START="$(systemctl show "$SERVICE" --property=ExecStart --value 2>/dev/null || true)"
 ENV_FILES="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value 2>/dev/null || true)"
+DROPIN_PATHS="$(systemctl show "$SERVICE" --property=DropInPaths --value 2>/dev/null || true)"
 
 [[ "$SERVICE_USER" == "memphis" && "$SERVICE_GROUP" == "memphis" ]] || {
   echo "Unexpected service account: User='$SERVICE_USER' Group='$SERVICE_GROUP'." >&2
@@ -53,6 +54,11 @@ ENV_FILES="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value 2>/de
 }
 [[ "$ENV_FILES" == *"/etc/memphis-lspd/memphis.env"* ]] || {
   echo "The expected external environment file is not configured on the service." >&2
+  exit 1
+}
+[[ -z "$DROPIN_PATHS" ]] || {
+  echo "The service already has systemd drop-ins: $DROPIN_PATHS" >&2
+  echo "Inspect these before provisioning the automatic deployment override." >&2
   exit 1
 }
 systemctl is-active --quiet "$SERVICE" || {
