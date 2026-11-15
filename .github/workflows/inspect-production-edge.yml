@@ -59,6 +59,14 @@ jobs:
                 '^[[:space:]]*(listen|server_name|upstream|proxy_pass|proxy_http_version|proxy_read_timeout|proxy_send_timeout|client_max_body_size|location|reverse_proxy|handle|route|bind|server)[[:space:]{]|proxy_pass|reverse_proxy' \
                 2>/dev/null | head -n 180 || true
           done
+          echo '=== ACTIVE NGINX SITE CONFIG ==='
+          for f in /etc/nginx/nginx.conf /etc/nginx/sites-enabled/memphis-lspd /etc/nginx/sites-available/memphis-lspd; do
+            [ -r "$f" ] || continue
+            echo "--- $f (resolved: $(readlink -f "$f" 2>/dev/null || echo unknown)) ---"
+            sed -n '1,120p' "$f"
+          done
+          echo '=== NGINX VERSION ==='
+          nginx -v 2>&1 || true
           echo '=== RELEVANT SERVICE DROP-INS ==='
           for f in /etc/systemd/system/memphis-lspd.service.d/*.conf; do
             [ -r "$f" ] || continue
