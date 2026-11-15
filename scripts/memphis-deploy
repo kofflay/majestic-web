@@ -1,0 +1,278 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 027
+
+readonly BASE="/var/lib/memphis-deploy"
+readonly INCOMING="$BASE/incoming"
+readonly RELEASES="$BASE/releases"
+readonly CURRENT="$BASE/current"
+readonly LEGACY="/opt/memphis-lspd"
+readonly SERVICE="memphis-lspd.service"
+readonly APP_USER="memphis"
+readonly APP_GROUP="memphis"
+readonly PORT="3000"
+readonly DROPIN_DIR="/etc/systemd/system/memphis-lspd.service.d"
+readonly DROPIN="$DROPIN_DIR/90-memphis-auto-deploy.conf"
+readonly MARKER="# Managed by majestic-web automatic deployment. Do not edit."
+
+log() { printf '[memphis-deploy] %s\n' "$*"; }
+die() { printf '[memphis-deploy] ERROR: %s\n' "$*" >&2; exit 1; }
+
+[[ "$EUID" -eq 0 ]] || die "must run as root through the restricted sudo rule"
+
+for command_name in systemctl curl tar python3 flock install stat find sort runuser seq; do
+  command -v "$command_name" >/dev/null 2>&1 || die "required utility missing: $command_name"
+done
+
+[[ -d "$INCOMING" ]] || die "incoming directory is missing"
+id "$APP_USER" >/dev/null 2>&1 || die "application account '$APP_USER' is missing"
+
+DEPLOY_USER="$(stat -c '%U' "$INCOMING")"
+[[ -n "$DEPLOY_USER" && "$DEPLOY_USER" != "root" ]] || die "incoming directory has no dedicated unprivileged owner"
+
+SERVICE_USER="$(systemctl show "$SERVICE" --property=User --value 2>/dev/null || true)"
+[[ "$SERVICE_USER" == "$APP_USER" ]] || die "unexpected systemd service user: '$SERVICE_USER'"
+
+health_check() {
+  systemctl is-active --quiet "$SERVICE" || return 1
+  curl --fail --silent --show-error --max-time 4 "http://127.0.0.1:$PORT/start" -o /dev/null
+}
+
+wait_for_health() {
+  local attempt
+  for attempt in $(seq 1 30); do
+    if health_check; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+atomic_set_current() {
+  local target="$1"
+  local temporary
+  temporary="$(mktemp "$BASE/.current.next.XXXXXX")"
+  rm -f "$temporary"
+  ln -s "$target" "$temporary"
+  mv -Tf "$temporary" "$CURRENT"
+}
+
+write_previous_target() {
+  local target="$1"
+  local temporary
+  temporary="$(mktemp "$BASE/.previous-release.XXXXXX")"
+  printf '%s' "$target" > "$temporary"
+  echo >> "$temporary"
+  chown root:root "$temporary"
+  chmod 0640 "$temporary"
+  mv -f "$temporary" "$BASE/previous-release"
+}
+
+if [[ "${1:-}" == "--rollback" ]]; then
+  [[ -L "$CURRENT" && -f "$BASE/previous-release" ]] || die "there is no recorded previous release to roll back to"
+  current_target="$(readlink -f "$CURRENT")"
+  previous_target="$(cat "$BASE/previous-release")"
+  if [[ "$previous_target" == "$LEGACY" ]]; then
+    [[ -d "$LEGACY" && ! -L "$LEGACY" ]] || die "legacy application directory is missing"
+    [[ -f "$DROPIN" ]] && grep -Fq "$MARKER" "$DROPIN" || die "managed systemd drop-in is missing"
+    rm -f "$CURRENT"
+    rm -f "$DROPIN"
+    systemctl daemon-reload
+    systemctl restart "$SERVICE"
+    wait_for_health || die "legacy application did not pass health check after rollback"
+    rm -f "$BASE/previous-release"
+    log "rolled back to the original /opt/memphis-lspd application"
+  else
+    [[ "$previous_target" == "$RELEASES/"* && -d "$previous_target" ]] || die "recorded previous release is invalid"
+    atomic_set_current "$previous_target"
+    if systemctl restart "$SERVICE" && wait_for_health; then
+      write_previous_target "$current_target"
+      log "rolled back to $previous_target"
+    else
+      log "rollback target failed health check; restoring $current_target"
+      atomic_set_current "$current_target"
+      systemctl restart "$SERVICE" || true
+      wait_for_health || log "CRITICAL: restored current release also failed health check"
+      die "previous release was not healthy; the previous current release was restored"
+    fi
+  fi
+  exit 0
+fi
+
+if [[ "${1:-}" == "--check" ]]; then
+  runuser -u "$DEPLOY_USER" -- test -w "$INCOMING" || die "incoming directory is not writable by the deploy account"
+  health_check || die "current application health check failed"
+  log "ready: SSH, restricted sudo, incoming directory, service and local /start health check are OK"
+  exit 0
+fi
+
+[[ "$#" -eq 1 ]] || die "usage: memphis-deploy <40-character-main-commit-sha>"
+readonly SHA="$1"
+[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || die "invalid commit SHA"
+readonly ARCHIVE="$INCOMING/$SHA.tar.gz"
+[[ -f "$ARCHIVE" && ! -L "$ARCHIVE" && -s "$ARCHIVE" ]] || die "release archive is missing or invalid: $ARCHIVE"
+
+ARCHIVE_OWNER="$(stat -c '%U' "$ARCHIVE")"
+[[ "$ARCHIVE_OWNER" == "$DEPLOY_USER" ]] || die "release archive owner does not match the incoming directory owner"
+
+install -d -o root -g "$APP_GROUP" -m 0750 "$RELEASES"
+exec 9>/run/lock/memphis-lspd-deploy.lock
+flock -n 9 || die "another deployment is already running"
+
+health_check || die "the existing production service is not healthy; refusing to replace it"
+
+readonly RELEASE="$RELEASES/$SHA"
+readonly STAGING="$RELEASES/.staging-$SHA"
+OLD_TARGET=""
+FIRST_DEPLOY=0
+DROPIN_CREATED=0
+SWITCHED=0
+RELEASE_CREATED=0
+
+if [[ -L "$CURRENT" ]]; then
+  OLD_TARGET="$(readlink -f "$CURRENT")"
+  [[ -d "$OLD_TARGET" ]] || die "current release target is missing"
+  [[ "$OLD_TARGET" == "$RELEASES/"* ]] || die "current symlink points outside the managed release directory"
+  [[ -f "$DROPIN" ]] || die "managed current symlink exists but the systemd drop-in is missing"
+  grep -Fq "$MARKER" "$DROPIN" || die "systemd drop-in exists but is not managed by this deploy helper"
+elif [[ -e "$CURRENT" ]]; then
+  die "current deployment path exists but is not a symlink"
+else
+  FIRST_DEPLOY=1
+  OLD_TARGET="$LEGACY"
+  [[ -d "$LEGACY" && ! -L "$LEGACY" ]] || die "legacy application directory is missing or is not a regular directory"
+  [[ ! -e "$DROPIN" ]] || die "systemd drop-in already exists; refusing to overwrite an unmanaged file"
+fi
+
+rollback_on_error() {
+  local exit_code="$1"
+  trap - ERR
+  set +e
+  log "deployment failed; restoring previous application"
+
+  if [[ "$SWITCHED" -eq 1 ]]; then
+    if [[ "$FIRST_DEPLOY" -eq 1 ]]; then
+      rm -f "$CURRENT"
+    elif [[ -n "$OLD_TARGET" && -d "$OLD_TARGET" ]]; then
+      atomic_set_current "$OLD_TARGET"
+    else
+      rm -f "$CURRENT"
+    fi
+  fi
+
+  if [[ "$RELEASE_CREATED" -eq 1 ]]; then
+    rm -rf "$RELEASE"
+  fi
+  rm -rf "$STAGING"
+
+  if [[ "$FIRST_DEPLOY" -eq 1 && "$DROPIN_CREATED" -eq 1 ]]; then
+    rm -f "$DROPIN"
+    systemctl daemon-reload
+  fi
+
+  systemctl restart "$SERVICE"
+  if wait_for_health; then
+    log "rollback successful; previous application is healthy"
+  else
+    log "CRITICAL: automatic rollback did not pass the health check"
+  fi
+  exit "$exit_code"
+}
+trap 'rollback_on_error "$?"' ERR
+
+if [[ -d "$RELEASE" ]]; then
+  [[ -f "$RELEASE/server.js" && -f "$RELEASE/.next/BUILD_ID" ]] || die "an existing release directory is incomplete"
+  log "release $SHA already exists; reusing immutable release directory"
+else
+  rm -rf "$STAGING"
+  install -d -o root -g "$APP_GROUP" -m 0750 "$STAGING"
+
+  python3 - "$ARCHIVE" <<'PY'
+import posixpath
+import sys
+import tarfile
+from pathlib import PurePosixPath
+
+archive = sys.argv[1]
+with tarfile.open(archive, "r:gz") as bundle:
+    members = bundle.getmembers()
+    if not members or len(members) > 100000:
+        raise SystemExit("archive has an invalid number of entries")
+    expanded_size = 0
+    for member in members:
+        path = PurePosixPath(member.name)
+        if path.is_absolute() or ".." in path.parts:
+            raise SystemExit(f"unsafe archive path: {member.name!r}")
+        expanded_size += max(member.size, 0)
+        if expanded_size > 2_000_000_000:
+            raise SystemExit("archive expands beyond the 2 GB safety limit")
+        if member.isdir() or member.isfile():
+            continue
+        if member.issym():
+            if member.linkname.startswith("/"):
+                raise SystemExit(f"absolute symlink rejected: {member.name!r}")
+            resolved = posixpath.normpath(
+                posixpath.join(posixpath.dirname(member.name), member.linkname)
+            )
+            if resolved == ".." or resolved.startswith("../"):
+                raise SystemExit(f"symlink escapes release directory: {member.name!r}")
+            continue
+        raise SystemExit(f"unsupported archive entry type: {member.name!r}")
+PY
+
+  tar --no-same-owner --no-same-permissions -xzf "$ARCHIVE" -C "$STAGING"
+  [[ -f "$STAGING/server.js" ]] || die "standalone Next.js server.js is missing from the release"
+  [[ -f "$STAGING/.next/BUILD_ID" ]] || die "Next.js BUILD_ID is missing from the release"
+  [[ -d "$STAGING/.next/static" ]] || die "Next.js static assets are missing from the release"
+
+  chown -R root:"$APP_GROUP" "$STAGING"
+  chmod -R u+rwX,g+rX,o-rwx "$STAGING"
+  install -d -o "$APP_USER" -g "$APP_GROUP" -m 0770 "$STAGING/.next/cache"
+  mv "$STAGING" "$RELEASE"
+  RELEASE_CREATED=1
+fi
+
+if [[ "$FIRST_DEPLOY" -eq 1 ]]; then
+  install -d -o root -g root -m 0755 "$DROPIN_DIR"
+  temporary_dropin="$(mktemp "$DROPIN_DIR/.90-memphis-auto-deploy.XXXXXX")"
+  cat > "$temporary_dropin" <<EOF
+$MARKER
+[Service]
+WorkingDirectory=$CURRENT
+ExecStart=
+ExecStart=/usr/bin/node $CURRENT/server.js
+ReadWritePaths=$RELEASES
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=$PORT
+EOF
+  chown root:root "$temporary_dropin"
+  chmod 0644 "$temporary_dropin"
+  mv -f "$temporary_dropin" "$DROPIN"
+  DROPIN_CREATED=1
+fi
+
+atomic_set_current "$RELEASE"
+SWITCHED=1
+systemctl daemon-reload
+systemctl restart "$SERVICE"
+wait_for_health
+write_previous_target "$OLD_TARGET"
+
+trap - ERR
+rm -f "$ARCHIVE"
+
+# Keep the newest five releases and always retain the immediately previous release.
+while IFS= read -r candidate; do
+  [[ -n "$candidate" ]] || continue
+  [[ "$candidate" == "$RELEASE" || "$candidate" == "$OLD_TARGET" ]] && continue
+  rm -rf -- "$candidate"
+done < <(
+  find "$RELEASES" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+    -regex '.*/[0-9a-f]{40}' -printf '%T@ %p\n' |
+    sort -rn | awk 'NR > 5 { $1=""; sub(/^ /, ""); print }'
+)
+
+log "deployed commit $SHA successfully"
+log "active release: $(readlink -f "$CURRENT")"
+log "previous release retained: $OLD_TARGET"
