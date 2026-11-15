@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - ops/blue-green-deploy
+      - ops/blue-green-hotfix-deploy-arg
     paths:
       - scripts/memphis-deploy
       - scripts/upgrade-memphis-bluegreen.sh
