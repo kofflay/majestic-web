@@ -4,6 +4,8 @@
 
 A push to `main` runs the deployment workflow. It installs dependencies, runs the Node test suite, builds the Next.js standalone release, and only then connects to the VPS over SSH.
 
+Before tests/build/deployment, every push to `main` creates a unique branch named `backup/main-before-<new-commit-sha>` pointing to the exact previous `main` commit. This preserves the full previous source tree even when the new build or deployment fails. Pull requests do not create backups or deploy.
+
 Pull requests to `main` run validation and build checks only; they never deploy. Older queued commits are skipped when `main` has already advanced. Deployments are serialized.
 
 The workflow uploads a commit-specific archive to `/var/lib/memphis-deploy/incoming`, runs the restricted root helper, then checks both `http://127.0.0.1:3000/start` on the VPS and the public `https://suspect-famq.ru/start` URL. A failed health check requests rollback to the previous release.
