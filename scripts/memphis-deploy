@@ -20,7 +20,7 @@ die() { printf '[memphis-deploy] ERROR: %s\n' "$*" >&2; exit 1; }
 
 [[ "$EUID" -eq 0 ]] || die "must run as root through the restricted sudo rule"
 
-for command_name in systemctl curl tar python3 flock install stat find sort; do
+for command_name in systemctl curl tar python3 flock install stat find sort runuser; do
   command -v "$command_name" >/dev/null 2>&1 || die "required utility missing: $command_name"
 done
 
@@ -39,7 +39,7 @@ health_check() {
 }
 
 if [[ "${1:-}" == "--check" ]]; then
-  [[ -w "$INCOMING" ]] || die "incoming directory is not writable by the deploy account"
+  runuser -u "$DEPLOY_USER" -- test -w "$INCOMING" || die "incoming directory is not writable by the deploy account"
   health_check || die "current application health check failed"
   log "ready: SSH, restricted sudo, incoming directory, service and local /start health check are OK"
   exit 0
@@ -203,7 +203,7 @@ atomic_set_current "$RELEASE"
 SWITCHED=1
 systemctl daemon-reload
 systemctl restart "$SERVICE"
-wait_for_health || die "new release did not pass the local /start health check"
+wait_for_health
 
 trap - ERR
 rm -f "$ARCHIVE"
