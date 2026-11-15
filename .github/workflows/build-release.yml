@@ -3,6 +3,7 @@ name: Build production release
 on:
   push:
     branches:
+      - main
       - ops/atomic-deploy
   workflow_dispatch:
 
