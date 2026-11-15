@@ -368,6 +368,9 @@ PY
   atomic_set_slot "$candidate_port" "$RELEASE"
   systemctl start "$(slot_service "$candidate_port")"
   wait_for_port_health "$candidate_port" || die "candidate release failed the local /start health check on port $candidate_port"
+  # Make the candidate survive a VPS reboot even in the short interval
+  # between Nginx switching and the deployment's final commit.
+  systemctl enable "$(slot_service "$candidate_port")" >/dev/null
 
   write_pending "$sha" "$candidate_port" "$active_port" "$old_release" "$had_active" \
     "$old_previous_release" "$old_previous_port" "$RELEASE_CREATED"
