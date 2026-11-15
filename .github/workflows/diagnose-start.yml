@@ -28,14 +28,16 @@ jobs:
           python3 - "$BASE" "$RUNNER_TEMP/memphis-diag" <<'PY'
           import re
           import sys
+          import json
           from pathlib import Path
           from urllib.parse import urljoin
           from urllib.request import Request, urlopen
-          import json
 
           base, work = sys.argv[1], Path(sys.argv[2])
           html = (work / "start.html").read_text(errors="replace")
           print("HTML contains landing-page:", "landing-page" in html)
+          print("HTML contains living-bg-container:", "living-bg-container" in html)
+          print("HTML contains LivingBackground animation rules:", "float-blue" in html)
           print("HTML contains Next.js data:", "__NEXT_DATA__" in html)
 
           css_urls = sorted(set(
@@ -50,7 +52,6 @@ jobs:
           ))
           print("Next CSS files:", len(css_urls))
           print("Next JS files:", len(js_urls))
-
           if not css_urls:
               raise SystemExit("No Next.js CSS assets referenced by /start")
 
@@ -62,8 +63,8 @@ jobs:
                   print("CSS:", response.status, url.rsplit("/", 1)[-1].split("?")[0],
                         "bytes=", len(body))
                   css_parts.append(body)
-
           css = "\n".join(css_parts)
+
           for selector in (".landing-page", ".landing-command", ".landing-command__grid"):
               found = selector in css
               print("CSS selector", selector, "present:", found)
@@ -71,11 +72,20 @@ jobs:
                   raise SystemExit("Missing expected landing selector: " + selector)
           print("CSS linear-gradient occurrences:", css.count("linear-gradient("))
 
-          for url in js_urls[:5]:
+          js_parts = []
+          for url in js_urls:
               req = Request(url, headers={"User-Agent": "Memphis-LSPD-Diagnostics/1.0"})
               with urlopen(req, timeout=15) as response:
+                  body = response.read().decode("utf-8", "replace")
                   print("JS:", response.status, url.rsplit("/", 1)[-1].split("?")[0],
-                        "content-type=", response.headers.get("Content-Type", ""))
+                        "bytes=", len(body))
+                  js_parts.append(body)
+          js = "\n".join(js_parts)
+          print("StaffCard background gradient present in JS:",
+                "linear-gradient(160deg" in js)
+          print("StaffCard rank gradient present in JS:", "#79aef9" in js)
+          print("LivingBackground component code present in JS:",
+                "float-blue" in js or "living-bg-container" in js)
 
           req = Request(urljoin(base, "/api/staff"),
                         headers={"User-Agent": "Memphis-LSPD-Diagnostics/1.0"})
