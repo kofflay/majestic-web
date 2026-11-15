@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# blue-green release cutover with nginx
 set -Eeuo pipefail
 umask 027
 
