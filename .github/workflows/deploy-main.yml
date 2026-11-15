@@ -32,7 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash -n scripts/memphis-deploy scripts/install-memphis-deploy.sh
+          bash -n scripts/memphis-deploy
+          bash -n scripts/install-memphis-deploy.sh
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -63,7 +64,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/memphis-release/.next/static"
           cp -a .next/static/. "$RUNNER_TEMP/memphis-release/.next/static/"
           if [ -d public ]; then
-            cp -a public "$RUNNER_TEMP/memphis-release/public"
+            mkdir -p "$RUNNER_TEMP/memphis-release/public"
+            cp -a public/. "$RUNNER_TEMP/memphis-release/public/"
           fi
           tar -czf "$RUNNER_TEMP/$GITHUB_SHA.tar.gz" -C "$RUNNER_TEMP/memphis-release" .
           ls -lh "$RUNNER_TEMP/$GITHUB_SHA.tar.gz"
