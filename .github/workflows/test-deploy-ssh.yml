@@ -75,6 +75,12 @@ jobs:
             echo "=== Symlink target ==="
             readlink -f /opt/memphis-lspd 2>/dev/null || true
 
+            echo "=== Memphis service configuration ==="
+            systemctl show memphis-lspd.service --no-pager --property=FragmentPath --property=User --property=Group --property=WorkingDirectory --property=ExecStart --property=Restart --property=EnvironmentFiles 2>/dev/null || true
+
+            echo "=== Listening TCP ports ==="
+            ss -ltn 2>/dev/null | head -30 || true
+
             echo "=== Matching services ==="
             systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -Ei "memphis|next|pm2" || true
 
