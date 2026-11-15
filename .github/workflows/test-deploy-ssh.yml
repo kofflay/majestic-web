@@ -39,7 +39,7 @@ jobs:
           HOSTS_FILE="$RUNNER_TEMP/memphis-known-hosts"
           trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
 
-          printf '%s' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$KEY_FILE"
+          printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
           chmod 600 "$KEY_FILE" "$HOSTS_FILE"
 
