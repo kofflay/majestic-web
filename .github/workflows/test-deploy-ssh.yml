@@ -40,21 +40,21 @@ jobs:
           trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
 
           printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
-          printf '%s\\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\\r' > "$HOSTS_FILE"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
           chmod 600 "$KEY_FILE" "$HOSTS_FILE"
 
           test -s "$KEY_FILE"
           test -s "$HOSTS_FILE"
           ssh-keygen -y -f "$KEY_FILE" >/dev/null
 
-          ssh \\
-            -i "$KEY_FILE" \\
-            -o IdentitiesOnly=yes \\
-            -o BatchMode=yes \\
-            -o StrictHostKeyChecking=yes \\
-            -o UserKnownHostsFile="$HOSTS_FILE" \\
-            -o ConnectTimeout=10 \\
-            "$DEPLOY_USER@$DEPLOY_HOST" \\
+          ssh \
+            -i "$KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOSTS_FILE" \
+            -o ConnectTimeout=10 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
             'set -eu
             echo "=== Identity ==="
             id
@@ -65,7 +65,7 @@ jobs:
               if [ -e "$path" ]; then
                 stat -c "%A %U:%G %n" "$path"
                 if [ -d "$path" ]; then
-                  find "$path" -maxdepth 1 -mindepth 1 -printf "  %M %u:%g %f\\n" 2>/dev/null | head -30 || true
+                  find "$path" -maxdepth 1 -mindepth 1 -printf "  %M %u:%g %f\n" 2>/dev/null | head -30 || true
                 fi
               else
                 echo "MISSING $path"
