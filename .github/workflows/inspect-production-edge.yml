@@ -1,0 +1,70 @@
+name: Inspect production edge routing (read-only)
+
+on:
+  push:
+    branches:
+      - ops/inspect-production-edge
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect proxy routing and application health
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${DEPLOY_HOST:?missing DEPLOY_HOST}"
+          : "${DEPLOY_USER:?missing DEPLOY_USER}"
+          : "${DEPLOY_SSH_KEY:?missing DEPLOY_SSH_KEY}"
+          : "${DEPLOY_KNOWN_HOSTS:?missing DEPLOY_KNOWN_HOSTS}"
+          KEY_FILE="$RUNNER_TEMP/inspect-key"
+          HOSTS_FILE="$RUNNER_TEMP/inspect-known-hosts"
+          trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
+          printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
+          chmod 600 "$KEY_FILE" "$HOSTS_FILE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+          SSH_OPTS=(-i "$KEY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOSTS_FILE" -o ConnectTimeout=10)
+          ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== TIME / UPTIME ==='
+          date -Is
+          uptime
+          echo '=== MEMORY / DISK ==='
+          free -h || true
+          df -h / /var/lib/memphis-deploy 2>/dev/null || true
+          echo '=== APP SERVICE ==='
+          systemctl show memphis-lspd.service --no-pager \
+            -p ActiveState -p SubState -p MainPID -p ActiveEnterTimestamp \
+            -p MemoryCurrent -p MemoryPeak -p Restart -p NRestarts \
+            -p WorkingDirectory -p ExecStart 2>/dev/null || true
+          echo '=== LISTENING TCP PORTS ==='
+          ss -ltn 2>/dev/null || true
+          echo '=== REVERSE-PROXY ROUTING DIRECTIVES ==='
+          for root in /etc/nginx /etc/caddy /etc/haproxy /etc/traefik; do
+            [ -d "$root" ] || continue
+            echo "--- $root ---"
+            find "$root" -maxdepth 4 -type f -readable -print0 2>/dev/null |
+              xargs -0 -r grep -nHE \
+                '^[[:space:]]*(listen|server_name|upstream|proxy_pass|proxy_http_version|proxy_read_timeout|proxy_send_timeout|client_max_body_size|location|reverse_proxy|handle|route|bind|server)[[:space:]{]|proxy_pass|reverse_proxy' \
+                2>/dev/null | head -n 180 || true
+          done
+          echo '=== RELEVANT SERVICE DROP-INS ==='
+          for f in /etc/systemd/system/memphis-lspd.service.d/*.conf; do
+            [ -r "$f" ] || continue
+            echo "--- $f ---"
+            sed -n -E '/^[[:space:]]*(\[|Wants=|After=|WorkingDirectory=|ExecStart=|Environment=|EnvironmentFile=|ReadWritePaths=)/p' "$f"
+          done
+          echo '=== PROCESS SNAPSHOT ==='
+          ps -eo pid,ppid,comm,etime,%cpu,%mem,args --sort=-%cpu | head -n 18
+          REMOTE
