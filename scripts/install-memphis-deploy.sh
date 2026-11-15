@@ -56,11 +56,16 @@ DROPIN_PATHS="$(systemctl show "$SERVICE" --property=DropInPaths --value 2>/dev/
   echo "The expected external environment file is not configured on the service." >&2
   exit 1
 }
-[[ -z "$DROPIN_PATHS" ]] || {
-  echo "The service already has systemd drop-ins: $DROPIN_PATHS" >&2
-  echo "Inspect these before provisioning the automatic deployment override." >&2
-  exit 1
-}
+# Existing non-conflicting drop-ins are preserved. Refuse only overrides that
+# would compete with the paths or process command changed by our deployment.
+for dropin in /etc/systemd/system/memphis-lspd.service.d/*.conf; do
+  [[ -f "$dropin" ]] || continue
+  if grep -Eq '^[[:space:]]*(WorkingDirectory|ExecStart|User|Group)[[:space:]]*=' "$dropin"; then
+    echo "Conflicting service directives found in $dropin." >&2
+    echo "Review the override before enabling automatic deployments." >&2
+    exit 1
+  fi
+done
 systemctl is-active --quiet "$SERVICE" || {
   echo "The existing Memphis service is not active; refusing to enable automatic deployment." >&2
   exit 1
