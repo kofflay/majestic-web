@@ -20,7 +20,7 @@ die() { printf '[memphis-deploy] ERROR: %s\n' "$*" >&2; exit 1; }
 
 [[ "$EUID" -eq 0 ]] || die "must run as root through the restricted sudo rule"
 
-for command_name in systemctl curl tar python3 flock install stat find sort runuser; do
+for command_name in systemctl curl tar python3 flock install stat find sort runuser seq; do
   command -v "$command_name" >/dev/null 2>&1 || die "required utility missing: $command_name"
 done
 
