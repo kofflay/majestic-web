@@ -4,7 +4,7 @@ The production Nginx site proxies to a named localhost upstream. The deploy help
 
 ## One-time VPS upgrade
 
-The staging workflow uploads two root-owned installer inputs (they remain owned by the unprivileged deploy account until copied by an administrator) to:
+The staging workflow uploads two installer files (owned by the unprivileged deploy account until copied into a root-owned directory) to:
 
 `/var/lib/memphis-deploy/incoming/bootstrap-bluegreen/`
 
