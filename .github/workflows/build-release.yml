@@ -1,0 +1,61 @@
+name: Build production release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: memphis-release-build
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Test and build standalone release
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Run unit tests
+        run: node --test tests/*.test.mjs
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Next.js standalone output
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Assemble release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .next/standalone/server.js
+          mkdir -p release-package/.next
+          cp -a .next/standalone/. release-package/
+          mkdir -p release-package/.next/static
+          cp -a .next/static/. release-package/.next/static/
+          if [ -d public ]; then
+            cp -a public release-package/public
+          fi
+          tar -czf memphis-release.tar.gz -C release-package .
+          ls -lh memphis-release.tar.gz
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: memphis-release
+          path: memphis-release.tar.gz
+          if-no-files-found: error
+          retention-days: 3
