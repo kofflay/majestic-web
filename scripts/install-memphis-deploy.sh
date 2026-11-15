@@ -27,6 +27,10 @@ DEPLOY_USER="$(stat -c '%U' "$INCOMING")"
   exit 1
 }
 id "$DEPLOY_USER" >/dev/null 2>&1 || { echo "Deploy account '$DEPLOY_USER' does not exist." >&2; exit 1; }
+runuser -u "$DEPLOY_USER" -- test -w "$INCOMING" || {
+  echo "Deploy account '$DEPLOY_USER' cannot write to $INCOMING." >&2
+  exit 1
+}
 id memphis >/dev/null 2>&1 || { echo "Application account 'memphis' does not exist." >&2; exit 1; }
 
 SERVICE_USER="$(systemctl show "$SERVICE" --property=User --value 2>/dev/null || true)"
