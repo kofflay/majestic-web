@@ -15,19 +15,22 @@ The existing SSH account can upload files to `/var/lib/memphis-deploy/incoming`,
 - `scripts/memphis-deploy`
 - `scripts/install-memphis-deploy.sh`
 
-Copy both files into a trusted directory on the VPS (for example, `/root/memphis-deploy-setup/`). Do not run the installer from the deploy user's writable `incoming` directory.
-
-From a root shell, run:
+The files can first be transferred to `/var/lib/memphis-deploy/incoming/bootstrap/` by the staging workflow. From the existing root shell, copy them into a root-owned directory and run the installer:
 
 ```bash
+install -d -o root -g root -m 0700 /root/memphis-deploy-setup
+install -o root -g root -m 0750 /var/lib/memphis-deploy/incoming/bootstrap/install-memphis-deploy.sh /root/memphis-deploy-setup/install-memphis-deploy.sh
+install -o root -g root -m 0750 /var/lib/memphis-deploy/incoming/bootstrap/memphis-deploy /root/memphis-deploy-setup/memphis-deploy
 bash /root/memphis-deploy-setup/install-memphis-deploy.sh /root/memphis-deploy-setup/memphis-deploy
 ```
+
+Do not execute either script directly from the deploy user's writable `incoming` directory. The installer verifies that both scripts are root-owned and not group/world-writable.
 
 The installer verifies the existing `memphis-lspd.service`, the `memphis` service account, the external environment file, the current local health check, and the upload account. It installs a root-owned helper and grants the upload account passwordless sudo for that helper only. It does not restart or modify the live application.
 
 ## First automatic deployment
 
-On the first successful push to `main`, the helper creates a versioned release under `/var/lib/memphis-deploy/releases/<commit-sha>` and an atomic `current` symlink. It adds a systemd drop-in that starts Next.js through the standalone `server.js` entry point on `127.0.0.1:3000`, while retaining the existing `/etc/memphis-lspd/memphis.env` environment file.
+On the first successful push to `main`, the helper creates a versioned release under `/var/lib/memphis-deploy/releases/<commit-sha>` and an atomic `current` symlink. It adds a systemd drop-in that starts Next.js through the standalone `server.js` entry point on `127.0.0.1:3000`, while retaining the existing `/etc/memphis-lspd/memphis.env` environment file. Existing non-conflicting drop-ins such as `proxy.conf` are preserved unchanged; release storage is added to `ReadWritePaths` so Next.js can write its cache without weakening the service's other sandbox restrictions.
 
 The original `/opt/memphis-lspd` directory is left in place and is used as the first rollback target. Subsequent rollback targets are previous versioned releases. The helper keeps the five most recent releases and always retains the immediately previous release.
 
