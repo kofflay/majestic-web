@@ -105,6 +105,9 @@ ProtectHome=true
 PrivateTmp=true
 NoNewPrivileges=true
 ReadWritePaths=$BASE/releases
+
+[Install]
+WantedBy=multi-user.target
 EOF
 chown root:root "$TEMPLATE_DEST"
 chmod 0644 "$TEMPLATE_DEST"
