@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: memphis-production-deploy
@@ -27,6 +27,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+
+      - name: Back up the previous main revision
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_MAIN_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$PREVIOUS_MAIN_SHA" || "$PREVIOUS_MAIN_SHA" =~ ^0{40}$ ]]; then
+            echo "No previous main revision exists; skipping the initial backup."
+            exit 0
+          fi
+
+          backup_branch="backup/main-before-$GITHUB_SHA"
+          endpoint="repos/$GITHUB_REPOSITORY/git/ref/heads/$backup_branch"
+
+          if existing_sha="$(gh api "$endpoint" --jq '.object.sha' 2>/dev/null)"; then
+            if [[ "$existing_sha" != "$PREVIOUS_MAIN_SHA" ]]; then
+              echo "::error::Backup branch $backup_branch already points to unexpected commit $existing_sha."
+              exit 1
+            fi
+            echo "Backup branch $backup_branch already preserves $PREVIOUS_MAIN_SHA."
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/heads/$backup_branch" \
+              -f "sha=$PREVIOUS_MAIN_SHA" >/dev/null
+            echo "Created $backup_branch at $PREVIOUS_MAIN_SHA before building or deploying $GITHUB_SHA."
+          fi
 
       - name: Validate deployment scripts
         shell: bash
