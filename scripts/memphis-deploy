@@ -38,6 +38,59 @@ health_check() {
   curl --fail --silent --show-error --max-time 4 "http://127.0.0.1:$PORT/start" -o /dev/null
 }
 
+wait_for_health() {
+  local attempt
+  for attempt in $(seq 1 30); do
+    if health_check; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+atomic_set_current() {
+  local target="$1"
+  local temporary="$BASE/.current.next.$"
+  rm -f "$temporary"
+  ln -s "$target" "$temporary"
+  mv -Tf "$temporary" "$CURRENT"
+}
+
+write_previous_target() {
+  local target="$1"
+  local temporary="$BASE/.previous-release.$"
+  printf '%s\\n' "$target" > "$temporary"
+  chown root:root "$temporary"
+  chmod 0640 "$temporary"
+  mv -f "$temporary" "$BASE/previous-release"
+}
+
+if [[ "${1:-}" == "--rollback" ]]; then
+  [[ -L "$CURRENT" && -f "$BASE/previous-release" ]] || die "there is no recorded previous release to roll back to"
+  current_target="$(readlink -f "$CURRENT")"
+  previous_target="$(cat "$BASE/previous-release")"
+  if [[ "$previous_target" == "$LEGACY" ]]; then
+    [[ -d "$LEGACY" && ! -L "$LEGACY" ]] || die "legacy application directory is missing"
+    [[ -f "$DROPIN" ]] && grep -Fq "$MARKER" "$DROPIN" || die "managed systemd drop-in is missing"
+    rm -f "$CURRENT"
+    rm -f "$DROPIN"
+    systemctl daemon-reload
+    systemctl restart "$SERVICE"
+    wait_for_health || die "legacy application did not pass health check after rollback"
+    rm -f "$BASE/previous-release"
+    log "rolled back to the original /opt/memphis-lspd application"
+  else
+    [[ "$previous_target" == "$RELEASES/"* && -d "$previous_target" ]] || die "recorded previous release is invalid"
+    atomic_set_current "$previous_target"
+    systemctl restart "$SERVICE"
+    wait_for_health || die "previous release did not pass health check after rollback"
+    write_previous_target "$current_target"
+    log "rolled back to $previous_target"
+  fi
+  exit 0
+fi
+
 if [[ "${1:-}" == "--check" ]]; then
   runuser -u "$DEPLOY_USER" -- test -w "$INCOMING" || die "incoming directory is not writable by the deploy account"
   health_check || die "current application health check failed"
@@ -81,25 +134,6 @@ else
   [[ -d "$LEGACY" && ! -L "$LEGACY" ]] || die "legacy application directory is missing or is not a regular directory"
   [[ ! -e "$DROPIN" ]] || die "systemd drop-in already exists; refusing to overwrite an unmanaged file"
 fi
-
-wait_for_health() {
-  local attempt
-  for attempt in $(seq 1 30); do
-    if health_check; then
-      return 0
-    fi
-    sleep 2
-  done
-  return 1
-}
-
-atomic_set_current() {
-  local target="$1"
-  local temporary="$BASE/.current.next.$$"
-  rm -f "$temporary"
-  ln -s "$target" "$temporary"
-  mv -Tf "$temporary" "$CURRENT"
-}
 
 rollback_on_error() {
   local exit_code="$1"
@@ -204,6 +238,7 @@ SWITCHED=1
 systemctl daemon-reload
 systemctl restart "$SERVICE"
 wait_for_health
+write_previous_target "$OLD_TARGET"
 
 trap - ERR
 rm -f "$ARCHIVE"
