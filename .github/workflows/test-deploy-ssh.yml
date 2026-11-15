@@ -14,12 +14,12 @@ concurrency:
 
 jobs:
   ssh-test:
-    name: Verify restricted VPS deployment access
+    name: Inspect restricted VPS deployment access
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Validate GitHub Secrets and connect to VPS
+      - name: Validate GitHub Secrets and inspect deployment directories
         shell: bash
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -40,19 +40,56 @@ jobs:
           trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
 
           printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
+          printf '%s\\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\\r' > "$HOSTS_FILE"
           chmod 600 "$KEY_FILE" "$HOSTS_FILE"
 
           test -s "$KEY_FILE"
           test -s "$HOSTS_FILE"
           ssh-keygen -y -f "$KEY_FILE" >/dev/null
 
-          ssh \
-            -i "$KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -o BatchMode=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOSTS_FILE" \
-            -o ConnectTimeout=10 \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            'set -eu; id; hostname; test -w /var/lib/memphis-deploy/incoming; printf "incoming: writable\\n"'
+          ssh \\
+            -i "$KEY_FILE" \\
+            -o IdentitiesOnly=yes \\
+            -o BatchMode=yes \\
+            -o StrictHostKeyChecking=yes \\
+            -o UserKnownHostsFile="$HOSTS_FILE" \\
+            -o ConnectTimeout=10 \\
+            "$DEPLOY_USER@$DEPLOY_HOST" \\
+            'set -eu
+            echo "=== Identity ==="
+            id
+            hostname
+
+            echo "=== Deployment paths ==="
+            for path in /var/lib/memphis-deploy /var/lib/memphis-deploy/incoming /var/lib/memphis-deploy/releases /opt/memphis-lspd; do
+              if [ -e "$path" ]; then
+                stat -c "%A %U:%G %n" "$path"
+                if [ -d "$path" ]; then
+                  find "$path" -maxdepth 1 -mindepth 1 -printf "  %M %u:%g %f\\n" 2>/dev/null | head -30 || true
+                fi
+              else
+                echo "MISSING $path"
+              fi
+            done
+
+            echo "=== Symlink target ==="
+            readlink -f /opt/memphis-lspd 2>/dev/null || true
+
+            echo "=== Matching services ==="
+            systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -Ei "memphis|next|pm2" || true
+
+            echo "=== Relevant processes ==="
+            ps -eo user,pid,comm,args --no-headers 2>/dev/null | grep -E "[n]ext|[n]ode|[p]m2" | head -20 || true
+
+            echo "=== Non-interactive sudo permissions ==="
+            sudo -n -l 2>&1 || true
+
+            echo "=== Available deploy utilities ==="
+            for utility in tar rsync node npm systemctl; do
+              command -v "$utility" || true
+            done
+
+            echo "=== Incoming directory writable ==="
+            test -w /var/lib/memphis-deploy/incoming
+            echo "incoming: writable"
+            '
