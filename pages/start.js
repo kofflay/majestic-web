@@ -54,7 +54,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="landing-page" style={{ position: 'relative', background: 'transparent' }}>
+    <div className="site-page-shell landing-page" style={{ position: 'relative' }}>
       
       {/* ВСТАВЛЯЕМ ЖИВОЙ ФОН СЮДА */}
       <LivingBackground />
