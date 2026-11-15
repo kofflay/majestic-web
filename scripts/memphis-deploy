@@ -242,6 +242,7 @@ $MARKER
 WorkingDirectory=$CURRENT
 ExecStart=
 ExecStart=/usr/bin/node $CURRENT/server.js
+ReadWritePaths=$RELEASES
 Environment=HOSTNAME=127.0.0.1
 Environment=PORT=$PORT
 EOF
