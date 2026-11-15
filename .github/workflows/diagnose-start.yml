@@ -1,0 +1,99 @@
+name: Diagnose production start page
+
+on:
+  push:
+    branches:
+      - ops/atomic-deploy
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Read-only production page and asset checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check live /start HTML, CSS, JavaScript and staff API
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/memphis-diag"
+          BASE="https://suspect-famq.ru"
+
+          PAGE_STATUS="$(curl -sS -L --max-time 20 -o "$RUNNER_TEMP/memphis-diag/start.html" -w '%{http_code}' "$BASE/start")"
+          echo "GET /start: HTTP $PAGE_STATUS"
+          test "$PAGE_STATUS" = "200"
+
+          python3 - "$BASE" "$RUNNER_TEMP/memphis-diag" <<'PY'
+          import re
+          import sys
+          import json
+          from pathlib import Path
+          from urllib.parse import urljoin
+          from urllib.request import Request, urlopen
+
+          base, work = sys.argv[1], Path(sys.argv[2])
+          html = (work / "start.html").read_text(errors="replace")
+          print("HTML contains landing-page:", "landing-page" in html)
+          print("HTML contains living-bg-container:", "living-bg-container" in html)
+          print("HTML contains LivingBackground animation rules:", "float-blue" in html)
+          print("HTML contains Next.js data:", "__NEXT_DATA__" in html)
+
+          css_urls = sorted(set(
+              urljoin(base, x) for x in re.findall(
+                  r'''(?:href)=["']([^"']+\.css(?:\?[^"']*)?)["']''', html
+              ) if "_next/static" in x
+          ))
+          js_urls = sorted(set(
+              urljoin(base, x) for x in re.findall(
+                  r'''(?:src)=["']([^"']+\.js(?:\?[^"']*)?)["']''', html
+              ) if "_next/static" in x
+          ))
+          print("Next CSS files:", len(css_urls))
+          print("Next JS files:", len(js_urls))
+          if not css_urls:
+              raise SystemExit("No Next.js CSS assets referenced by /start")
+
+          css_parts = []
+          for url in css_urls:
+              req = Request(url, headers={"User-Agent": "Memphis-LSPD-Diagnostics/1.0"})
+              with urlopen(req, timeout=15) as response:
+                  body = response.read().decode("utf-8", "replace")
+                  print("CSS:", response.status, url.rsplit("/", 1)[-1].split("?")[0],
+                        "bytes=", len(body))
+                  css_parts.append(body)
+          css = "\n".join(css_parts)
+
+          for selector in (".landing-page", ".landing-command", ".landing-command__grid"):
+              found = selector in css
+              print("CSS selector", selector, "present:", found)
+              if not found:
+                  raise SystemExit("Missing expected landing selector: " + selector)
+          print("CSS linear-gradient occurrences:", css.count("linear-gradient("))
+
+          js_parts = []
+          for url in js_urls:
+              req = Request(url, headers={"User-Agent": "Memphis-LSPD-Diagnostics/1.0"})
+              with urlopen(req, timeout=15) as response:
+                  body = response.read().decode("utf-8", "replace")
+                  print("JS:", response.status, url.rsplit("/", 1)[-1].split("?")[0],
+                        "bytes=", len(body))
+                  js_parts.append(body)
+          js = "\n".join(js_parts)
+          print("StaffCard background gradient present in JS:",
+                "linear-gradient(160deg" in js)
+          print("StaffCard rank gradient present in JS:", "#79aef9" in js)
+          print("LivingBackground component code present in JS:",
+                "float-blue" in js or "living-bg-container" in js)
+
+          req = Request(urljoin(base, "/api/staff"),
+                        headers={"User-Agent": "Memphis-LSPD-Diagnostics/1.0"})
+          try:
+              with urlopen(req, timeout=15) as response:
+                  payload = json.loads(response.read().decode("utf-8", "replace"))
+                  count = len(payload) if isinstance(payload, list) else "unexpected JSON shape"
+                  print("GET /api/staff: HTTP", response.status, "records:", count)
+          except Exception as exc:
+              print("GET /api/staff failed:", type(exc).__name__, str(exc)[:180])
+          PY

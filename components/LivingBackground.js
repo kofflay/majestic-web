@@ -13,24 +13,28 @@ export default function LivingBackground() {
           left: 0;
           width: 100vw;
           height: 100vh;
-          z-index: 0; /* Находится за контентом */
+          z-index: 0;
           overflow: hidden;
-          pointer-events: none; /* Чтобы нельзя было кликнуть по фону */
-          background: #07090d; /* Тот же цвет, что у тебя в landing-page */
+          pointer-events: none;
+          background: transparent;
         }
 
         .glow-orb {
           position: absolute;
           border-radius: 50%;
-          filter: blur(120px); /* Очень сильное размытие, чтобы не было видно границ */
-          opacity: 0.15; /* Низкая прозрачность, чтобы не слепило */
-          will-change: transform; /* Оптимизация для браузера */
+          filter: blur(120px);
+          will-change: transform;
         }
 
         .blue-orb {
           width: 50vw;
           height: 50vw;
-          background: #3f83f8; /* Твой полицейский синий */
+          background: radial-gradient(
+            circle,
+            rgba(63, 131, 248, 0.09) 0%,
+            rgba(63, 131, 248, 0.045) 42%,
+            rgba(63, 131, 248, 0) 72%
+          );
           top: -10%;
           left: -10%;
           animation: float-blue 25s ease-in-out infinite alternate;
@@ -39,7 +43,12 @@ export default function LivingBackground() {
         .red-orb {
           width: 45vw;
           height: 45vw;
-          background: #ff2640; /* Красный */
+          background: radial-gradient(
+            circle,
+            rgba(255, 38, 64, 0.075) 0%,
+            rgba(255, 38, 64, 0.035) 42%,
+            rgba(255, 38, 64, 0) 72%
+          );
           bottom: -15%;
           right: -10%;
           animation: float-red 30s ease-in-out infinite alternate;
@@ -48,14 +57,17 @@ export default function LivingBackground() {
         .purple-orb {
           width: 40vw;
           height: 40vw;
-          background: #9e6bff; /* Фиолетовый для глубины */
+          background: radial-gradient(
+            circle,
+            rgba(158, 107, 255, 0.045) 0%,
+            rgba(158, 107, 255, 0.02) 42%,
+            rgba(158, 107, 255, 0) 72%
+          );
           top: 40%;
           left: 30%;
-          opacity: 0.08; /* Еще более прозрачный */
           animation: float-purple 20s ease-in-out infinite alternate;
         }
 
-        /* Медленные движения по траектории */
         @keyframes float-blue {
           0% { transform: translate(0, 0) scale(1); }
           100% { transform: translate(15vw, 10vh) scale(1.1); }

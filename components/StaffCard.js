@@ -76,7 +76,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
 
   const rankStyle = isAdminView
     ? { fontSize: '13px', fontWeight: '700', marginBottom: '18px', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflowWrap: 'anywhere' }
-    : { fontSize: '13px', fontWeight: '700', marginBottom: '18px', background: 'linear-gradient(90deg, #79aef9, #b7d6ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflowWrap: 'anywhere' };
+    : { fontSize: '13px', fontWeight: '700', marginBottom: '18px', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflowWrap: 'anywhere' };
 
   const discordStyle = isAdminView
     ? { color: '#8db8ff', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' }
