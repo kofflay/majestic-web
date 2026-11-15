@@ -26,6 +26,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate deployment shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh scripts/memphis-deploy; do
+            bash -n "$script"
+          done
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:

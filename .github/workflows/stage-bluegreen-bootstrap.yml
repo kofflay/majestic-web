@@ -1,0 +1,57 @@
+name: Stage blue-green VPS upgrade files
+
+on:
+  push:
+    branches:
+      - ops/blue-green-deploy
+    paths:
+      - scripts/memphis-deploy
+      - scripts/upgrade-memphis-bluegreen.sh
+      - .github/workflows/stage-bluegreen-bootstrap.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: memphis-bluegreen-bootstrap-transfer
+  cancel-in-progress: false
+
+jobs:
+  stage-upgrade:
+    name: Upload blue-green helper and one-time installer
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Upload trusted installer sources to VPS incoming directory
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${DEPLOY_HOST:?GitHub Secret DEPLOY_HOST is missing or empty}"
+          : "${DEPLOY_USER:?GitHub Secret DEPLOY_USER is missing or empty}"
+          : "${DEPLOY_SSH_KEY:?GitHub Secret DEPLOY_SSH_KEY is missing or empty}"
+          : "${DEPLOY_KNOWN_HOSTS:?GitHub Secret DEPLOY_KNOWN_HOSTS is missing or empty}"
+
+          KEY_FILE="$RUNNER_TEMP/memphis-deploy-key"
+          HOSTS_FILE="$RUNNER_TEMP/memphis-known-hosts"
+          trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
+          printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
+          chmod 600 "$KEY_FILE" "$HOSTS_FILE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+          SSH_OPTS=(-i "$KEY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOSTS_FILE" -o ConnectTimeout=10)
+
+          ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+            'set -eu; mkdir -p /var/lib/memphis-deploy/incoming/bootstrap-bluegreen; chmod 700 /var/lib/memphis-deploy/incoming/bootstrap-bluegreen'
+          scp "${SSH_OPTS[@]}" scripts/memphis-deploy scripts/upgrade-memphis-bluegreen.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:/var/lib/memphis-deploy/incoming/bootstrap-bluegreen/"
+          ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+            'set -eu; chmod 600 /var/lib/memphis-deploy/incoming/bootstrap-bluegreen/*; test -s /var/lib/memphis-deploy/incoming/bootstrap-bluegreen/memphis-deploy; test -s /var/lib/memphis-deploy/incoming/bootstrap-bluegreen/upgrade-memphis-bluegreen.sh; echo "Blue-green upgrade files staged successfully."; echo "=== INSTALLED BLUE-GREEN PREFLIGHT ==="; stat -c "%U:%G %a %n" /usr/local/sbin/memphis-deploy; sudo -n /usr/local/sbin/memphis-deploy --check; echo "=== BLUE-GREEN SYSTEMD TEMPLATE ==="; test -f /etc/systemd/system/memphis-lspd-slot@.service; systemd-analyze verify /etc/systemd/system/memphis-lspd-slot@.service; grep -E "^(WorkingDirectory|EnvironmentFile|Environment=|ExecStart|ReadWritePaths|WantedBy)=" /etc/systemd/system/memphis-lspd-slot@.service; echo "=== NGINX UPSTREAM ==="; cat /etc/nginx/conf.d/memphis-lspd-upstream.conf; grep -n "proxy_pass" /etc/nginx/sites-available/memphis-lspd; echo "=== PRODUCTION HTTP CHECK ==="; curl --fail --silent --show-error --max-time 8 https://suspect-famq.ru/start -o /dev/null; echo "Public /start returned HTTP success."'
