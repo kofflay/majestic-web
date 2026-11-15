@@ -474,11 +474,8 @@ case "$ACTION" in
     [[ "$2" =~ ^[0-9a-f]{40}$ ]] || die "invalid commit SHA"
     commit_deploy "$2"
     ;;
-  "")
-    [[ "$#" -eq 1 ]] || die "usage: memphis-deploy <40-character-main-commit-sha>"
-    prepare_deploy "$1"
-    ;;
   *)
-    die "usage: memphis-deploy <sha> | --check | --commit <sha> | --rollback"
+    [[ "$#" -eq 1 && "$ACTION" =~ ^[0-9a-f]{40}$ ]] || die "usage: memphis-deploy <40-character-main-commit-sha> | --check | --commit <sha> | --rollback"
+    prepare_deploy "$ACTION"
     ;;
 esac
