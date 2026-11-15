@@ -10,6 +10,17 @@ readonly SUDOERS_DEST="/etc/sudoers.d/memphis-lspd-deploy"
 
 [[ "$EUID" -eq 0 ]] || { echo "Run this installer from a root shell or with sudo." >&2; exit 1; }
 
+INSTALLER_OWNER="$(stat -c '%u' "${BASH_SOURCE[0]}")"
+INSTALLER_MODE="$(stat -c '%a' "${BASH_SOURCE[0]}")"
+[[ "$INSTALLER_OWNER" == "0" ]] || {
+  echo "The installer itself must be copied to a root-owned directory before running." >&2
+  exit 1
+}
+(( (8#$INSTALLER_MODE & 022) == 0 )) || {
+  echo "The installer must not be writable by group or other users." >&2
+  exit 1
+}
+
 HELPER_SOURCE="${1:-$(dirname "$0")/memphis-deploy}"
 [[ -f "$HELPER_SOURCE" && ! -L "$HELPER_SOURCE" ]] || {
   echo "Usage: sudo bash install-memphis-deploy.sh /trusted/path/to/memphis-deploy" >&2
@@ -17,6 +28,16 @@ HELPER_SOURCE="${1:-$(dirname "$0")/memphis-deploy}"
 }
 grep -Fq "Managed by majestic-web automatic deployment" "$HELPER_SOURCE" || {
   echo "The helper file does not contain the expected deployment marker." >&2
+  exit 1
+}
+HELPER_OWNER="$(stat -c '%u' "$HELPER_SOURCE")"
+HELPER_MODE="$(stat -c '%a' "$HELPER_SOURCE")"
+[[ "$HELPER_OWNER" == "0" ]] || {
+  echo "The deployment helper must be owned by root." >&2
+  exit 1
+}
+(( (8#$HELPER_MODE & 022) == 0 )) || {
+  echo "The deployment helper must not be writable by group or other users." >&2
   exit 1
 }
 
