@@ -1,4 +1,5 @@
 import { verifyToken } from '../../../lib/discord';
+import { verifyToken } from '../../../lib/discord';
 import { SUPER_ADMIN_ID } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 import { getReportWebhook } from '../../../lib/departments';
