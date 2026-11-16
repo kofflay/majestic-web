@@ -368,7 +368,7 @@ item.number = number
 item.discordPayload.embeds[1].title = item.discordPayload.embeds[1].title .. ' • Заявка №' .. tostring(number)
 redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
 redis.call('LPUSH', KEYS[3], tostring(number))
-redis.call('SET', KEYS[4], tostring(number), 'EX', 86400)
+redis.call('SET', KEYS[4], tostring(number), 'EX', 2592000)
 return {number, 1}
 `,
         ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:request:${user.id}:${submissionId}`],
