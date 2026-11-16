@@ -1,5 +1,5 @@
 import { verifyToken } from '../../../lib/discord';
-import { SUPER_ADMIN_ID } from '../../../lib/admins';
+import { canReviewHrAudit } from '../../../lib/hr-permissions';
 import { kv } from '../../../lib/redis.js';
 import { getReportWebhook } from '../../../lib/departments';
 import { HR_FORM_TYPES, getHrFormDisplayTitle } from '../../../lib/hr-forms';
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (String(user.id) !== SUPER_ADMIN_ID) return res.status(403).json({ error: 'Доступ разрешён только владельцу тестовой версии' });
+  if (!canReviewHrAudit(user)) return res.status(403).json({ error: 'Недостаточно прав для кадрового аудита' });
 
   if (req.method === 'GET') {
     try {
@@ -85,6 +85,31 @@ export default async function handler(req, res) {
     }
   }
 
+
+  if (req.body?.action === 'retry-notification') {
+    const id = String(req.body.id || '');
+    if (!/^\\d{1,12}$/.test(id)) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    const lockKey = `lspd:hr-audit:lock:${id}`;
+    try {
+      const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: LOCK_SECONDS });
+      if (locked !== 'OK') return res.status(409).json({ error: 'Заявка сейчас обрабатывается. Повторите позже.' });
+      const itemKey = HR_FORM_TYPES.promotion_report.itemKey(id);
+      const item = await kv.get(itemKey);
+      if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
+      if (!item.notificationPending || !['accepted', 'rejected'].includes(item.status)) {
+        return res.status(409).json({ error: 'Для этой заявки нет ожидающего уведомления' });
+      }
+      const notified = await sendDecision(item, user, item.status, item.reason || '');
+      const updated = { ...item, notificationPending: !notified, notificationAttempts: (item.notificationAttempts || 0) + 1, notificationLastAttemptAt: new Date().toISOString() };
+      await kv.set(itemKey, updated);
+      return res.status(notified ? 200 : 502).json({ success: notified, item: updated, error: notified ? undefined : 'Discord не подтвердил отправку. Можно повторить позже.' });
+    } catch (error) {
+      console.error('HR audit notification retry failed:', error);
+      return res.status(500).json({ error: 'Не удалось повторить уведомление' });
+    } finally {
+      await kv.del(lockKey).catch(() => {});
+    }
+  }
 
   if (req.body?.action === 'comment') {
     const id = String(req.body.id || '');
