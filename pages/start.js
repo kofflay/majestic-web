@@ -107,7 +107,27 @@ export default function Home() {
             </div>
           </section>
         </main>
-        <footer className="landing-footer"><span>LSPD SYSTEM / MEMPHIS</span><span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <strong>SUSPECT FAMQ</strong></span><span className="landing-footer__author">РАЗРАБОТКА САЙТА <strong>BY KOFFLAY</strong><span className="landing-footer__discord">DISCORD @kofflay</span></span><span>SECURE ACCESS · 2026</span></footer>
+        <footer className="landing-footer">
+          <span>LSPD SYSTEM / MEMPHIS</span>
+          <span className="landing-footer__credit">
+            ЧАСТЬ ПРОЕКТА{' '}
+            <a href="https://discord.gg/suspectfmq" target="_blank" rel="noopener noreferrer">
+              <strong>SUSPECT FAMQ</strong>
+            </a>
+          </span>
+          <span className="landing-footer__author">
+            РАЗРАБОТКА САЙТА{' '}
+            <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">
+              <strong>BY KOFFLAY</strong>
+            </a>
+            <span className="landing-footer__discord">
+              <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">
+                DISCORD @kofflay
+              </a>
+            </span>
+          </span>
+          <span>SECURE ACCESS · 2026</span>
+        </footer>
       </div>
     </div>
   );
