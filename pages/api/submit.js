@@ -355,6 +355,7 @@ export default async function handler(req, res) {
       id: String(hrAuditNumber),
       number: hrAuditNumber,
       type: 'report',
+      formType: 'promotion_report',
       title: getFormTitle(type, department, targetDepartment, leaveType),
       status: 'pending',
       submittedAt: new Date().toISOString(),
