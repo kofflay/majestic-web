@@ -324,7 +324,7 @@ export default async function handler(req, res) {
   }
 
   const embed = {
-    title: getFormTitle(type, department, targetDepartment, leaveType) + (hrAuditNumber ? ` • Заявка №${hrAuditNumber}` : ''),
+    title: type === 'report' && hrAuditNumber ? `Отчёт о повышении №${hrAuditNumber}` : getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
     fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id),
