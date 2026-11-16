@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   try {
-    const ids = await kv.lrange('lspd:hr-audit:ids', 0, 499);
+    const ids = await kv.lrange('lspd:hr-audit:ids', 0, -1);
     const records = await Promise.all(ids.map(id => kv.get('lspd:hr-audit:item:' + id)));
     const items = records.filter(item => item && String(item.submitter?.id) === String(user.id))
       .map(item => ({
