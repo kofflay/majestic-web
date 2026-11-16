@@ -312,67 +312,97 @@ export default async function handler(req, res) {
     if (ipCount && parseInt(ipCount) >= 6) return rejectSubmission(res, user, type, formData, leaveType, 429, '🚫 Слишком много с IP.');
   }
 
-  // Promotion reports enter the shared HR audit register with a sequential number.
-  let hrAuditNumber = null;
-  if (type === 'report') {
-    try {
-      hrAuditNumber = await kv.incr('lspd:hr-audit:sequence');
-    } catch (storageError) {
-      console.error('HR audit numbering failed:', storageError);
-      return rejectSubmission(res, user, type, formData, leaveType, 503, 'Реестр кадрового аудита временно недоступен. Попробуйте позже.');
-    }
-  }
-
-  const embed = {
-    title: getFormTitle(type, department, targetDepartment, leaveType) + (hrAuditNumber ? ` • Заявка №${hrAuditNumber}` : ''),
+  const baseEmbed = {
+    title: getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
     fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id),
     footer: { text: 'LSPD Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
-  const embedError = validateEmbed(embed);
+  const embedError = validateEmbed(baseEmbed);
   if (embedError) return rejectSubmission(res, user, type, formData, leaveType, 400, embedError);
 
-  // Приватная запись — каноническая копия жалобы. Публичная сводка отправляется после неё.
-  const result = await sendToDiscord(webhookUrl, {
+  const discordPayload = {
     content: roleMentions.trim() || undefined,
-    embeds: [embed],
+    embeds: [baseEmbed],
     username: 'LSPD Forms',
     avatar_url: 'https://i.imgur.com/AfFp7pu.png',
     ...(threadId ? { thread_id: threadId } : {})
-  });
+  };
 
-  if (!result.success) {
-    return rejectSubmission(res, user, type, formData, leaveType, 502, `Не удалось отправить: ${result.error || 'ошибка Discord'}`);
-  }
-
-  // Discord подтвердил доставку основного сообщения — фиксируем успех сразу.
-  await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
-
-  if (type === 'report' && hrAuditNumber) {
+  let result;
+  let embed = baseEmbed;
+  if (type === 'report') {
+    const submittedAt = new Date().toISOString();
     const auditItem = {
-      id: String(hrAuditNumber),
-      number: hrAuditNumber,
+      id: '',
+      number: 0,
       type: 'report',
-      title: getFormTitle(type, department, targetDepartment, leaveType),
+      title: baseEmbed.title,
       status: 'pending',
-      submittedAt: new Date().toISOString(),
+      deliveryPending: true,
+      submittedAt,
       submitter: { id: String(user.id), username: user.username || 'Unknown' },
       data: formData,
-      history: [{ action: 'submitted', at: new Date().toISOString(), userId: String(user.id) }]
+      history: [{ action: 'submitted', at: submittedAt, userId: String(user.id) }],
+      discordPayload
     };
+
     try {
-      // Save the item and publish its ID atomically so the register cannot miss a stored application.
-      await kv.eval(
-        "redis.call('SET', KEYS[1], ARGV[1]); redis.call('LPUSH', KEYS[2], ARGV[2]); return 1",
-        [`lspd:hr-audit:item:${hrAuditNumber}`, 'lspd:hr-audit:ids'],
-        [JSON.stringify(auditItem), String(hrAuditNumber)]
+      // Allocate the immutable number and persist the complete retry payload in one Redis transaction.
+      hrAuditNumber = await kv.eval(
+        `
+local number = redis.call('INCR', KEYS[1])
+local item = cjson.decode(ARGV[1])
+item.id = tostring(number)
+item.number = number
+item.discordPayload.embeds[1].title = item.discordPayload.embeds[1].title .. ' • Заявка №' .. tostring(number)
+redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
+redis.call('LPUSH', KEYS[3], tostring(number))
+return number
+`,
+        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids'],
+        [JSON.stringify(auditItem)]
       );
+      hrAuditNumber = Number(hrAuditNumber);
+      embed = { ...baseEmbed, title: `${baseEmbed.title} • Заявка №${hrAuditNumber}` };
+      discordPayload.embeds = [embed];
+      result = await sendToDiscord(webhookUrl, discordPayload);
+
+      const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
+      if (result.success) {
+        const stored = await kv.get(itemKey);
+        await kv.set(itemKey, { ...stored, deliveryPending: false, discordPayload: null });
+      } else {
+        console.error('HR audit application is stored but Discord delivery failed:', { number: hrAuditNumber, error: result.error });
+        try {
+          await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+        } catch (historyError) {
+          console.error('HR audit delivery-pending history failed:', historyError);
+        }
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но не доставлена в Discord. Администратор может повторить отправку.`
+        });
+      }
     } catch (storageError) {
-      console.error('Promotion report was sent to Discord but HR audit storage failed:', storageError);
-      return res.status(200).json({ success: true, warning: 'Заявка отправлена, но её запись в кадровом реестре не сохранилась. Сообщите администратору.' });
+      console.error('HR audit register transaction failed:', storageError);
+      return res.status(503).json({ error: 'Не удалось надёжно сохранить заявку в кадровом реестре. Повторите отправку позже.' });
     }
+  } else {
+    result = await sendToDiscord(webhookUrl, discordPayload);
+    if (!result.success) {
+      return rejectSubmission(res, user, type, formData, leaveType, 502, `Не удалось отправить: ${result.error || 'ошибка Discord'}`);
+    }
+  }
+
+  // Discord delivery succeeded (or a report was durably queued for retry).
+  try {
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
+  } catch (historyError) {
+    console.error('Submission history update failed after delivery:', historyError);
   }
 
   let publicWarning = null;
