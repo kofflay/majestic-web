@@ -11,6 +11,7 @@ export default function ReportForm() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submissionId, setSubmissionId] = useState('');
   const [profile, setProfile] = useState({ fullName: '', department: '' });
   const [formData, setFormData] = useState({ fullName: '', department: '', currentRank: '', targetRank: '', isInstructor: '', workLinks: '' });
 
@@ -41,12 +42,28 @@ export default function ReportForm() {
     }
     setSubmitting(true);
     try {
+      let requestId = submissionId;
+      if (!requestId) {
+        try { requestId = window.sessionStorage.getItem('hr-audit-report-submission-id') || ''; } catch {}
+      }
+      if (!requestId) {
+        requestId = window.crypto?.randomUUID?.() || `hr-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+      setSubmissionId(requestId);
+      try { window.sessionStorage.setItem('hr-audit-report-submission-id', requestId); } catch {}
+
       const res = await fetch('/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'report', ...formData, isInstructor: formData.isInstructor || 'no' })
+        body: JSON.stringify({ type: 'report', submissionId: requestId, ...formData, isInstructor: formData.isInstructor || 'no' })
       });
-      if (res.ok) { window.toast.success('Отчёт отправлен!'); router.push('/dashboard'); }
-      else { const error = await res.json(); throw new Error(error.error || 'Ошибка отправки'); }
+      const data = await res.json();
+      if (res.ok) {
+        try { window.sessionStorage.removeItem('hr-audit-report-submission-id'); } catch {}
+        setSubmissionId('');
+        if (data.warning) window.toast.info(data.warning);
+        else window.toast.success(data.number ? `Отчёт №${data.number} отправлен!` : 'Отчёт отправлен!');
+        router.push('/dashboard');
+      } else { throw new Error(data.error || 'Ошибка отправки'); }
     } catch (error) { window.toast.error(error.message); }
     finally { setSubmitting(false); }
   };
