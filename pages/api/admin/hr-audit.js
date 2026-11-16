@@ -2,8 +2,8 @@ import { verifyToken } from '../../../lib/discord';
 import { SUPER_ADMIN_ID } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 import { getReportWebhook } from '../../../lib/departments';
+import { HR_FORM_TYPES, getHrFormDisplayTitle } from '../../../lib/hr-forms';
 
-const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
 const LOCK_SECONDS = 15;
 
 async function sendDecision(item, reviewer, decision, reason) {
@@ -15,16 +15,17 @@ async function sendDecision(item, reviewer, decision, reason) {
     { name: 'Рассмотрел', value: `<@${reviewer.id}>`, inline: true },
     ...(reason ? [{ name: 'Причина отказа', value: reason.slice(0, 1024), inline: false }] : [])
   ];
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '');
   const response = await fetch(webhook, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: 'LSPD Forms',
-      content: `Отчёт №${item.number}: ${accepted ? 'одобрил' : 'отклонил'} <@${reviewer.id}>. Автор отчёта: <@${item.submitter.id}>.`,
+      content: `${getHrFormDisplayTitle(item.formType || 'promotion_report', item.number)}: ${accepted ? 'одобрил' : 'отклонил'} <@${reviewer.id}>. Автор отчёта: <@${item.submitter.id}>.`,
       embeds: [{
-        title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `${getHrFormDisplayTitle(item.formType || 'promotion_report', item.number)} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/admin/hr-audit)`,
+        description: `[Открыть заявку на сайте](${baseUrl}/admin/hr-audit/${item.number})`,
         fields,
         timestamp: new Date().toISOString(),
         footer: { text: 'LSPD HR Audit' }
@@ -35,7 +36,23 @@ async function sendDecision(item, reviewer, decision, reason) {
   return response.ok;
 }
 
+function matchesFilters(item, query) {
+  const type = String(query.type || 'promotion_report');
+  if (item.formType && item.formType !== type) return false;
+  if (!item.formType && type !== 'promotion_report') return false;
+  if (query.status && item.status !== query.status) return false;
+  if (query.department && String(item.data?.department || '') !== String(query.department)) return false;
+  if (query.search) {
+    const needle = String(query.search).trim().toLowerCase();
+    const haystack = [item.number, item.submitter?.username, item.submitter?.id, item.data?.fullName, item.data?.department]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (!haystack.includes(needle)) return false;
+  }
+  return true;
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -46,9 +63,22 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const ids = await kv.lrange(AUDIT_IDS_KEY, 0, 199);
-      const items = await Promise.all(ids.map(id => kv.get(`lspd:hr-audit:item:${id}`)));
-      return res.status(200).json({ items: items.filter(Boolean) });
+      const requestedType = String(req.query.type || 'promotion_report');
+      const config = HR_FORM_TYPES[requestedType];
+      if (!config) return res.status(400).json({ error: 'Неизвестный тип формы' });
+      if (req.query.id) {
+        if (!/^\d{1,12}$/.test(String(req.query.id))) return res.status(400).json({ error: 'Некорректный номер записи' });
+        const item = await kv.get(config.itemKey(req.query.id));
+        if (!item || (item.formType && item.formType !== requestedType)) return res.status(404).json({ error: 'Запись не найдена' });
+        return res.status(200).json({ item: { ...item, formType: item.formType || 'promotion_report' } });
+      }
+      const ids = await kv.lrange(config.idsKey, 0, 499);
+      const items = await Promise.all(ids.map(id => kv.get(config.itemKey(id))));
+      const filtered = items.filter(Boolean).map(item => ({
+        ...item,
+        formType: item.formType || 'promotion_report'
+      })).filter(item => matchesFilters(item, { ...req.query, type: requestedType }));
+      return res.status(200).json({ items: filtered });
     } catch (error) {
       console.error('HR audit list failed:', error);
       return res.status(500).json({ error: 'Не удалось загрузить кадровый реестр' });
@@ -67,20 +97,22 @@ export default async function handler(req, res) {
     const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: LOCK_SECONDS });
     if (locked !== 'OK') return res.status(409).json({ error: 'Заявка уже обрабатывается. Обновите страницу.' });
 
-    const itemKey = `lspd:hr-audit:item:${id}`;
+    const itemKey = HR_FORM_TYPES.promotion_report.itemKey(id);
     const item = await kv.get(itemKey);
     if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
     if (item.status !== 'pending') return res.status(409).json({ error: 'По этой заявке уже принято решение' });
 
+    const resolvedAt = new Date().toISOString();
     const updated = {
       ...item,
+      formType: item.formType || 'promotion_report',
       status: decision,
       reason: decision === 'rejected' ? cleanReason : null,
       reviewer: { id: String(user.id), username: user.username || 'Unknown' },
-      resolvedAt: new Date().toISOString(),
+      resolvedAt,
       history: [...(Array.isArray(item.history) ? item.history : []), {
         action: decision,
-        at: new Date().toISOString(),
+        at: resolvedAt,
         userId: String(user.id),
         reason: decision === 'rejected' ? cleanReason : null
       }],
