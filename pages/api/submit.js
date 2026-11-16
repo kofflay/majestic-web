@@ -351,7 +351,7 @@ export default async function handler(req, res) {
 
     try {
       // Allocate the immutable number and persist the complete retry payload in one Redis transaction.
-      hrAuditNumber = await kv.eval(
+      const hrAuditNumber = Number(await kv.eval(
         `
 local number = redis.call('INCR', KEYS[1])
 local item = cjson.decode(ARGV[1])
@@ -364,8 +364,7 @@ return number
 `,
         ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids'],
         [JSON.stringify(auditItem)]
-      );
-      hrAuditNumber = Number(hrAuditNumber);
+      ));
       embed = { ...baseEmbed, title: `${baseEmbed.title} • Заявка №${hrAuditNumber}` };
       discordPayload.embeds = [embed];
       result = await sendToDiscord(webhookUrl, discordPayload);
