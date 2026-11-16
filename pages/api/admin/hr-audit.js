@@ -88,7 +88,18 @@ export default async function handler(req, res) {
       }
       const reviewer = item.reviewer || { id: String(user.id), username: user.username || 'Unknown' };
       const sent = await sendDecision(item, reviewer, item.status, item.reason || '');
-      if (!sent) return res.status(502).json({ error: 'Discord не принял уведомление. Повторите позже.' });
+      if (!sent) {
+        const failedAt = new Date().toISOString();
+        await kv.set(itemKey, {
+          ...item,
+          history: [...(Array.isArray(item.history) ? item.history : []), {
+            action: 'notification_retry_failed',
+            at: failedAt,
+            userId: String(user.id)
+          }]
+        });
+        return res.status(502).json({ error: 'Discord не принял уведомление. Повторите позже.' });
+      }
       const notificationSentAt = new Date().toISOString();
       const updated = {
         ...item,
@@ -132,7 +143,18 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item.discordPayload)
       });
-      if (!response.ok) return res.status(502).json({ error: 'Discord пока не принял сообщение. Можно повторить позже.' });
+      if (!response.ok) {
+        const failedAt = new Date().toISOString();
+        await kv.set(itemKey, {
+          ...item,
+          history: [...(Array.isArray(item.history) ? item.history : []), {
+            action: 'delivery_retry_failed',
+            at: failedAt,
+            userId: String(user.id)
+          }]
+        });
+        return res.status(502).json({ error: 'Discord пока не принял сообщение. Можно повторить позже.' });
+      }
       const deliveredAt = new Date().toISOString();
       const updated = {
         ...item,
