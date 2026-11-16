@@ -81,6 +81,21 @@ export default function HrAuditPage() {
     finally { setBusy(''); }
   };
 
+  const retryNotification = async item => {
+    setBusy(item.id); setError('');
+    try {
+      const response = await fetch('/api/admin/hr-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, action: 'retry-notification' })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось повторить уведомление');
+      setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+    } catch (e) { setError(e.message); }
+    finally { setBusy(''); }
+  };
+
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
 
   return (
@@ -115,7 +130,21 @@ export default function HrAuditPage() {
             </div> : <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.12)' }}>
               <div style={label}>РЕШЕНИЕ</div><div style={value}>{item.reviewer?.username} · {item.reviewer?.id} · {item.resolvedAt ? new Date(item.resolvedAt).toLocaleString('ru-RU') : ''}</div>
               {item.reason && <><div style={{ ...label, marginTop: 12 }}>ПРИЧИНА</div><div style={value}>{item.reason}</div></>}
-              {item.notificationPending && <div style={{ color: '#ffb74d', marginTop: 10 }}>Уведомление Discord ожидает повторной отправки.</div>}
+              {item.notificationPending && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ color: '#ffb74d' }}>Уведомление Discord ожидает повторной отправки.</span>
+                <button disabled={busy === item.id} onClick={() => retryNotification(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ УВЕДОМЛЕНИЕ</button>
+              </div>}
+            </div>}
+            {Array.isArray(item.history) && item.history.length > 0 && <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.12)' }}>
+              <div style={{ ...label, marginBottom: 10 }}>ИСТОРИЯ ДЕЙСТВИЙ</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {item.history.map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
+                  <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action}</strong>
+                  {' · '}{entry.at ? new Date(entry.at).toLocaleString('ru-RU') : 'Время не указано'}
+                  {' · Discord ID: '}{entry.userId || 'не указан'}
+                  {entry.reason && <div style={{ marginTop: 3, color: '#cbd5e1' }}>Причина: {entry.reason}</div>}
+                </div>)}
+              </div>
             </div>}
           </section>;
         })}
