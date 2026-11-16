@@ -278,6 +278,10 @@ export default function Header({ user }) {
         }
 
         .brand {
+          appearance: none;
+          -webkit-appearance: none;
+          border: 0;
+          background: transparent;
           grid-column: 1;
           justify-self: start;
           display: flex;
