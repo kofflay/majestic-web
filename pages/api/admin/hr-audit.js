@@ -62,7 +62,32 @@ export default async function handler(req, res) {
     }
   }
 
-  const { id, decision, reason } = req.body || {};
+  const { id, decision, reason, action } = req.body || {};
+  if (action === 'retry-delivery') {
+    if (!/^\\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    try {
+      const itemKey = `lspd:hr-audit:item:${id}`;
+      const item = await kv.get(itemKey);
+      if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
+      if (item.status !== 'pending' || !item.deliveryPending || !item.discordPayload) {
+        return res.status(409).json({ error: 'Для этой заявки нет ожидающей отправки' });
+      }
+      const webhook = getReportWebhook(item.data?.department);
+      if (!webhook) return res.status(503).json({ error: 'Вебхук отдела не настроен' });
+      const response = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.discordPayload)
+      });
+      if (!response.ok) return res.status(502).json({ error: 'Discord пока не принял сообщение. Можно повторить позже.' });
+      const updated = { ...item, deliveryPending: false, discordPayload: null, deliveredAt: new Date().toISOString() };
+      await kv.set(itemKey, updated);
+      return res.status(200).json({ success: true, item: updated });
+    } catch (error) {
+      console.error('HR audit delivery retry failed:', error);
+      return res.status(500).json({ error: 'Не удалось повторить отправку' });
+    }
+  }
   if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
   if (!['accepted', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Некорректное решение' });
   const cleanReason = typeof reason === 'string' ? reason.trim() : '';
