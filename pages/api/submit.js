@@ -333,6 +333,7 @@ export default async function handler(req, res) {
 
   let result;
   let embed = baseEmbed;
+  let hrAuditNumber = null;
   if (type === 'report') {
     const submittedAt = new Date().toISOString();
     const auditItem = {
@@ -351,7 +352,7 @@ export default async function handler(req, res) {
 
     try {
       // Allocate the immutable number and persist the complete retry payload in one Redis transaction.
-      const hrAuditNumber = Number(await kv.eval(
+      hrAuditNumber = Number(await kv.eval(
         `
 local number = redis.call('INCR', KEYS[1])
 local item = cjson.decode(ARGV[1])
@@ -486,7 +487,7 @@ return number
     console.error('Submission delivered to Discord, but history storage failed:', storageError);
   }
 
-  res.status(200).json({ success: true, ...(publicWarning ? { warning: publicWarning } : {}) });
+  res.status(200).json({ success: true, ...(hrAuditNumber ? { number: hrAuditNumber } : {}), ...(publicWarning ? { warning: publicWarning } : {}) });
 }
 
 function getFormTitle(type, department, targetDepartment, leaveType) {
