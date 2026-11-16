@@ -85,6 +85,36 @@ export default async function handler(req, res) {
     }
   }
 
+
+  if (req.body?.action === 'comment') {
+    const id = String(req.body.id || '');
+    const comment = typeof req.body.comment === 'string' ? req.body.comment.trim() : '';
+    if (!/^\\d{1,12}$/.test(id)) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    if (!comment || comment.length > 2000) return res.status(400).json({ error: 'Комментарий должен содержать от 1 до 2000 символов' });
+    const lockKey = `lspd:hr-audit:lock:${id}`;
+    try {
+      const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: LOCK_SECONDS });
+      if (locked !== 'OK') return res.status(409).json({ error: 'Заявка сейчас обрабатывается. Повторите позже.' });
+      const itemKey = HR_FORM_TYPES.promotion_report.itemKey(id);
+      const item = await kv.get(itemKey);
+      if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
+      const at = new Date().toISOString();
+      const entry = { id: `${at}-${String(user.id)}`, comment, at, author: { id: String(user.id), username: user.username || 'Unknown' } };
+      const updated = {
+        ...item,
+        comments: [...(Array.isArray(item.comments) ? item.comments : []), entry],
+        history: [...(Array.isArray(item.history) ? item.history : []), { action: 'commented', at, userId: String(user.id) }]
+      };
+      await kv.set(itemKey, updated);
+      return res.status(200).json({ success: true, item: updated });
+    } catch (error) {
+      console.error('HR audit comment failed:', error);
+      return res.status(500).json({ error: 'Не удалось сохранить комментарий' });
+    } finally {
+      await kv.del(lockKey).catch(() => {});
+    }
+  }
+
   const { id, decision, reason } = req.body || {};
   if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
   if (!['accepted', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Некорректное решение' });
