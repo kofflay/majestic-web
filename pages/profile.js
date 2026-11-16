@@ -416,16 +416,17 @@ export default function Profile() {
             <div className="profile-history__count"><strong>{hrReportsLoading ? '—' : String(hrReports.length).padStart(2, '0')}</strong><span>ОТЧЁТОВ</span></div>
           </div>
           <div className="profile-history__list">
-            {hrReportsLoading ? <div className="profile-history__empty">Загрузка отчётов...</div> : hrReports.length === 0 ? <div className="profile-history__empty"><strong>Отчётов пока нет</strong><p>После отправки отчёт появится здесь.</p></div> : hrReports.map(item => {
+            {hrReportsLoading ? <div className="profile-history__empty">Загрузка отчётов...</div> : hrReports.length === 0 ? <div className="profile-history__empty"><strong>Отчётов пока нет</strong><p>После отправки отчёт появится здесь.</p></div> : hrReports.slice(0, 10).map(item => {
               const status = item.status === 'pending' ? 'ОЖИДАЕТ РАССМОТРЕНИЯ' : item.status === 'accepted' ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО';
               const date = item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Дата неизвестна';
-              return <div className="profile-history-row" key={item.id}>
+              return <a href={`/profile/hr-reports/${encodeURIComponent(item.number)}`} className="profile-history-row profile-history-row--link" key={item.id}>
                 <div className={item.status === 'accepted' ? 'profile-history-row__marker is-sent' : item.status === 'rejected' ? 'profile-history-row__marker is-failed' : 'profile-history-row__marker'}>{item.status === 'accepted' ? '✓' : item.status === 'rejected' ? '!' : '…'}</div>
                 <div className="profile-history-row__content"><strong>{item.title}</strong><span>{date}</span>{item.reason && <p>Причина отказа: {item.reason}</p>}</div>
                 <span className="profile-status"><i />{status}</span>
-              </div>;
+              </a>;
             })}
           </div>
+          {!hrReportsLoading && hrReports.length > 10 && <div className="profile-history__all"><a className="profile-button profile-button--secondary" href="/profile/hr-reports">ПОСМОТРЕТЬ ВСЕ ({hrReports.length})</a></div>}
         </section>
 
         <section className="profile-history" aria-label="История обращений">
