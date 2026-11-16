@@ -44,5 +44,5 @@ export default function HrAuditDetailPage() {
         <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} maxLength={2000} placeholder="Внутренний комментарий..." style={{ display: 'block', width: '100%', boxSizing: 'border-box', margin: '12px 0', padding: 12, background: '#080c12', color: '#fff', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4 }} />
         <button disabled={busy || !comment.trim()} onClick={addComment}>ДОБАВИТЬ КОММЕНТАРИЙ</button>
       </section>
-    }</PageLayout>;
+    </>}</PageLayout>;
 }
