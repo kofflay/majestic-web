@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const number = String(req.query.number || '');
-  if (!/^\\d{1,12}$/.test(number)) return res.status(400).json({ error: 'Некорректный номер отчёта.' });
+  if (!/^\d{1,12}$/.test(number)) return res.status(400).json({ error: 'Некорректный номер отчёта.' });
 
   try {
     const item = await kv.get('lspd:hr-audit:item:' + number);
