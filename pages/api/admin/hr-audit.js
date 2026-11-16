@@ -4,7 +4,14 @@ import { kv } from '../../../lib/redis.js';
 import { getReportWebhook } from '../../../lib/departments';
 
 const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
-const LOCK_SECONDS = 15;
+const SAVE_DECISION_SCRIPT = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return -1 end
+local current = cjson.decode(raw)
+if current.status ~= 'pending' then return 0 end
+redis.call('SET', KEYS[1], ARGV[1])
+return 1
+`;
 
 async function sendDecision(item, reviewer, decision, reason) {
   const webhook = getReportWebhook(item.data?.department);
@@ -20,6 +27,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: 'LSPD Forms',
+      content: `<@${item.submitter.id}> <@${reviewer.id}>`,
       embeds: [{
         title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
@@ -61,31 +69,32 @@ export default async function handler(req, res) {
   if (decision === 'rejected' && !cleanReason) return res.status(400).json({ error: 'Для отказа обязательно укажите причину' });
   if (cleanReason.length > 1000) return res.status(400).json({ error: 'Причина слишком длинная' });
 
-  const lockKey = `lspd:hr-audit:lock:${id}`;
   try {
-    const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: LOCK_SECONDS });
-    if (locked !== 'OK') return res.status(409).json({ error: 'Заявка уже обрабатывается. Обновите страницу.' });
-
     const itemKey = `lspd:hr-audit:item:${id}`;
     const item = await kv.get(itemKey);
     if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
     if (item.status !== 'pending') return res.status(409).json({ error: 'По этой заявке уже принято решение' });
 
+    const resolvedAt = new Date().toISOString();
     const updated = {
       ...item,
       status: decision,
       reason: decision === 'rejected' ? cleanReason : null,
       reviewer: { id: String(user.id), username: user.username || 'Unknown' },
-      resolvedAt: new Date().toISOString(),
+      resolvedAt,
       history: [...(Array.isArray(item.history) ? item.history : []), {
         action: decision,
-        at: new Date().toISOString(),
+        at: resolvedAt,
         userId: String(user.id),
         reason: decision === 'rejected' ? cleanReason : null
       }],
       notificationPending: true
     };
-    await kv.set(itemKey, updated);
+
+    // Redis compare-and-set prevents two concurrent requests from resolving the same item.
+    const saved = await kv.eval(SAVE_DECISION_SCRIPT, [itemKey], [JSON.stringify(updated)]);
+    if (saved === -1) return res.status(404).json({ error: 'Заявка не найдена' });
+    if (saved !== 1) return res.status(409).json({ error: 'По этой заявке уже принято решение' });
 
     let notified = false;
     try { notified = await sendDecision(updated, user, decision, cleanReason); }
@@ -98,7 +107,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('HR audit decision failed:', error);
     return res.status(500).json({ error: 'Не удалось сохранить решение' });
-  } finally {
-    await kv.del(lockKey).catch(() => {});
   }
 }
