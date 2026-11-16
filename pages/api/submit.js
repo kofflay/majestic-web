@@ -220,9 +220,12 @@ export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { type, leaveType, ...formData } = req.body || {};
+  const { type, leaveType, submissionId, ...formData } = req.body || {};
   const validTypes = new Set(['report', 'transfer', 'highrank', 'resignation', 'reinstatement', 'transfer-to-lspd', 'hiring', 'weapon-request', 'premium', 'complaint', 'leave', 'promotion']);
   if (!validTypes.has(type)) return res.status(400).json({ error: 'Неизвестный тип заявления' });
+  if (type === 'report' && !/^[a-zA-Z0-9_-]{16,80}$/.test(String(submissionId || ''))) {
+    return res.status(400).json({ error: 'Не удалось подтвердить отправку отчёта. Обновите форму и повторите попытку.' });
+  }
 
   const validationError = validateSubmission(type, formData, leaveType);
   if (validationError) return rejectSubmission(res, user, type, formData, leaveType, 400, validationError);
@@ -352,8 +355,12 @@ export default async function handler(req, res) {
 
     try {
       // Allocate the immutable number and persist the complete retry payload in one Redis transaction.
-      hrAuditNumber = Number(await kv.eval(
+      const allocation = await kv.eval(
         `
+local existing = redis.call('GET', KEYS[4])
+if existing then
+  return {tonumber(existing), 0}
+end
 local number = redis.call('INCR', KEYS[1])
 local item = cjson.decode(ARGV[1])
 item.id = tostring(number)
@@ -361,16 +368,32 @@ item.number = number
 item.discordPayload.embeds[1].title = item.discordPayload.embeds[1].title .. ' • Заявка №' .. tostring(number)
 redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
 redis.call('LPUSH', KEYS[3], tostring(number))
-return number
+redis.call('SET', KEYS[4], tostring(number), 'EX', 86400)
+return {number, 1}
 `,
-        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids'],
+        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:request:${user.id}:${submissionId}`],
         [JSON.stringify(auditItem)]
-      ));
+      );
+      if (!Array.isArray(allocation) || allocation.length !== 2) {
+        throw new Error('HR audit allocation returned an invalid response');
+      }
+      hrAuditNumber = Number(allocation[0]);
+      const created = Number(allocation[1]) === 1;
+      const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
+      if (!created) {
+        const existing = await kv.get(itemKey);
+        if (!existing) throw new Error('HR audit idempotency record points to a missing item');
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          duplicate: true,
+          ...(existing.deliveryPending ? { warning: `Заявка №${hrAuditNumber} уже сохранена. Повторная отправка не выполнялась; проверьте её статус в кадровом реестре.` } : {})
+        });
+      }
+
       embed = { ...baseEmbed, title: `${baseEmbed.title} • Заявка №${hrAuditNumber}` };
       discordPayload.embeds = [embed];
       result = await sendToDiscord(webhookUrl, discordPayload);
-
-      const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
       if (result.success) {
         try {
           const deliveredAt = new Date().toISOString();
