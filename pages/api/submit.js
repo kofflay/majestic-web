@@ -363,8 +363,12 @@ export default async function handler(req, res) {
       history: [{ action: 'submitted', at: new Date().toISOString(), userId: String(user.id) }]
     };
     try {
-      await kv.set(`lspd:hr-audit:item:${hrAuditNumber}`, auditItem);
-      await kv.lpush('lspd:hr-audit:ids', String(hrAuditNumber));
+      // Save the item and publish its ID atomically so the register cannot miss a stored application.
+      await kv.eval(
+        "redis.call('SET', KEYS[1], ARGV[1]); redis.call('LPUSH', KEYS[2], ARGV[2]); return 1",
+        [`lspd:hr-audit:item:${hrAuditNumber}`, 'lspd:hr-audit:ids'],
+        [JSON.stringify(auditItem), String(hrAuditNumber)]
+      );
     } catch (storageError) {
       console.error('Promotion report was sent to Discord but HR audit storage failed:', storageError);
       return res.status(200).json({ success: true, warning: 'Заявка отправлена, но её запись в кадровом реестре не сохранилась. Сообщите администратору.' });
