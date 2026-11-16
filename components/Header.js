@@ -157,13 +157,15 @@ export default function Header({ user }) {
               </button>
             ))}
 
-            <button
-              className={`hr-audit-nav-btn ${router.pathname === '/admin/hr-audit' ? 'is-active' : ''}`}
-              onClick={() => navigate('/admin/hr-audit')}
-              aria-current={router.pathname === '/admin/hr-audit' ? 'page' : undefined}
-            >
-              Кадровый аудит
-            </button>
+            {user?.id === '200102286473691139' && (
+              <button
+                className={`hr-audit-nav-btn ${router.pathname === '/admin/hr-audit' ? 'is-active' : ''}`}
+                onClick={() => navigate('/admin/hr-audit')}
+                aria-current={router.pathname === '/admin/hr-audit' ? 'page' : undefined}
+              >
+                Кадровый аудит
+              </button>
+            )}
 
             {isAdmin && (
               <button
