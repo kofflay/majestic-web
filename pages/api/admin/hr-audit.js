@@ -66,9 +66,11 @@ export default async function handler(req, res) {
   if (action === 'retry-notification') {
     if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:notification-lock:${id}`;
+    let lockAcquired = false;
     try {
       const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
       if (locked !== 'OK') return res.status(409).json({ error: 'Уведомление уже отправляется. Обновите список позже.' });
+      lockAcquired = true;
       const itemKey = `lspd:hr-audit:item:${id}`;
       const item = await kv.get(itemKey);
       if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
@@ -85,16 +87,18 @@ export default async function handler(req, res) {
       console.error('HR audit notification retry failed:', error);
       return res.status(500).json({ error: 'Не удалось повторить уведомление' });
     } finally {
-      await kv.del(lockKey).catch(() => {});
+      if (lockAcquired) await kv.del(lockKey).catch(() => {});
     }
   }
 
   if (action === 'retry-delivery') {
     if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:delivery-lock:${id}`;
+    let lockAcquired = false;
     try {
       const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
       if (locked !== 'OK') return res.status(409).json({ error: 'Отправка уже выполняется. Обновите список позже.' });
+      lockAcquired = true;
       const itemKey = `lspd:hr-audit:item:${id}`;
       const item = await kv.get(itemKey);
       if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
@@ -116,7 +120,7 @@ export default async function handler(req, res) {
       console.error('HR audit delivery retry failed:', error);
       return res.status(500).json({ error: 'Не удалось повторить отправку' });
     } finally {
-      await kv.del(lockKey).catch(() => {});
+      if (lockAcquired) await kv.del(lockKey).catch(() => {});
     }
   }
   if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
