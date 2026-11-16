@@ -29,6 +29,13 @@ const ADMIN_TOOLS = [
     path: '/admin/requests',
   },
   {
+    title: 'Кадровый аудит',
+    description: 'Тестовое рассмотрение заявок на повышение.',
+    code: 'SYS-10',
+    path: '/admin/hr-audit',
+    isRestricted: true
+  },
+  {
     title: 'Черный список',
     description: 'Управление забаненными пользователями.',
     code: 'SYS-05',
