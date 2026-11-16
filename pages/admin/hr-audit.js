@@ -66,6 +66,21 @@ export default function HrAuditPage() {
     finally { setBusy(''); }
   };
 
+  const retryDelivery = async item => {
+    setBusy(item.id); setError('');
+    try {
+      const response = await fetch('/api/admin/hr-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, action: 'retry-delivery' })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось повторить отправку');
+      setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+    } catch (e) { setError(e.message); }
+    finally { setBusy(''); }
+  };
+
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
 
   return (
@@ -91,7 +106,9 @@ export default function HrAuditPage() {
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
               <textarea value={reasons[item.id] || ''} onChange={e => setReasons(prev => ({ ...prev, [item.id]: e.target.value }))} maxLength={1000} rows={3} placeholder="Укажи причину, если отклоняешь заявку…" style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 14px', padding: 12, resize: 'vertical', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }} />
+              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Заявка сохранена, но не доставлена в Discord.</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {item.deliveryPending && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
                 <button disabled={busy === item.id} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
                 <button disabled={busy === item.id} onClick={() => decide(item, 'rejected')} style={{ ...button('red'), opacity: busy === item.id ? .5 : 1 }}>ОТКЛОНИТЬ</button>
               </div>
