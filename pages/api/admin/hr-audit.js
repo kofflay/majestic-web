@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
   const { id, decision, reason, action } = req.body || {};
   if (action === 'retry-notification') {
-    if (!/^\\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:notification-lock:${id}`;
     try {
       const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'retry-delivery') {
-    if (!/^\\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:delivery-lock:${id}`;
     try {
       const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
