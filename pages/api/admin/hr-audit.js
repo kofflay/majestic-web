@@ -1,12 +1,13 @@
 import { verifyToken } from '../../../lib/discord';
 import { SUPER_ADMIN_ID } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
+import { getReportWebhook } from '../../../lib/departments';
 
 const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
 const LOCK_SECONDS = 15;
 
 async function sendDecision(item, reviewer, decision, reason) {
-  const webhook = process.env.WEBHOOK_PROMOTION;
+  const webhook = getReportWebhook(item.data?.department);
   if (!webhook) return false;
   const accepted = decision === 'accepted';
   const fields = [
@@ -20,7 +21,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     body: JSON.stringify({
       username: 'LSPD Forms',
       embeds: [{
-        title: `Кадровый аудит №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/admin/hr-audit)`,
         fields,
