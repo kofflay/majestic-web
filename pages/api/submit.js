@@ -371,14 +371,48 @@ return number
 
       const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
       if (result.success) {
-        const stored = await kv.get(itemKey);
-        await kv.set(itemKey, { ...stored, deliveryPending: false, discordPayload: null });
+        try {
+          const deliveredAt = new Date().toISOString();
+          const stored = await kv.get(itemKey);
+          await kv.set(itemKey, {
+            ...stored,
+            deliveryPending: false,
+            discordPayload: null,
+            deliveredAt,
+            history: [...(Array.isArray(stored?.history) ? stored.history : []), {
+              action: 'delivered',
+              at: deliveredAt,
+              userId: 'system'
+            }]
+          });
+        } catch (deliveryStateError) {
+          console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Discord принял заявку №${hrAuditNumber}, но подтверждение доставки не удалось записать в реестр. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
+          });
+        }
       } else {
         console.error('HR audit application is stored but Discord delivery failed:', { number: hrAuditNumber, error: result.error });
         try {
-          await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+          const pendingAt = new Date().toISOString();
+          const stored = await kv.get(itemKey);
+          await kv.set(itemKey, {
+            ...stored,
+            history: [...(Array.isArray(stored?.history) ? stored.history : []), {
+              action: 'delivery_pending',
+              at: pendingAt,
+              userId: 'system'
+            }]
+          });
         } catch (historyError) {
           console.error('HR audit delivery-pending history failed:', historyError);
+        }
+        try {
+          await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+        } catch (historyError) {
+          console.error('HR audit delivery-pending submission history failed:', historyError);
         }
         return res.status(200).json({
           success: true,
