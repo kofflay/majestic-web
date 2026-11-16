@@ -324,6 +324,7 @@ export default async function handler(req, res) {
   }
 
   const embed = {
+    description: type === 'report' && hrAuditNumber ? `[Открыть карточку отчёта](https://suspect-famq.ru/admin/hr-audit/${hrAuditNumber})` : undefined,
     title: type === 'report' && hrAuditNumber ? `Отчёт о повышении №${hrAuditNumber}` : getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
