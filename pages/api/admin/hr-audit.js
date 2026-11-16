@@ -20,6 +20,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: 'LSPD Forms',
+      content: `Отчёт №${item.number}: ${accepted ? 'одобрил' : 'отклонил'} <@${reviewer.id}>. Автор отчёта: <@${item.submitter.id}>.`,
       embeds: [{
         title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
