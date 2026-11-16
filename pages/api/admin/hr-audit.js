@@ -178,9 +178,9 @@ export default async function handler(req, res) {
   }
   if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
   if (!['accepted', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Некорректное решение' });
-  const cleanReason = typeof reason === 'string' ? reason.trim() : '';
+  const cleanReason = decision === 'rejected' && typeof reason === 'string' ? reason.trim() : '';
   if (decision === 'rejected' && !cleanReason) return res.status(400).json({ error: 'Для отказа обязательно укажите причину' });
-  if (cleanReason.length > 1000) return res.status(400).json({ error: 'Причина слишком длинная' });
+  if (decision === 'rejected' && cleanReason.length > 1000) return res.status(400).json({ error: 'Причина слишком длинная' });
 
   try {
     const itemKey = `lspd:hr-audit:item:${id}`;
