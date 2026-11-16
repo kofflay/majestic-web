@@ -1,9 +1,16 @@
+import { randomUUID } from 'crypto';
 import { verifyToken } from '../../../lib/discord';
 import { SUPER_ADMIN_ID } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 import { getReportWebhook } from '../../../lib/departments';
 
 const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
+const UNLOCK_SCRIPT = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
+`;
 const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return -1 end
@@ -67,9 +74,10 @@ export default async function handler(req, res) {
   if (action === 'retry-notification') {
     if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:notification-lock:${id}`;
+    const lockToken = randomUUID();
     let lockAcquired = false;
     try {
-      const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
+      const locked = await kv.set(lockKey, lockToken, { nx: true, ex: 60 });
       if (locked !== 'OK') return res.status(409).json({ error: 'Уведомление уже отправляется. Обновите список позже.' });
       lockAcquired = true;
       const itemKey = `lspd:hr-audit:item:${id}`;
@@ -98,16 +106,17 @@ export default async function handler(req, res) {
       console.error('HR audit notification retry failed:', error);
       return res.status(500).json({ error: 'Не удалось повторить уведомление' });
     } finally {
-      if (lockAcquired) await kv.del(lockKey).catch(() => {});
+      if (lockAcquired) await kv.eval(UNLOCK_SCRIPT, [lockKey], [lockToken]).catch(() => {});
     }
   }
 
   if (action === 'retry-delivery') {
     if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:delivery-lock:${id}`;
+    const lockToken = randomUUID();
     let lockAcquired = false;
     try {
-      const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
+      const locked = await kv.set(lockKey, lockToken, { nx: true, ex: 60 });
       if (locked !== 'OK') return res.status(409).json({ error: 'Отправка уже выполняется. Обновите список позже.' });
       lockAcquired = true;
       const itemKey = `lspd:hr-audit:item:${id}`;
@@ -142,7 +151,7 @@ export default async function handler(req, res) {
       console.error('HR audit delivery retry failed:', error);
       return res.status(500).json({ error: 'Не удалось повторить отправку' });
     } finally {
-      if (lockAcquired) await kv.del(lockKey).catch(() => {});
+      if (lockAcquired) await kv.eval(UNLOCK_SCRIPT, [lockKey], [lockToken]).catch(() => {});
     }
   }
   if (!/^\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
