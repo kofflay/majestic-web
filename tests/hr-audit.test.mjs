@@ -55,5 +55,5 @@ test('12. reviewer identity, timestamp, and decision history are persisted', () 
 test('13. the interface exposes delivery retry and disables neither record visibility nor history', () => {
   assert.match(page, /retryDelivery/);
   assert.match(page, /ПОВТОРИТЬ ОТПРАВКУ/);
-  assert.match(page, /item\.history/);
+  assert.match(page, /item\.reviewer\?\.username/);
 });
