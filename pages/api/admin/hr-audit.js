@@ -53,7 +53,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const ids = await kv.lrange(AUDIT_IDS_KEY, 0, 199);
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+      const ids = await kv.lrange(AUDIT_IDS_KEY, 0, -1);
       const items = await Promise.all(ids.map(id => kv.get(`lspd:hr-audit:item:${id}`)));
       return res.status(200).json({ items: items.filter(Boolean) });
     } catch (error) {
