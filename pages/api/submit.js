@@ -361,6 +361,11 @@ local existing = redis.call('GET', KEYS[4])
 if existing then
   return {tonumber(existing), 0}
 end
+local current = tonumber(redis.call('GET', KEYS[1]) or '0') or 0
+local latest = tonumber(redis.call('LINDEX', KEYS[3], 0) or '0') or 0
+if latest > current then
+  redis.call('SET', KEYS[1], tostring(latest))
+end
 local number = redis.call('INCR', KEYS[1])
 local item = cjson.decode(ARGV[1])
 item.id = tostring(number)
