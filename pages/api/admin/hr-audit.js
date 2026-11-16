@@ -44,7 +44,8 @@ async function sendDecision(item, reviewer, decision, reason) {
         footer: { text: 'LSPD HR Audit' }
       }],
       allowed_mentions: { users: [String(item.submitter.id), String(reviewer.id)] }
-    })
+    }),
+    signal: AbortSignal.timeout(15000)
   });
   return response.ok;
 }
@@ -141,7 +142,8 @@ export default async function handler(req, res) {
       const response = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item.discordPayload)
+        body: JSON.stringify(item.discordPayload),
+        signal: AbortSignal.timeout(15000)
       });
       if (!response.ok) {
         const failedAt = new Date().toISOString();
