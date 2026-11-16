@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: Test, build and deploy Memphis LSPD
     runs-on: ubuntu-latest
     timeout-minutes: 35
