@@ -312,9 +312,9 @@ export default async function handler(req, res) {
     if (ipCount && parseInt(ipCount) >= 6) return rejectSubmission(res, user, type, formData, leaveType, 429, '🚫 Слишком много с IP.');
   }
 
-  // Promotion requests also enter the HR audit register with a shared sequential number.
+  // Promotion reports enter the shared HR audit register with a sequential number.
   let hrAuditNumber = null;
-  if (type === 'promotion') {
+  if (type === 'report') {
     try {
       hrAuditNumber = await kv.incr('lspd:hr-audit:sequence');
     } catch (storageError) {
@@ -350,11 +350,11 @@ export default async function handler(req, res) {
   // Discord подтвердил доставку основного сообщения — фиксируем успех сразу.
   await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
 
-  if (type === 'promotion' && hrAuditNumber) {
+  if (type === 'report' && hrAuditNumber) {
     const auditItem = {
       id: String(hrAuditNumber),
       number: hrAuditNumber,
-      type: 'promotion',
+      type: 'report',
       title: getFormTitle(type, department, targetDepartment, leaveType),
       status: 'pending',
       submittedAt: new Date().toISOString(),
@@ -366,7 +366,7 @@ export default async function handler(req, res) {
       await kv.set(`lspd:hr-audit:item:${hrAuditNumber}`, auditItem);
       await kv.lpush('lspd:hr-audit:ids', String(hrAuditNumber));
     } catch (storageError) {
-      console.error('Promotion was sent to Discord but HR audit storage failed:', storageError);
+      console.error('Promotion report was sent to Discord but HR audit storage failed:', storageError);
       return res.status(200).json({ success: true, warning: 'Заявка отправлена, но её запись в кадровом реестре не сохранилась. Сообщите администратору.' });
     }
   }
