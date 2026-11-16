@@ -1202,3 +1202,12 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   .history-item,.history-filter,.admin-tool-card,.admin-tool-card .arrow { transition:none !important; }
   .admin-access-tag__dot { animation:none; }
 }
+
+/* Footer credits remain visually consistent while retaining clickable links. */
+.landing-footer a,
+.landing-footer a:visited,
+.landing-footer a:hover,
+.landing-footer a:active {
+  color: inherit !important;
+  text-decoration: none !important;
+}
