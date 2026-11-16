@@ -1211,3 +1211,38 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   color: inherit !important;
   text-decoration: none !important;
 }
+
+
+/* Desktop readability pass: keep compact metadata, enlarge actual reading text. */
+@media (min-width: 821px) {
+  .landing-page .landing-hero p,
+  .landing-page .landing-mission p,
+  .landing-page .landing-command > p { font-size: 18px; }
+  .landing-page .landing-actions .landing-more,
+  .landing-page .landing-actions .landing-text-link { font-size: 14px; }
+  .landing-page .landing-login { font-size: 15px; }
+  .landing-page .landing-section-label { font-size: 11px; }
+  .landing-page .landing-cards strong { font-size: 19px; }
+  .landing-page .landing-cards span,
+  .landing-page .landing-cards small { font-size: 11px; }
+  .landing-page .landing-footer { font-size: 10px; }
+
+  .site-page-content > div:first-child p,
+  .history-heading p,
+  .staff-heading p,
+  .admin-page-heading__description { font-size: 16px !important; }
+  .history-item__content strong { font-size: 15px; }
+  .history-item__date { font-size: 12px; }
+  .history-status { font-size: 10px; }
+  .history-filter { font-size: 12px; }
+  .history-empty p { font-size: 14px; }
+  .admin-tool-card h3 { font-size: 19px !important; }
+  .admin-tool-card p { font-size: 14px !important; }
+  .form-card__header p,
+  .form-notice { font-size: 15px; }
+  .form-card__body label,
+  .page-container label { font-size: 12px !important; }
+  .form-field-hint { font-size: 13px; }
+  .form-card__body button:not([type="submit"]),
+  button[type="submit"] { font-size: 14px !important; }
+}
