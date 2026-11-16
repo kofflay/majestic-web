@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import PageLayout from '../../components/PageLayout';
-import AdminPageGuard from '../../components/AdminPageGuard';
 import AdminSectionHeader from '../../components/AdminSectionHeader';
 
 const panel = {
@@ -70,8 +69,7 @@ export default function HrAuditPage() {
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
 
   return (
-    <AdminPageGuard>
-      <PageLayout user={user}>
+    <PageLayout user={user}>
         <AdminSectionHeader title="Кадровый аудит" description="Тестовый реестр отчётов на повышение. Принимать решения пока может только владелец сайта." />
         <div style={{ ...panel, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div><div style={label}>ТЕСТОВЫЙ ДОСТУП</div><div style={value}>Разрешён только Discord ID 200102286473691139</div></div>
@@ -104,7 +102,6 @@ export default function HrAuditPage() {
             </div>}
           </section>;
         })}
-      </PageLayout>
-    </AdminPageGuard>
+    </PageLayout>
   );
 }
