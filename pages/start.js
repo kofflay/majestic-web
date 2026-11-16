@@ -107,7 +107,7 @@ export default function Home() {
             </div>
           </section>
         </main>
-        <footer className="landing-footer"><span>LSPD SYSTEM / MEMPHIS</span><span>SECURE ACCESS · 2026</span></footer>
+        <footer className="landing-footer"><span>LSPD SYSTEM / MEMPHIS</span><span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <strong>SUSPECT FAMQ</strong></span><span className="landing-footer__author">РАЗРАБОТКА САЙТА <strong>BY KOFFLAY</strong><span className="landing-footer__discord">DISCORD @kofflay</span></span><span>SECURE ACCESS · 2026</span></footer>
       </div>
     </div>
   );
