@@ -27,11 +27,19 @@ export default function HrAuditPage() {
   const [reasons, setReasons] = useState({});
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('promotion_report');
 
   const load = async () => {
     setError('');
     try {
-      const response = await fetch('/api/admin/hr-audit');
+      const params = new URLSearchParams({ type: typeFilter });
+      if (search.trim()) params.set('search', search.trim());
+      if (statusFilter) params.set('status', statusFilter);
+      if (departmentFilter) params.set('department', departmentFilter);
+      const response = await fetch('/api/admin/hr-audit?' + params.toString());
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить заявки');
       setItems(data.items || []);
@@ -75,12 +83,32 @@ export default function HrAuditPage() {
           <div><div style={label}>ТЕСТОВЫЙ ДОСТУП</div><div style={value}>Разрешён только Discord ID 200102286473691139</div></div>
           <button onClick={load} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent' }}>ОБНОВИТЬ СПИСОК</button>
         </div>
+        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
+          <label style={label}>ТИП ФОРМЫ
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ display: 'block', width: '100%', marginTop: 6, padding: 10, background: '#080c12', color: '#fff', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4 }}>
+              <option value="promotion_report">Отчёты о повышении</option>
+              <option value="department_transfer" disabled>Переводы в отдел (подготовлено)</option>
+            </select>
+          </label>
+          <label style={label}>ПОИСК ПО НОМЕРУ / АВТОРУ
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Например, 12 или username" style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 6, padding: 10, background: '#080c12', color: '#fff', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4 }} />
+          </label>
+          <label style={label}>СТАТУС
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ display: 'block', width: '100%', marginTop: 6, padding: 10, background: '#080c12', color: '#fff', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4 }}>
+              <option value="">Все статусы</option><option value="pending">Ожидает</option><option value="accepted">Одобрено</option><option value="rejected">Отклонено</option>
+            </select>
+          </label>
+          <label style={label}>ОТДЕЛ
+            <input value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} placeholder="ID отдела" style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 6, padding: 10, background: '#080c12', color: '#fff', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4 }} />
+          </label>
+          <button onClick={load} style={{ ...button('green'), alignSelf: 'end' }}>ПРИМЕНИТЬ ФИЛЬТРЫ</button>
+        </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
         {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые заявки на повышение появятся здесь.</div> : items.map(item => {
           const [statusText, statusColor] = status(item);
           return <section key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>Заявка №{item.number}</h2>
+              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}><a href={"/admin/hr-audit/" + item.number} style={{ color: 'inherit' }}>Отчёт о повышении №{item.number} ↗</a></h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
             </div>
             <div style={{ ...label }}>ЗАЯВИТЕЛЬ</div><div style={{ ...value, marginBottom: 14 }}>{item.submitter?.username} · {item.submitter?.id}</div>
