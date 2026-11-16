@@ -109,8 +109,8 @@ export default function HrAuditPage() {
               {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Заявка сохранена, но не доставлена в Discord.</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {item.deliveryPending && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
-                <button disabled={busy === item.id} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
-                <button disabled={busy === item.id} onClick={() => decide(item, 'rejected')} style={{ ...button('red'), opacity: busy === item.id ? .5 : 1 }}>ОТКЛОНИТЬ</button>
+                <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
+                <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'rejected')} style={{ ...button('red'), opacity: busy === item.id ? .5 : 1 }}>ОТКЛОНИТЬ</button>
               </div>
             </div> : <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.12)' }}>
               <div style={label}>РЕШЕНИЕ</div><div style={value}>{item.reviewer?.username} · {item.reviewer?.id} · {item.resolvedAt ? new Date(item.resolvedAt).toLocaleString('ru-RU') : ''}</div>
