@@ -19,6 +19,8 @@ export default function Profile() {
   const [savingDepartment, setSavingDepartment] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [hrReports, setHrReports] = useState([]);
+  const [hrReportsLoading, setHrReportsLoading] = useState(true);
   const avatarInputRef = useRef(null);
 
   useEffect(() => {
@@ -49,6 +51,12 @@ export default function Profile() {
         if (data?.avatarUrl) setAvatarUrl(data.avatarUrl);
       })
       .catch(() => window.toast?.error('Не удалось загрузить фото профиля.'));
+
+    fetch('/api/hr-audit/my')
+      .then(response => response.json())
+      .then(data => setHrReports(Array.isArray(data?.items) ? data.items : []))
+      .catch(() => window.toast?.error('Не удалось загрузить статусы отчётов.'))
+      .finally(() => setHrReportsLoading(false));
 
     fetch('/api/stats')
       .then(response => response.json())
@@ -396,6 +404,28 @@ export default function Profile() {
               Изменения сохраняются в вашем профиле автоматически после подтверждения.
             </div>
           </article>
+        </section>
+
+        <section className="profile-history" aria-label="Отчёты о повышении">
+          <div className="profile-history__header">
+            <div>
+              <div className="profile-card-topline"><span>03 / КАДРОВЫЕ ЗАЯВКИ</span><span className="profile-record__reference">HR REPORTS</span></div>
+              <h2>Отчёты о повышении</h2>
+              <p>Статусы отправленных вами отчётов. После отказа можно подать новый отчёт через форму.</p>
+            </div>
+            <div className="profile-history__count"><strong>{hrReportsLoading ? '—' : String(hrReports.length).padStart(2, '0')}</strong><span>ОТЧЁТОВ</span></div>
+          </div>
+          <div className="profile-history__list">
+            {hrReportsLoading ? <div className="profile-history__empty">Загрузка отчётов...</div> : hrReports.length === 0 ? <div className="profile-history__empty"><strong>Отчётов пока нет</strong><p>После отправки отчёт появится здесь.</p></div> : hrReports.map(item => {
+              const status = item.status === 'pending' ? 'ОЖИДАЕТ РАССМОТРЕНИЯ' : item.status === 'accepted' ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО';
+              const date = item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Дата неизвестна';
+              return <div className="profile-history-row" key={item.id}>
+                <div className={item.status === 'accepted' ? 'profile-history-row__marker is-sent' : item.status === 'rejected' ? 'profile-history-row__marker is-failed' : 'profile-history-row__marker'}>{item.status === 'accepted' ? '✓' : item.status === 'rejected' ? '!' : '…'}</div>
+                <div className="profile-history-row__content"><strong>{item.title}</strong><span>{date}</span>{item.reason && <p>Причина отказа: {item.reason}</p>}</div>
+                <span className="profile-status"><i />{status}</span>
+              </div>;
+            })}
+          </div>
         </section>
 
         <section className="profile-history" aria-label="История обращений">
