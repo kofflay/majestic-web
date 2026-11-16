@@ -99,6 +99,7 @@ export default async function handler(req, res) {
     const item = await kv.get(itemKey);
     if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
     if (item.status !== 'pending') return res.status(409).json({ error: 'По этой заявке уже принято решение' });
+    if (item.deliveryPending) return res.status(409).json({ error: 'Сначала необходимо доставить заявку в Discord' });
 
     const resolvedAt = new Date().toISOString();
     const updated = {
