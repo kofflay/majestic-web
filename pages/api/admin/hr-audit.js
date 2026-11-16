@@ -99,7 +99,8 @@ export default async function handler(req, res) {
       if (!item.notificationPending || !['accepted', 'rejected'].includes(item.status)) {
         return res.status(409).json({ error: 'Для этой заявки нет ожидающего уведомления' });
       }
-      const notified = await sendDecision(item, user, item.status, item.reason || '');
+      const originalReviewer = item.reviewer ? { id: String(item.reviewer.id), username: item.reviewer.username || 'Unknown' } : user;
+      const notified = await sendDecision(item, originalReviewer, item.status, item.reason || '');
       const updated = { ...item, notificationPending: !notified, notificationAttempts: (item.notificationAttempts || 0) + 1, notificationLastAttemptAt: new Date().toISOString() };
       await kv.set(itemKey, updated);
       return res.status(notified ? 200 : 502).json({ success: notified, item: updated, error: notified ? undefined : 'Discord не подтвердил отправку. Можно повторить позже.' });
