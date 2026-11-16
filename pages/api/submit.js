@@ -312,19 +312,8 @@ export default async function handler(req, res) {
     if (ipCount && parseInt(ipCount) >= 6) return rejectSubmission(res, user, type, formData, leaveType, 429, '🚫 Слишком много с IP.');
   }
 
-  // Promotion reports enter the shared HR audit register with a sequential number.
-  let hrAuditNumber = null;
-  if (type === 'report') {
-    try {
-      hrAuditNumber = await kv.incr('lspd:hr-audit:sequence');
-    } catch (storageError) {
-      console.error('HR audit numbering failed:', storageError);
-      return rejectSubmission(res, user, type, formData, leaveType, 503, 'Реестр кадрового аудита временно недоступен. Попробуйте позже.');
-    }
-  }
-
   const embed = {
-    title: getFormTitle(type, department, targetDepartment, leaveType) + (hrAuditNumber ? ` • Заявка №${hrAuditNumber}` : ''),
+    title: getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
     fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id),
@@ -349,31 +338,6 @@ export default async function handler(req, res) {
 
   // Discord подтвердил доставку основного сообщения — фиксируем успех сразу.
   await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
-
-  if (type === 'report' && hrAuditNumber) {
-    const auditItem = {
-      id: String(hrAuditNumber),
-      number: hrAuditNumber,
-      type: 'report',
-      title: getFormTitle(type, department, targetDepartment, leaveType),
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-      submitter: { id: String(user.id), username: user.username || 'Unknown' },
-      data: formData,
-      history: [{ action: 'submitted', at: new Date().toISOString(), userId: String(user.id) }]
-    };
-    try {
-      // Save the item and publish its ID atomically so the register cannot miss a stored application.
-      await kv.eval(
-        "redis.call('SET', KEYS[1], ARGV[1]); redis.call('LPUSH', KEYS[2], ARGV[2]); return 1",
-        [`lspd:hr-audit:item:${hrAuditNumber}`, 'lspd:hr-audit:ids'],
-        [JSON.stringify(auditItem), String(hrAuditNumber)]
-      );
-    } catch (storageError) {
-      console.error('Promotion report was sent to Discord but HR audit storage failed:', storageError);
-      return res.status(200).json({ success: true, warning: 'Заявка отправлена, но её запись в кадровом реестре не сохранилась. Сообщите администратору.' });
-    }
-  }
 
   let publicWarning = null;
   if (type === 'complaint') {

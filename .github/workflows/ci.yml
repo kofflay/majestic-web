@@ -1,7 +1,5 @@
 name: CI
 
-# Pull-request validation for the current application source.
-
 on:
   push:
     branches:
