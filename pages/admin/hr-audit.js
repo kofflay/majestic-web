@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import PageLayout from '../../components/PageLayout';
 import AdminSectionHeader from '../../components/AdminSectionHeader';
+import { verifyToken } from '../../lib/discord';
+import { SUPER_ADMIN_ID } from '../../lib/admins';
 
 const panel = {
   background: 'rgba(11,15,22,.72)',
@@ -19,6 +21,17 @@ const button = (color) => ({
   borderRadius: 4, padding: '10px 16px', cursor: 'pointer', fontWeight: 700,
   fontFamily: "'DM Mono', monospace", fontSize: 12
 });
+
+export async function getServerSideProps({ req }) {
+  const user = verifyToken(req.cookies?.token);
+  if (!user) {
+    return { redirect: { destination: '/start', permanent: false } };
+  }
+  if (String(user.id) !== SUPER_ADMIN_ID) {
+    return { notFound: true };
+  }
+  return { props: {} };
+}
 
 export default function HrAuditPage() {
   const [user, setUser] = useState(null);
