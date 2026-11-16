@@ -80,7 +80,17 @@ export default async function handler(req, res) {
       const reviewer = item.reviewer || { id: String(user.id), username: user.username || 'Unknown' };
       const sent = await sendDecision(item, reviewer, item.status, item.reason || '');
       if (!sent) return res.status(502).json({ error: 'Discord не принял уведомление. Повторите позже.' });
-      const updated = { ...item, notificationPending: false, notificationSentAt: new Date().toISOString() };
+      const notificationSentAt = new Date().toISOString();
+      const updated = {
+        ...item,
+        notificationPending: false,
+        notificationSentAt,
+        history: [...(Array.isArray(item.history) ? item.history : []), {
+          action: 'notification_sent',
+          at: notificationSentAt,
+          userId: String(user.id)
+        }]
+      };
       await kv.set(itemKey, updated);
       return res.status(200).json({ success: true, item: updated });
     } catch (error) {
@@ -113,7 +123,18 @@ export default async function handler(req, res) {
         body: JSON.stringify(item.discordPayload)
       });
       if (!response.ok) return res.status(502).json({ error: 'Discord пока не принял сообщение. Можно повторить позже.' });
-      const updated = { ...item, deliveryPending: false, discordPayload: null, deliveredAt: new Date().toISOString() };
+      const deliveredAt = new Date().toISOString();
+      const updated = {
+        ...item,
+        deliveryPending: false,
+        discordPayload: null,
+        deliveredAt,
+        history: [...(Array.isArray(item.history) ? item.history : []), {
+          action: 'delivered',
+          at: deliveredAt,
+          userId: String(user.id)
+        }]
+      };
       await kv.set(itemKey, updated);
       return res.status(200).json({ success: true, item: updated });
     } catch (error) {
@@ -160,10 +181,14 @@ export default async function handler(req, res) {
     let notified = false;
     try { notified = await sendDecision(updated, user, decision, cleanReason); }
     catch (error) { console.error('HR audit Discord notification failed:', error); }
-    if (notified) {
-      updated.notificationPending = false;
-      await kv.set(itemKey, updated);
-    }
+    const notificationAt = new Date().toISOString();
+    updated.notificationPending = !notified;
+    updated.history = [...updated.history, {
+      action: notified ? 'notification_sent' : 'notification_pending',
+      at: notificationAt,
+      userId: String(user.id)
+    }];
+    await kv.set(itemKey, updated);
     return res.status(200).json({ success: true, item: updated, notificationPending: !notified });
   } catch (error) {
     console.error('HR audit decision failed:', error);
