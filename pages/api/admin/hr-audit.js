@@ -63,6 +63,32 @@ export default async function handler(req, res) {
   }
 
   const { id, decision, reason, action } = req.body || {};
+  if (action === 'retry-notification') {
+    if (!/^\\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
+    const lockKey = `lspd:hr-audit:notification-lock:${id}`;
+    try {
+      const locked = await kv.set(lockKey, String(user.id), { nx: true, ex: 60 });
+      if (locked !== 'OK') return res.status(409).json({ error: 'Уведомление уже отправляется. Обновите список позже.' });
+      const itemKey = `lspd:hr-audit:item:${id}`;
+      const item = await kv.get(itemKey);
+      if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
+      if (!['accepted', 'rejected'].includes(item.status) || !item.notificationPending) {
+        return res.status(409).json({ error: 'Для этой заявки нет ожидающего уведомления' });
+      }
+      const reviewer = item.reviewer || { id: String(user.id), username: user.username || 'Unknown' };
+      const sent = await sendDecision(item, reviewer, item.status, item.reason || '');
+      if (!sent) return res.status(502).json({ error: 'Discord не принял уведомление. Повторите позже.' });
+      const updated = { ...item, notificationPending: false, notificationSentAt: new Date().toISOString() };
+      await kv.set(itemKey, updated);
+      return res.status(200).json({ success: true, item: updated });
+    } catch (error) {
+      console.error('HR audit notification retry failed:', error);
+      return res.status(500).json({ error: 'Не удалось повторить уведомление' });
+    } finally {
+      await kv.del(lockKey).catch(() => {});
+    }
+  }
+
   if (action === 'retry-delivery') {
     if (!/^\\d{1,12}$/.test(String(id || ''))) return res.status(400).json({ error: 'Некорректный номер заявки' });
     const lockKey = `lspd:hr-audit:delivery-lock:${id}`;
