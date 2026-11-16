@@ -72,7 +72,7 @@ export default function HrAuditPage() {
   return (
     <AdminPageGuard>
       <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Тестовый реестр заявок на повышение. Принимать решения пока может только владелец сайта." />
+        <AdminSectionHeader title="Кадровый аудит" description="Тестовый реестр отчётов на повышение. Принимать решения пока может только владелец сайта." />
         <div style={{ ...panel, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div><div style={label}>ТЕСТОВЫЙ ДОСТУП</div><div style={value}>Разрешён только Discord ID 200102286473691139</div></div>
           <button onClick={load} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent' }}>ОБНОВИТЬ СПИСОК</button>
