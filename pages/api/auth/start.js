@@ -41,7 +41,7 @@ export default function handler(req, res) {
   const redirectUri = process.env.DISCORD_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return res.redirect('/?error=auth_config');
+    return res.redirect('/start?error=auth_config');
   }
 
   const returnTo = getSafeReturnTo(req.query.returnTo);
@@ -58,7 +58,7 @@ export default function handler(req, res) {
         return res.redirect(`https://${callbackHost}/api/auth/start?${params.toString()}`);
       }
     } catch {
-      return res.redirect('/?error=auth_config');
+      return res.redirect('/start?error=auth_config');
     }
   }
   const state = randomBytes(32).toString('hex');
