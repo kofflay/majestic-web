@@ -72,7 +72,7 @@ function displayFieldValue(key, value) {
   if (key === 'isInstructor') return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
   if (key === 'department') {
     const department = getDepartment(value);
-    return department ? `${department.emoji} ${department.name}` : String(value);
+    return department ? department.name : String(value);
   }
   return String(value);
 }
