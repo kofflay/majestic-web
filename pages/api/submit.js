@@ -453,7 +453,18 @@ return {number, 1}
       }
 
       try {
-        embed = baseEmbed;
+        const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\\/$/, '')}/audit?id=${hrAuditNumber}`;
+        embed = {
+          ...baseEmbed,
+          description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
+          fields: [
+            {
+              name: '👤 Имя Фамилия + Статик',
+              value: String(formData.fullName || 'Не указано').slice(0, 1024),
+              inline: false
+            }
+          ]
+        };
         discordPayload.embeds = [embed];
 
         const storedBeforeSend = await kv.get(itemKey);
@@ -464,6 +475,13 @@ return {number, 1}
         ) {
           throw new Error('Persisted HR audit record is missing or invalid');
         }
+
+        // Keep the direct review link in the durable payload so manual delivery retries
+        // publish the same concise message with the exact application URL.
+        await kv.set(itemKey, {
+          ...storedBeforeSend,
+          discordPayload: { ...discordPayload }
+        });
 
         // A reviewer retry may win the short race between the atomic record creation
         // and this initial sender acquiring its lock. Never send the same item twice.
