@@ -101,9 +101,11 @@ async function sendDecision(item, reviewer, decision, reason) {
           timestamp: new Date().toISOString(),
           footer: { text: 'LSPD HR Audit' }
         }],
-        allowed_mentions: {
-          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
-        }
+        ...(item.type !== 'highrank' ? {
+          allowed_mentions: {
+            users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+          }
+        } : {})
       }),
       signal: AbortSignal.timeout(15000)
     });
