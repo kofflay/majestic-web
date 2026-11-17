@@ -177,7 +177,7 @@ export default function HrAuditPage() {
         </div>
         <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'minmax(220px,1fr) minmax(160px,240px)', gap: 12 }}>
           <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID, отделу…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
-          <select aria-label="Фильтр по статусу" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }}>
+          <select aria-label="Фильтр по статусу" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
             {Object.entries(STATUS_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
           </select>
         </div>
