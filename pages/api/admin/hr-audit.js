@@ -190,71 +190,8 @@ async function sendDecision(item, reviewer, decision, reason) {
       return { success: false, messageId: null, reason: `discord_http_${response.status}` };
     }
 
-    const channelId = String(originalMessage.channel_id || '');
-    const guildId = String(originalMessage.guild_id || '@me');
-    const cardUrl = /^\d{17,20}$/.test(channelId)
-      ? `https://discord.com/channels/${guildId}/${channelId}/${originalMessageId}`
-      : '';
-    const pingContent = [
-      DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : null,
-      `Решение по заявке на повышение №${item.number}: ${accepted ? 'одобрено' : 'отклонено'}.`,
-      cardUrl ? `Карточка: ${cardUrl}` : null
-    ].filter(Boolean).join(' ');
-
-    let pingResponse;
-    try {
-      pingResponse = await fetch(webhookUrlWithWait(webhook), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'LSPD Forms',
-          content: pingContent,
-          allowed_mentions: {
-            users: DISCORD_ID_PATTERN.test(applicantId) ? [applicantId] : []
-          }
-        }),
-        signal: AbortSignal.timeout(15000)
-      });
-    } catch (error) {
-      console.error('HR audit applicant ping request failed:', {
-        auditId: String(item.id), auditType: item.type, decision,
-        errorName: error?.name || 'Error',
-        errorMessage: String(error?.message || error).slice(0, 1200)
-      });
-      await writeSystemLog({
-        level: 'error', category: 'discord',
-        event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
-        message: 'Карточка HR-заявки обновлена, но не удалось отправить отдельный пинг заявителю',
-        auditId: item.id, auditType: item.type, decision,
-        details: String(error?.message || error).slice(0, 1200)
-      });
-      return { success: false, messageId: null, reason: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error' };
-    }
-
-    if (!pingResponse.ok) {
-      let responseBody = '';
-      try { responseBody = (await pingResponse.text()).slice(0, 2000); } catch {}
-      console.error('HR audit applicant ping rejected by Discord:', {
-        auditId: String(item.id), auditType: item.type, decision,
-        httpStatus: pingResponse.status, responseBody
-      });
-      await writeSystemLog({
-        level: 'error', category: 'discord', event: 'discord_http_error',
-        message: 'Карточка HR-заявки обновлена, но Discord отклонил отдельный пинг заявителю',
-        auditId: item.id, auditType: item.type, decision,
-        httpStatus: pingResponse.status, details: responseBody
-      });
-      return { success: false, messageId: null, reason: `discord_http_${pingResponse.status}` };
-    }
-
-    let pingMessage = null;
-    try { pingMessage = await pingResponse.json(); } catch {}
-    await writeSystemLog({
-      level: 'info', category: 'discord', event: 'decision_notification_sent',
-      message: 'Карточка HR-заявки обновлена; отдельное уведомление отправлено только заявителю',
-      auditId: item.id, auditType: item.type, decision, httpStatus: pingResponse.status
-    });
-    return { success: true, messageId: typeof pingMessage?.id === 'string' ? pingMessage.id : originalMessageId };
+    // Для highrank обновляем только исходную карточку; отдельное сообщение-пинг не отправляем.
+    return { success: true, messageId: originalMessageId };
   }
 
   const fields = [
