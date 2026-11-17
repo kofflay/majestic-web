@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
-import AdminSectionHeader from '../../components/AdminSectionHeader';
+import AdminSectionHeader from '../components/AdminSectionHeader';
 import { verifyToken } from '../lib/discord';
-import { SUPER_ADMIN_ID } from '../../lib/admins';
-import { getDepartment } from '../../lib/departments';
+import { SUPER_ADMIN_ID } from '../lib/admins';
+import { getDepartment } from '../lib/departments';
 
 const panel = {
   background: 'rgba(11,15,22,.72)',
