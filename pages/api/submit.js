@@ -565,7 +565,7 @@ return {number, 1}
             console.error('HR audit delivery-pending history failed:', historyError);
           }
           try {
-            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending', auditNumber: hrAuditNumber });
           } catch (historyError) {
             console.error('HR audit delivery-pending submission history failed:', historyError);
           }
@@ -598,7 +598,7 @@ return {number, 1}
 
   // Discord delivery succeeded (or a report was durably queued for retry).
   try {
-    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber });
   } catch (historyError) {
     console.error('Submission history update failed after delivery:', historyError);
   }
