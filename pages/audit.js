@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import AdminSectionHeader from '../components/AdminSectionHeader';
 import { verifyToken } from '../lib/discord';
 import { hasHrAuditAccess } from '../lib/hr-audit-access';
-import { getDepartment } from '../lib/departments';
+import { DEPARTMENTS, getDepartment } from '../lib/departments';
 
 const panel = {
   background: 'rgba(11,15,22,.72)',
@@ -217,7 +217,10 @@ export default function HrAuditPage() {
     promotion: 'Запрос на повышение'
   };
   const uniqueValues = values => Array.from(new Set(values.filter(value => value !== null && value !== undefined && String(value).trim() !== '').map(String)));
-  const departmentOptions = uniqueValues(items.map(item => item.data?.department)).sort((a, b) => {
+  const departmentOptions = uniqueValues([
+    ...DEPARTMENTS.map(department => department.id),
+    ...items.map(item => item.data?.department)
+  ]).sort((a, b) => {
     const nameA = getDepartment(a)?.name || a;
     const nameB = getDepartment(b)?.name || b;
     return nameA.localeCompare(nameB, 'ru-RU');
