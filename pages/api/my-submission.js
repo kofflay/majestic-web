@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     let isHrAudit = false;
     if (id) {
       item = await kv.get(`lspd:hr-audit:item:${id}`);
-      if (!item || !['report', 'highrank'].includes(item.type) || String(item.submitter?.id || '') !== String(user.id)) {
+      if (!item || item.type !== 'highrank' || String(item.submitter?.id || '') !== String(user.id)) {
         return res.status(404).json({ error: 'Обращение не найдено' });
       }
       isHrAudit = true;
