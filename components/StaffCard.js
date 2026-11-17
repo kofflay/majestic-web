@@ -1,5 +1,11 @@
 // components/StaffCard.js
 export default function StaffCard({ member, onDelete, isAdminView }) {
+  const getRankGradient = (rank) => {
+    if (rank === 'Chief of Police') return 'linear-gradient(45deg, #9e6bff, #9fc1ff)';
+    if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #2a2b36, #a0a3ce)';
+    return 'linear-gradient(45deg, #8b8ba7, #ffffff)';
+  };
+
   if (!isAdminView) {
     return (
       <div
@@ -73,12 +79,6 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       </div>
     );
   }
-
-  const getRankGradient = (rank) => {
-    if (rank === 'Chief of Police') return 'linear-gradient(45deg, #9e6bff, #9fc1ff)';
-    if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #2a2b36, #a0a3ce)';
-    return 'linear-gradient(45deg, #8b8ba7, #ffffff)';
-  };
 
   const cardStyle = isAdminView ? {
     width: '100%',
