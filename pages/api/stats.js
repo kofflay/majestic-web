@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         try { item = JSON.parse(h); } catch {}
         if (!item || typeof item !== 'object') return item;
         // До появления статусов в истории сохранялись только успешные отправки.
-        return { ...item, status: item.status === 'not_sent' ? 'not_sent' : 'sent' };
+        return { ...item, status: item.status === 'not_sent' ? 'not_sent' : item.status === 'delivery_pending' ? 'delivery_pending' : 'sent' };
       }),
       chart,
       maxCount
