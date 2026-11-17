@@ -34,6 +34,32 @@ export async function getServerSideProps({ req, res }) {
   return { props: {} };
 }
 
+const FIELD_LABELS = {
+  fullName: 'Имя и статик',
+  department: 'Отдел',
+  currentRank: 'Текущий ранг',
+  targetRank: 'Запрашиваемый ранг',
+  isInstructor: 'Назначение инструктором',
+  workLinks: 'Ссылки на проделанную работу'
+};
+
+const STATUS_LABELS = {
+  all: 'Все заявки',
+  pending: 'Ожидают',
+  accepted: 'Одобрены',
+  rejected: 'Отклонены'
+};
+
+function displayFieldValue(key, value) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (key === 'isInstructor') return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
+  if (key === 'department') {
+    const known = { patrol: 'Патрульный отдел', traffic: 'Дорожный отдел', detective: 'Детективный отдел', swat: 'SWAT', training: 'Учебный отдел' };
+    return known[value] || String(value);
+  }
+  return String(value);
+}
+
 export default function HrAuditPage() {
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
@@ -41,6 +67,8 @@ export default function HrAuditPage() {
   const [reasons, setReasons] = useState({});
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   const load = async () => {
     setError('');
@@ -111,6 +139,16 @@ export default function HrAuditPage() {
   };
 
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
+  const counts = items.reduce((acc, item) => ({ ...acc, [item.status]: (acc[item.status] || 0) + 1 }), {});
+  const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
+  const visibleItems = items.filter(item => {
+    const statusMatches = statusFilter === 'all' || item.status === statusFilter;
+    const haystack = [
+      item.number, item.submitter?.username, item.submitter?.id,
+      ...Object.values(item.data || {})
+    ].join(' ').toLocaleLowerCase('ru-RU');
+    return statusMatches && (!normalizedSearch || haystack.includes(normalizedSearch));
+  });
 
   return (
     <PageLayout user={user}>
@@ -120,17 +158,34 @@ export default function HrAuditPage() {
           <button onClick={load} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent' }}>ОБНОВИТЬ СПИСОК</button>
         </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
-        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые заявки на повышение появятся здесь.</div> : items.map(item => {
+        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+          <div><div style={label}>ВСЕГО</div><div style={{ ...value, fontSize: 23, fontWeight: 800 }}>{items.length}</div></div>
+          <div><div style={label}>ОЖИДАЮТ</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#ffb74d' }}>{counts.pending || 0}</div></div>
+          <div><div style={label}>ОДОБРЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#81c784' }}>{counts.accepted || 0}</div></div>
+          <div><div style={label}>ОТКЛОНЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#ff7b88' }}>{counts.rejected || 0}</div></div>
+        </div>
+        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'minmax(220px,1fr) minmax(160px,240px)', gap: 12 }}>
+          <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID, отделу…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }} />
+          <select aria-label="Фильтр по статусу" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }}>
+            {Object.entries(STATUS_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
+          </select>
+        </div>
+
+        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
           const [statusText, statusColor] = status(item);
           return <section key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
               <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>Заявка №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
             </div>
-            <div style={{ ...label }}>ЗАЯВИТЕЛЬ</div><div style={{ ...value, marginBottom: 14 }}>{item.submitter?.username} · {item.submitter?.id}</div>
-            <div style={{ ...label }}>ОТПРАВЛЕНО</div><div style={{ ...value, marginBottom: 18 }}>{new Date(item.submittedAt).toLocaleString('ru-RU')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
+              <div><div style={label}>ЗАЯВИТЕЛЬ</div><div style={value}>{item.data?.fullName || item.submitter?.username || 'Не указано'}</div><div style={{ ...value, color: '#9ca3af', fontSize: 12 }}>Discord: {item.submitter?.id || '—'}</div></div>
+              <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
+              <div><div style={label}>ОТПРАВЛЕНО</div><div style={value}>{item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU') : '—'}</div></div>
+              <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-              {Object.entries(item.data || {}).map(([key, val]) => <div key={key}><div style={label}>{key}</div><div style={value}>{String(val)}</div></div>)}
+              {Object.entries(item.data || {}).filter(([key]) => !['fullName','department','currentRank','targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{displayFieldValue(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
