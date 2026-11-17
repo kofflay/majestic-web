@@ -1570,3 +1570,57 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
 .hr-audit-history-entry::after{position:absolute;content:'';left:1px;top:5px;width:9px;height:9px;border:2px solid #48c9a8;border-radius:50%;background:#101a25;box-shadow:0 0 0 3px rgba(71,215,176,.07)}
 .hr-audit-history-entry strong{color:#e5e7eb;font-size:13px}
 @media(max-width:600px){.hr-audit-list-toolbar{align-items:flex-start;flex-direction:column;gap:9px}.hr-audit-sort-control{width:100%;justify-content:space-between}.hr-audit-sort-control select{flex:1;max-width:220px}}
+
+
+/* HR audit: balanced three-column workspace */
+.hr-audit-layout{
+  display:grid;
+  grid-template-columns:276px minmax(0,1fr) 294px;
+  align-items:start;
+  gap:22px;
+}
+.hr-audit-sidebar{grid-column:1;grid-row:1;width:auto;flex-basis:auto;padding:15px}
+.hr-audit-main{grid-column:2;grid-row:1}
+.hr-audit-sidebar-caption,.hr-audit-nav-group-title,.hr-audit-main-eyebrow{font-size:11px;letter-spacing:1.2px}
+.hr-audit-sidebar-head{padding:2px 4px 14px}
+.hr-audit-nav-group{gap:5px;margin-top:16px}
+.hr-audit-nav-item{min-height:42px;padding:9px 10px;gap:10px;font-size:14px;line-height:1.35}
+.hr-audit-nav-icon{width:22px;flex-basis:22px;font-size:16px}
+.hr-audit-nav-count{font-size:11px}
+.hr-audit-nav-soon{font-size:9px}
+.hr-audit-sidebar-note{margin-top:17px;font-size:11px;line-height:1.55}
+.hr-audit-search-panel{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:14px 16px;border:1px solid rgba(148,163,184,.15);border-radius:9px;background:rgba(11,15,22,.72)}
+.hr-audit-search-field{position:relative;flex:1;min-width:0}
+.hr-audit-search-field input{width:100%;box-sizing:border-box;padding:12px 14px 12px 40px;border:1px solid rgba(148,163,184,.27);border-radius:6px;background:#080c12;color:#f4f8fc;font:14px inherit}
+.hr-audit-search-field input:focus{border-color:rgba(71,215,176,.65);outline:none;box-shadow:0 0 0 3px rgba(71,215,176,.08)}
+.hr-audit-search-field span{position:absolute;left:14px;top:10px;color:#7f9ab4;font-size:18px;pointer-events:none}
+.hr-audit-search-hint{flex:0 0 auto;color:#71849a;font:10px 'DM Mono',monospace;letter-spacing:.05em;white-space:nowrap}
+.hr-audit-filters{grid-column:3;grid-row:1;box-sizing:border-box;padding:15px;border:1px solid rgba(148,163,184,.16);border-radius:9px;background:linear-gradient(155deg,rgba(14,22,34,.88),rgba(7,12,19,.88))}
+.hr-audit-filters-head{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 14px;border-bottom:1px solid rgba(148,163,184,.14);color:#9aafc4;font:11px 'DM Mono',monospace;letter-spacing:1.2px}
+.hr-audit-filters-head b{display:grid;place-items:center;min-width:21px;height:21px;padding:0 5px;border-radius:999px;background:rgba(71,215,176,.15);color:#7ce0c3;font-size:10px}
+.hr-audit-filter-section{padding:14px 1px;border-bottom:1px solid rgba(148,163,184,.1)}
+.hr-audit-date-fields{display:grid;grid-template-columns:1fr;gap:8px}
+.hr-audit-filters .hr-audit-filter-checkbox{margin-top:0!important}
+.hr-audit-filters [style*="max-height: 168px"]{max-height:208px!important;gap:10px!important;padding:9px!important;background:rgba(3,8,14,.32)!important}
+.hr-audit-filters [style*="font-size: 12px"]{font-size:13px!important}
+.hr-audit-reset-filters{width:100%;margin-top:14px;padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:6px;background:transparent;color:#9aaabd;font:10px 'DM Mono',monospace;letter-spacing:.08em;cursor:pointer}
+.hr-audit-reset-filters:not(:disabled):hover{border-color:rgba(255,123,136,.5);color:#ff9aa4;background:rgba(220,53,69,.07)}
+.hr-audit-reset-filters:disabled{opacity:.45;cursor:default}
+@media(max-width:1180px){
+  .hr-audit-layout{grid-template-columns:240px minmax(0,1fr)}
+  .hr-audit-sidebar{grid-column:1;grid-row:1 / span 2}
+  .hr-audit-main{grid-column:2;grid-row:1}
+  .hr-audit-filters{grid-column:2;grid-row:2}
+  .hr-audit-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .hr-audit-filters-head{grid-column:1/-1;padding-bottom:10px}
+  .hr-audit-filter-section{padding:0;border:0}
+  .hr-audit-reset-filters{grid-column:1/-1;margin-top:0}
+}
+@media(max-width:760px){
+  .hr-audit-layout{display:flex;gap:14px}
+  .hr-audit-sidebar,.hr-audit-main,.hr-audit-filters{width:100%;flex:0 0 auto}
+  .hr-audit-filters{display:block;padding:14px}
+  .hr-audit-filter-section{padding:13px 0;border-bottom:1px solid rgba(148,163,184,.1)}
+  .hr-audit-search-panel{align-items:stretch;flex-direction:column;padding:12px}
+  .hr-audit-search-hint{font-size:9px}
+}
