@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
   const id = String(req.query.id || '');
-  if (!/^[1-9]\\d{0,11}$/.test(id)) {
+  if (!/^[1-9]\d{0,11}$/.test(id)) {
     return res.status(400).json({ error: 'Некорректный номер обращения' });
   }
 
