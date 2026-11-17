@@ -84,7 +84,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     const originalMessageId = String(item.deliveryMessageId || '');
     const reportWebhook = getAuditWebhook(item);
 
-    if (!/^\\d{17,20}$/.test(originalMessageId) || !reportWebhook) {
+    if (!/^\d{17,20}$/.test(originalMessageId) || !reportWebhook) {
       await writeSystemLog({ level: 'error', category: 'discord', event: 'highrank_source_message_missing', message: 'Нет исходного сообщения HR-отчёта для обновления карточки кадрового аудита', auditId: item.id, auditType: item.type, decision });
       return { success: false, messageId: null, reason: 'highrank_source_message_missing' };
     }
@@ -96,7 +96,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       const messageUrl = new URL(reportWebhook);
       messageUrl.search = '';
       messageUrl.hash = '';
-      messageUrl.pathname = `${messageUrl.pathname.replace(/\\/$/, '')}/messages/${originalMessageId}`;
+      messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${originalMessageId}`;
 
       let sourceMessage;
       let webhookInfo;
@@ -120,7 +120,7 @@ async function sendDecision(item, reviewer, decision, reason) {
 
       const guildId = String(webhookInfo.guild_id || '');
       const channelId = String(sourceMessage.channel_id || webhookInfo.channel_id || '');
-      if (!/^\\d{17,20}$/.test(guildId) || !/^\\d{17,20}$/.test(channelId)) {
+      if (!/^\d{17,20}$/.test(guildId) || !/^\d{17,20}$/.test(channelId)) {
         await writeSystemLog({ level: 'error', category: 'discord', event: 'highrank_source_link_unavailable', message: 'Discord не вернул сервер или канал исходной HR-карточки', auditId: item.id, auditType: item.type, decision });
         return { success: false, messageId: null, reason: 'source_link_unavailable' };
       }
