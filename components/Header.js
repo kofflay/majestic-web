@@ -179,6 +179,16 @@ export default function Header({ user }) {
           </nav>
 
           <div className="site-header__actions">
+            {user?.id === '200102286473691139' && (
+              <button
+                type="button"
+                className={`header-audit-button ${router.pathname === '/audit' ? 'is-active' : ''}`}
+                onClick={() => navigate('/audit')}
+                aria-current={router.pathname === '/audit' ? 'page' : undefined}
+              >
+                Кадровый аудит
+              </button>
+            )}
             {user ? (
               <>
                 <button
@@ -263,6 +273,7 @@ export default function Header({ user }) {
         .profile-link,
         .profile-avatar-button,
         .header-login,
+        .header-audit-button,
         .header-logout,
         .mobile-menu-toggle {
           border: 0;
@@ -397,6 +408,31 @@ export default function Header({ user }) {
           align-items: center;
           gap: 15px;
           min-width: 0;
+        }
+
+        .header-audit-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 38px;
+          padding: 0 14px;
+          border: 1px solid rgba(91, 151, 235, .55);
+          border-radius: 7px;
+          background: linear-gradient(135deg, rgba(47, 105, 190, .28), rgba(32, 73, 132, .22));
+          color: #c7ddff;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: .01em;
+          white-space: nowrap;
+          transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+        }
+
+        .header-audit-button:hover,
+        .header-audit-button.is-active {
+          border-color: rgba(126, 180, 255, .9);
+          background: linear-gradient(135deg, rgba(54, 124, 232, .42), rgba(40, 100, 197, .34));
+          color: #fff;
+          transform: translateY(-1px);
         }
 
         .profile-link {
@@ -540,6 +576,7 @@ export default function Header({ user }) {
         .site-nav button:focus-visible,
         .brand:focus-visible,
         .profile-link:focus-visible,
+        .header-audit-button:focus-visible,
         .profile-avatar-button:focus-visible,
         .header-login:focus-visible,
         .header-logout:focus-visible,
@@ -641,6 +678,12 @@ export default function Header({ user }) {
             gap: 9px;
           }
 
+          .header-audit-button {
+            min-height: 34px;
+            padding: 0 9px;
+            font-size: 10px;
+          }
+
           .profile-link {
             min-height: 34px;
             padding: 0 12px;
@@ -682,6 +725,7 @@ export default function Header({ user }) {
           .site-nav button,
           .site-nav button::after,
           .header-login,
+          .header-audit-button,
           .header-logout,
           .mobile-menu-toggle__line {
             transition: none;
