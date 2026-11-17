@@ -148,16 +148,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         timestamp: new Date().toISOString()
       };
 
-      const decisionLine = `По отчёту от ${DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'заявителя'}, ${accepted ? 'одобрил' : 'отклонил'} <@${reviewerId}>`;
-      // Сохраняем исходный текст подачи (например, «X повышает Y»),
-      // заменяя только ранее добавленную строку решения при повторном обновлении.
-      const originalContent = String(originalMessage.content || '').trim();
-      const preservedContent = originalContent
-        .split('\n')
-        .filter(line => !/^По отчёту от .+, (одобрил|отклонил) <@\d{17,20}>$/.test(line.trim()))
-        .join('\n')
-        .trim();
-      const content = [preservedContent, decisionLine].filter(Boolean).join('\n\n');
+      const content = `Решение по отчёту на повышение №${item.number} принято: ${accepted ? 'одобрено' : 'отклонено'}.`;
       response = await fetch(messageUrl.toString(), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
