@@ -61,6 +61,14 @@ function displayFieldValue(key, value) {
   return String(value);
 }
 
+function renderFieldContent(key, value) {
+  if (key !== 'workLinks' || !value) return displayFieldValue(key, value);
+  const parts = String(value).split(/(https?:\/\/[^\s,]+)/gi);
+  return parts.map((part, index) => /^https?:\/\//i.test(part)
+    ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
+    : part);
+}
+
 export default function HrAuditPage() {
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
@@ -186,7 +194,7 @@ export default function HrAuditPage() {
               <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-              {Object.entries(item.data || {}).filter(([key]) => !['fullName','department','currentRank','targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{displayFieldValue(key, val)}</div></div>)}
+              {Object.entries(item.data || {}).filter(([key]) => !['fullName','department','currentRank','targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
