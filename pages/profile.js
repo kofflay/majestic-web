@@ -172,13 +172,10 @@ export default function Profile() {
   const openHistoryDetails = async (item) => {
     setSelectedHistory(item);
     setHistoryDetails(null);
-    if (!item.auditNumber && !item.referenceId) return;
+    if (!item.auditNumber) return;
     setHistoryDetailsLoading(true);
     try {
-      const lookup = item.auditNumber
-        ? `id=${encodeURIComponent(item.auditNumber)}`
-        : `ref=${encodeURIComponent(item.referenceId)}`;
-      const response = await fetch(`/api/my-submission?${lookup}`);
+      const response = await fetch(`/api/my-submission?id=${encodeURIComponent(item.auditNumber)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить обращение.');
       setHistoryDetails(data.item);
