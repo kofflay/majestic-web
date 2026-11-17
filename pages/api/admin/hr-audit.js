@@ -65,11 +65,15 @@ async function sendDecision(item, reviewer, decision, reason) {
       inline: true
     },
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
-    ...(item.type === 'highrank' ? [
+    ...(item.type === 'highrank' && accepted ? [
       { name: 'Диапазон рангов', value: String(item.data?.rankRange || 'Не указан'), inline: true },
-      { name: 'Ссылка на работу', value: String(item.data?.workLink || 'Не указана').slice(0, 1024), inline: false }
+      { name: 'Доказательства проделанной работы', value: String(item.data?.workLink || 'Не указаны').slice(0, 1024), inline: false }
     ] : []),
-    ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
+    ...(item.type === 'highrank' && !accepted && reason
+      ? [{ name: 'Причина отказа', value: reason, inline: false }]
+      : item.type !== 'highrank' && reason
+        ? [{ name: 'Причина отказа', value: reason, inline: false }]
+        : [])
   ];
   const content = [
     DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : null,
@@ -85,7 +89,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       embeds: [{
         title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт на повышение'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit)`,
+        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`,
         fields,
         timestamp: new Date().toISOString(),
         footer: { text: 'LSPD HR Audit' }
