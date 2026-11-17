@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
 import AdminSectionHeader from '../components/AdminSectionHeader';
 import { verifyToken } from '../lib/discord';
-import { hasHrAuditAccess, HR_AUDIT_ROLE_IDS } from '../lib/hr-audit-access';
+import { hasHrAuditAccess } from '../lib/hr-audit-access';
 import { getDepartment } from '../lib/departments';
 
 const panel = {
@@ -226,9 +226,8 @@ export default function HrAuditPage() {
 
   return (
     <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." />
-        <div style={{ ...panel, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div><div style={label}>ДОСТУП К РЕЕСТРУ</div><div style={value}>Доступ по одной из двух кадровых ролей: {HR_AUDIT_ROLE_IDS.join(' / ')}</div></div>
+        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." backHref="/" backLabel="НА ГЛАВНУЮ" />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
           <button onClick={load} disabled={refreshing} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent', opacity: refreshing ? .55 : 1 }}>{refreshing ? 'ОБНОВЛЕНИЕ…' : 'ОБНОВИТЬ СПИСОК'}</button>
         </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
