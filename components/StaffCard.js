@@ -58,7 +58,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>AGENT NAME</div>
           <div style={{ color: '#fff', fontSize: '19px', fontWeight: 800, lineHeight: 1.3, overflowWrap: 'anywhere' }}>{member.name}</div>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', margin: '18px 0 8px' }}>POSITION</div>
-          <div style={{ color: '#f1f1f1', fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{member.rank}</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{member.rank}</div>
         </div>
 
         <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
