@@ -256,7 +256,7 @@ export default async function handler(req, res) {
       }
 
       const item = await kv.get(itemKey);
-      if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
+      if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
       }
       if (item.status !== 'pending' || item.deliveryPending !== true || !item.discordPayload) {
@@ -375,7 +375,7 @@ export default async function handler(req, res) {
     }
 
     const item = await kv.get(itemKey);
-    if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
+    if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
       return res.status(404).json({ error: 'Заявка не найдена' });
     }
     if (item.status !== 'pending') {
@@ -422,7 +422,7 @@ export default async function handler(req, res) {
       // Redis may have committed the script even when the client lost its reply.
       const persisted = await kv.get(itemKey).catch(() => null);
       const decisionWasCommitted = persisted
-        && persisted.type === 'report'
+        && isSupportedAuditItem(persisted)
         && persisted.status === decision
         && persisted.resolvedAt === resolvedAt
         && String(persisted.reviewer?.id || '') === String(user.id);
