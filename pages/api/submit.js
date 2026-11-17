@@ -200,22 +200,55 @@ function validateEmbed(embed) {
 }
 
 async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
+  let url;
+  try {
+    const targetUrl = new URL(webhookUrl);
+    if (data.thread_id) targetUrl.searchParams.set('thread_id', String(data.thread_id));
+    if (options.waitForConfirmation) targetUrl.searchParams.set('wait', 'true');
+    url = targetUrl.toString();
+  } catch {
+    return { success: false, error: 'Некорректный адрес Discord-вебхука' };
+  }
+
   let lastError = null;
-  const targetUrl = new URL(webhookUrl);
-  if (data.thread_id) targetUrl.searchParams.set('thread_id', String(data.thread_id));
-  if (options.waitForConfirmation) targetUrl.searchParams.set('wait', 'true');
-  const url = targetUrl.toString();
   const { thread_id, ...payload } = data;
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
-      if (res.ok) return { success: true };
-      if (res.status === 429) { await new Promise(r => setTimeout(r, (parseInt(res.headers.get('Retry-After')) || 5) * 1000)); continue; }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (res.ok) {
+        let messageId = null;
+        if (options.waitForConfirmation) {
+          try {
+            const message = await res.json();
+            messageId = typeof message?.id === 'string' ? message.id : null;
+          } catch {}
+        }
+        return { success: true, messageId };
+      }
+      if (res.status === 429) {
+        if (i < retries - 1) {
+          const retryAfter = Number.parseFloat(res.headers.get('Retry-After'));
+          const delaySeconds = Number.isFinite(retryAfter)
+            ? Math.min(Math.max(retryAfter, 1), 10)
+            : 5;
+          await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+          continue;
+        }
+        return { success: false, error: 'Discord временно ограничил отправку' };
+      }
       console.error('Submission webhook failed:', { status: res.status });
       return { success: false, error: 'ошибка Discord' };
-    } catch (e) { lastError = e; if (i < retries - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1))); }
+    } catch (error) {
+      lastError = error;
+      if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
   }
-  return { success: false, error: lastError?.message };
+  return { success: false, error: lastError?.message || 'Discord не подтвердил отправку' };
 }
 
 export default async function handler(req, res) {
@@ -387,7 +420,14 @@ return {number, 1}
         throw new Error('HR audit allocation returned an invalid response');
       }
       hrAuditNumber = Number(allocation[0]);
-      const created = Number(allocation[1]) === 1;
+      if (!Number.isSafeInteger(hrAuditNumber) || hrAuditNumber < 1 || hrAuditNumber > 999999999999) {
+        throw new Error('HR audit allocation returned an invalid sequence number');
+      }
+      const allocationCreated = Number(allocation[1]);
+      if (allocationCreated !== 0 && allocationCreated !== 1) {
+        throw new Error('HR audit allocation returned an invalid creation status');
+      }
+      const created = allocationCreated === 1;
       const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
       if (!created) {
         const existing = await kv.get(itemKey);
@@ -451,6 +491,7 @@ return {number, 1}
             deliveryPending: false,
             discordPayload: null,
             deliveredAt,
+            deliveryMessageId: result.messageId || null,
             history: [...attempted.history, {
               action: 'delivered',
               at: deliveredAt,
