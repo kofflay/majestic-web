@@ -8,7 +8,7 @@ The register is created for `/api/submit` requests with `type === 'report'` (dep
 
 1. The department report form creates a request ID and keeps it in `sessionStorage` until the server confirms the request. The high-rank form remains unchanged; the server calculates a short-lived fingerprint from the authenticated user and submitted fields.
 2. The API scopes its idempotency key to the authenticated Discord user. Department reports use the stable client request ID; the existing high-rank form is left unchanged, so high-rank reports use a payload fingerprint with a 10-minute duplicate window.
-3. One Redis Lua script checks the idempotency key, increments the global sequence, writes the full audit item, pushes its number into the register index, and stores the idempotency key for 30 days.
+3. One Redis Lua script checks the idempotency key, increments the global sequence, writes the full audit item, pushes its number into the register index, and stores the idempotency key for 30 days for department reports and 10 minutes for high-rank reports.
 4. A repeat request with the same ID returns the existing record number. It does not allocate a second number or send a second Discord message.
 5. The stored record includes the submitted fields, submitter identity, timestamp, initial history, status, and a Discord retry payload.
 
@@ -49,4 +49,4 @@ The document flow is intentionally not implemented until its template and conten
 
 ## Known design boundary
 
-Discord webhook delivery and Redis persistence cannot be made one distributed atomic transaction. If Discord accepts a message but the subsequent Redis status update fails, the record may still look pending. The interface warns the reviewer to inspect the department channel before retrying. This edge case must be exercised deliberately during the live-project verification after the agreed transfer to `main`.
+Discord webhook delivery and Redis persistence cannot be made one distributed atomic transaction. If Discord accepts a message but the subsequent Redis status update fails, the record may still look pending. The interface warns the reviewer to inspect the corresponding Discord channel before retrying. This edge case must be exercised deliberately during the live-project verification after the agreed transfer to `main`.
