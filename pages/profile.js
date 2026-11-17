@@ -186,6 +186,14 @@ export default function Profile() {
     }
   };
 
+  useEffect(() => {
+    if (!router.isReady || historyLoading) return;
+    const auditNumber = String(router.query.audit || '');
+    if (!/^[1-9]\\d{0,11}$/.test(auditNumber)) return;
+    const historyItem = history.find(entry => String(entry.auditNumber || '') === auditNumber);
+    if (historyItem) openHistoryDetails(historyItem);
+  }, [router.isReady, router.query.audit, historyLoading, history]);
+
   const copyId = async () => {
     if (!user) return;
     try {
