@@ -11,12 +11,6 @@ const ADMIN_TOOLS = [
     path: '/admin/staff',
   },
   {
-    title: 'Отделы',
-    description: 'Создание отделов, добавление описаний и хайрангов.',
-    code: 'SYS-02',
-    path: '/admin/departments',
-  },
-  {
     title: 'Реестр пропусков',
     description: 'Добавление и управление пропусками на территорию.',
     code: 'SYS-03',
