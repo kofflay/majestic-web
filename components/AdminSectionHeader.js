@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 
-export default function AdminSectionHeader({ title, description, actions, showBack = true }) {
+export default function AdminSectionHeader({ title, description, actions, showBack = true, backHref = '/admin', backLabel = 'НАЗАД В АДМИНКУ' }) {
   const router = useRouter();
 
   return (
@@ -8,7 +8,7 @@ export default function AdminSectionHeader({ title, description, actions, showBa
       {showBack && (
         <button
           type="button"
-          onClick={() => router.push('/admin')}
+          onClick={() => router.push(backHref)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -26,7 +26,7 @@ export default function AdminSectionHeader({ title, description, actions, showBa
             touchAction: 'manipulation',
           }}
         >
-          ← НАЗАД В АДМИНКУ
+          ← {backLabel}
         </button>
       )}
 
