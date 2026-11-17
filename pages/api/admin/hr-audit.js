@@ -40,8 +40,9 @@ async function sendDecision(item, reviewer, decision, reason) {
   const applicantId = String(item.submitter?.id || '');
   const reviewerId = String(reviewer?.id || '');
 
-  if (!webhook || !DISCORD_ID_PATTERN.test(reviewerId)) {
-    return { success: false, messageId: null };
+  if (!webhook) return { success: false, messageId: null, reason: 'webhook_not_configured' };
+  if (!DISCORD_ID_PATTERN.test(reviewerId)) {
+    return { success: false, messageId: null, reason: 'reviewer_invalid' };
   }
 
   const accepted = decision === 'accepted';
@@ -164,6 +165,10 @@ export default async function handler(req, res) {
       if (!item.reviewer || !DISCORD_ID_PATTERN.test(String(item.reviewer.id || ''))) {
         return res.status(409).json({ error: 'В записи отсутствуют данные проверяющего; уведомление нельзя безопасно повторить' });
       }
+      const department = getDepartment(item.data?.department);
+      if (!department || !getReportWebhook(department.id)) {
+        return res.status(503).json({ error: 'Вебхук отдела не настроен. Решение сохранено; повтор уведомления пока недоступен.' });
+      }
 
       const attempted = await recordNotificationAttempt(
         itemKey, item, user.id, 'notification_retry_attempted'
@@ -206,7 +211,7 @@ export default async function handler(req, res) {
       }
 
       if (!result.success) {
-        return res.status(502).json({ error: 'Discord не подтвердил уведомление. Повторите позже.' });
+        return res.status(502).json({ error: 'Discord не подтвердил ответ. Перед повтором проверьте канал отдела: сообщение могло быть принято.' });
       }
       return res.status(200).json({ success: true, item: updated, notificationPending: false });
     } catch (error) {
@@ -418,7 +423,12 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       item: updated,
-      notificationPending: !result.success
+      notificationPending: !result.success,
+      ...(!result.success ? {
+        warning: result.reason === 'webhook_not_configured'
+          ? 'Решение сохранено, но вебхук отдела не настроен. После настройки его можно будет отправить повторно.'
+          : 'Решение сохранено, но Discord не подтвердил уведомление. Перед повторной отправкой проверьте канал отдела: сообщение могло быть принято.'
+      } : {})
     });
   } catch (error) {
     console.error('HR audit decision failed:', error);
