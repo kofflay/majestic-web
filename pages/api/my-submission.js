@@ -73,7 +73,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
   const id = String(req.query.id || '');
   const referenceId = String(req.query.ref || '');
-  if (id && !/^[1-9]\\d{0,11}$/.test(id)) return res.status(400).json({ error: 'Некорректный номер обращения' });
+  if (id && !/^[1-9][0-9]{0,11}$/.test(id)) return res.status(400).json({ error: 'Некорректный номер обращения' });
   if (!id && !/^[a-z0-9-]{8,80}$/i.test(referenceId)) return res.status(400).json({ error: 'Некорректная ссылка на обращение' });
 
   try {
