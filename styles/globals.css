@@ -1767,3 +1767,32 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
 @media(max-width:760px){
   .hr-audit-filter-section{border-top:1px solid rgba(148,163,184,.12)}
 }
+
+
+/* Profile history: shared readable scale and decision stages. */
+.profile-history-row__marker.is-pending{border-color:#ffbf69;color:#ffbf69;background:rgba(255,191,105,.08)}
+.profile-history-row__marker.is-accepted{border-color:#81c784;color:#81c784;background:rgba(76,175,80,.08)}
+.profile-history-row__marker.is-rejected{border-color:#ff7b88;color:#ff9aa4;background:rgba(220,53,69,.09)}
+.profile-status.is-pending{border-color:rgba(255,191,105,.34);background:rgba(255,191,105,.08);color:#ffca83}
+.profile-status.is-accepted{border-color:rgba(129,199,132,.34);background:rgba(76,175,80,.08);color:#9bd69e}
+.profile-status.is-rejected{border-color:rgba(255,123,136,.36);background:rgba(220,53,69,.09);color:#ff9aa4}
+.site-page-content .profile-history-row__content strong{font-size:16px!important}
+.site-page-content .profile-history-row__content span{font-size:14px!important}
+.site-page-content .profile-history-row__open{font-size:12px!important}
+.site-page-content .profile-status{font-size:12px!important}
+.profile-request-modal__actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.profile-request-discord-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 12px;border:1px solid rgba(92,150,231,.4);border-radius:6px;background:rgba(63,131,248,.1);color:#a9caff;font:600 12px 'DM Mono',monospace;text-decoration:none;letter-spacing:.04em;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.profile-request-discord-link:hover{border-color:rgba(104,166,255,.72);background:rgba(63,131,248,.19);color:#fff}
+.site-page-content .profile-request-modal__eyebrow,.site-page-content .profile-request-section__heading{font-size:12px!important}
+.site-page-content .profile-request-modal__date,.site-page-content .profile-request-modal__meta,.site-page-content .profile-request-modal__audit{font-size:14px!important}
+.site-page-content .profile-request-modal__status{font-size:13px!important}
+.site-page-content .profile-request-section__heading span:last-child{font-size:12px!important}
+.site-page-content .profile-request-timeline__item strong{font-size:15px!important}
+.site-page-content .profile-request-timeline__item span:not(.profile-request-timeline__marker){font-size:14px!important}
+.site-page-content .profile-request-modal__field span{font-size:12px!important}
+.site-page-content .profile-request-modal__field p,.site-page-content .profile-request-section--reason p,.site-page-content .profile-request-modal__hint{font-size:15px!important}
+.site-page-content .profile-request-modal__field a{font-size:12px!important}
+@media(max-width:600px){
+  .profile-request-modal__actions{width:100%;justify-content:space-between}
+  .profile-request-discord-link{flex:1;font-size:10px}
+}
