@@ -103,6 +103,29 @@ async function sendDecision(item, reviewer, decision, reason) {
       const originalMessage = await response.json();
       const embeds = Array.isArray(originalMessage.embeds) ? originalMessage.embeds : [];
       const originalEmbed = embeds[0] || {};
+      const reportData = item.data && typeof item.data === 'object' ? item.data : {};
+      const fieldValue = (value, fallback = 'Не указано') => {
+        const text = typeof value === 'string' ? value.trim() : '';
+        return (text || fallback).slice(0, 1024);
+      };
+      // Rebuild the high-rank card from the submitted form data, not from
+      // the old Discord embed, so every submitted field remains visible.
+      const decisionFields = [
+        { name: '👤 Имя Фамилия + Статик', value: fieldValue(reportData.fullName), inline: false },
+        { name: '📊 Диапазон повышения', value: fieldValue(reportData.rankRange), inline: true },
+        { name: '🔗 Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
+        {
+          name: '👤 Отправитель',
+          value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан',
+          inline: true
+        },
+        { name: '🆔 Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
+        { name: '⚖️ Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
+        { name: '👮 Проверил', value: `<@${reviewerId}>`, inline: true },
+        ...(!accepted && reason
+          ? [{ name: '❌ Причина отказа', value: fieldValue(reason), inline: false }]
+          : [])
+      ];
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? {
@@ -116,15 +139,8 @@ async function sendDecision(item, reviewer, decision, reason) {
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
         title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: originalEmbed.description?.includes(auditUrl)
-          ? originalEmbed.description
-          : [originalEmbed.description, auditUrl].filter(Boolean).join('\n'),
-        fields: [
-          ...(Array.isArray(originalEmbed.fields) ? originalEmbed.fields : [])
-            .filter(field => !['Причина отказа', 'Решение'].includes(field?.name)),
-          ...(!accepted && reason ? [{ name: 'Причина отказа', value: String(reason).slice(0, 1024), inline: false }] : []),
-          { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true }
-        ],
+        description: auditUrl,
+        fields: decisionFields,
         footer: {
           text: 'LSPD HR Audit',
           ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {})
