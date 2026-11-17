@@ -138,10 +138,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content,
-          embeds: [updatedEmbed],
-          allowed_mentions: {
-            users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
-          }
+          embeds: [updatedEmbed]
         }),
         signal: AbortSignal.timeout(15000)
       });
