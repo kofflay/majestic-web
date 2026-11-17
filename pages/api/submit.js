@@ -3,6 +3,7 @@ import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { checkSpam } from '../../lib/antispam';
 import { kv } from '../../lib/redis.js';
+import { acquireHrAuditLock } from '../../lib/hr-audit-locks';
 import { recordSubmissionHistory } from '../../lib/submission-history';
 import { 
   getDepartment, 
@@ -198,9 +199,12 @@ function validateEmbed(embed) {
   return null;
 }
 
-async function sendToDiscord(webhookUrl, data, retries = 3) {
+async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
   let lastError = null;
-  const url = data.thread_id ? `${webhookUrl}?thread_id=${data.thread_id}` : webhookUrl;
+  const targetUrl = new URL(webhookUrl);
+  if (data.thread_id) targetUrl.searchParams.set('thread_id', String(data.thread_id));
+  if (options.waitForConfirmation) targetUrl.searchParams.set('wait', 'true');
+  const url = targetUrl.toString();
   const { thread_id, ...payload } = data;
   for (let i = 0; i < retries; i++) {
     try {
@@ -217,7 +221,7 @@ async function sendToDiscord(webhookUrl, data, retries = 3) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const user = verifyToken(req.cookies.token);
+  const user = verifyToken(req.cookies?.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { type, leaveType, submissionId, ...formData } = req.body || {};
@@ -396,61 +400,113 @@ return {number, 1}
         });
       }
 
-      embed = { ...baseEmbed, title: `${baseEmbed.title} • Заявка №${hrAuditNumber}` };
-      discordPayload.embeds = [embed];
-      result = await sendToDiscord(webhookUrl, discordPayload);
-      if (result.success) {
+      const deliveryLock = await acquireHrAuditLock('delivery', hrAuditNumber);
+      if (!deliveryLock) {
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          warning: `Заявка №${hrAuditNumber} сохранена в реестре. Отправка занята другим процессом; проверяющий сможет повторить доставку.`
+        });
+      }
+
+      try {
+        embed = { ...baseEmbed, title: `${baseEmbed.title} • Заявка №${hrAuditNumber}` };
+        discordPayload.embeds = [embed];
+
+        const storedBeforeSend = await kv.get(itemKey);
+        if (!storedBeforeSend || storedBeforeSend.type !== 'report') {
+          throw new Error('Persisted HR audit record is missing or invalid');
+        }
+        const attemptAt = new Date().toISOString();
+        const attempted = {
+          ...storedBeforeSend,
+          deliveryAttempts: (Number.isSafeInteger(storedBeforeSend.deliveryAttempts) ? storedBeforeSend.deliveryAttempts : 0) + 1,
+          lastDeliveryAttemptAt: attemptAt,
+          history: [...(Array.isArray(storedBeforeSend.history) ? storedBeforeSend.history : []), {
+            action: 'delivery_attempted',
+            at: attemptAt,
+            userId: 'system'
+          }]
+        };
+
         try {
+          // Persist the attempt before calling Discord; never send if this write fails.
+          await kv.set(itemKey, attempted);
+        } catch (attemptStateError) {
+          console.error('HR audit delivery attempt could not be recorded:', { number: hrAuditNumber, error: attemptStateError });
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Заявка №${hrAuditNumber} сохранена, но состояние попытки доставки не удалось записать. Проверьте кадровый реестр перед повторной отправкой.`
+          });
+        }
+
+        // Audit submissions use one confirmed attempt. A network timeout is ambiguous,
+        // so automatic retries could create duplicate Discord messages.
+        result = await sendToDiscord(webhookUrl, discordPayload, 1, { waitForConfirmation: true });
+        if (result.success) {
           const deliveredAt = new Date().toISOString();
-          const stored = await kv.get(itemKey);
-          await kv.set(itemKey, {
-            ...stored,
+          const delivered = {
+            ...attempted,
             deliveryPending: false,
             discordPayload: null,
             deliveredAt,
-            history: [...(Array.isArray(stored?.history) ? stored.history : []), {
+            history: [...attempted.history, {
               action: 'delivered',
               at: deliveredAt,
               userId: 'system'
             }]
-          });
-        } catch (deliveryStateError) {
-          console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
-          return res.status(200).json({
-            success: true,
-            number: hrAuditNumber,
-            warning: `Discord принял заявку №${hrAuditNumber}, но подтверждение доставки не удалось записать в реестр. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
-          });
-        }
-      } else {
-        console.error('HR audit application is stored but Discord delivery failed:', { number: hrAuditNumber, error: result.error });
-        try {
+          };
+
+          try {
+            await kv.set(itemKey, delivered);
+          } catch (deliveryStateError) {
+            console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
+            return res.status(200).json({
+              success: true,
+              number: hrAuditNumber,
+              warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил обновление. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
+            });
+          }
+        } else {
+          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error });
           const pendingAt = new Date().toISOString();
-          const stored = await kv.get(itemKey);
-          await kv.set(itemKey, {
-            ...stored,
-            history: [...(Array.isArray(stored?.history) ? stored.history : []), {
+          const pending = {
+            ...attempted,
+            history: [...attempted.history, {
               action: 'delivery_pending',
               at: pendingAt,
               userId: 'system'
             }]
+          };
+          try {
+            await kv.set(itemKey, pending);
+          } catch (historyError) {
+            console.error('HR audit delivery-pending history failed:', historyError);
+          }
+          try {
+            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+          } catch (historyError) {
+            console.error('HR audit delivery-pending submission history failed:', historyError);
+          }
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord не подтвердил доставку. Перед повтором проверяющий должен убедиться, что сообщения нет в канале отдела.`
           });
-        } catch (historyError) {
-          console.error('HR audit delivery-pending history failed:', historyError);
         }
-        try {
-          await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
-        } catch (historyError) {
-          console.error('HR audit delivery-pending submission history failed:', historyError);
-        }
-        return res.status(200).json({
-          success: true,
-          number: hrAuditNumber,
-          warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но не доставлена в Discord. Администратор может повторить отправку.`
-        });
+      } finally {
+        await deliveryLock.release();
       }
     } catch (storageError) {
       console.error('HR audit register transaction failed:', storageError);
+      if (hrAuditNumber) {
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          warning: `Заявка №${hrAuditNumber} уже получила номер в кадровом реестре. Состояние доставки не удалось подтвердить; не отправляйте её повторно, сначала проверьте реестр и канал отдела.`
+        });
+      }
       return res.status(503).json({ error: 'Не удалось надёжно сохранить заявку в кадровом реестре. Повторите отправку позже.' });
     }
   } else {
