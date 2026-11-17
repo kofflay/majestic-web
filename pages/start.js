@@ -84,15 +84,13 @@ export default function Home() {
             <div>
               <h2>Служить и защищать —<br /><em>это наш выбор.</em></h2>
               <p>Мы создаём безопасный город, в котором каждый житель может чувствовать себя защищённым. Наша сила — в дисциплине, профессионализме и уважении к закону.</p>
-              <a href="/departments" className="landing-text-link">Узнать больше ↗</a>
             </div>
             <div className="landing-quote">“</div>
           </section>
 
           <section className="landing-cards">
             <a href="/applications"><span>01</span><strong>Центр обращений</strong><small>Заявления и жалобы</small><b>↗</b></a>
-            <a href="/departments"><span>02</span><strong>Наши отделы</strong><small>Структура департамента</small><b>↗</b></a>
-            <a href="/staff"><span>03</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
+            <a href="/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
           </section>
 
           <section className="landing-command" aria-labelledby="landing-command-title">
