@@ -253,9 +253,6 @@ export default async function handler(req, res) {
 
   const { type, leaveType, submissionId, ...formData } = req.body || {};
   const submissionRecordId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-  if (type === 'report' && !/^[a-zA-Z0-9_-]{16,80}$/.test(String(submissionId || ''))) {
-    return res.status(400).json({ error: 'Не удалось подтвердить отправку отчёта. Обновите форму и повторите попытку.' });
-  }
   const validTypes = new Set(['report', 'transfer', 'highrank', 'resignation', 'reinstatement', 'transfer-to-lspd', 'hiring', 'weapon-request', 'premium', 'complaint', 'leave', 'promotion']);
   if (!validTypes.has(type)) return res.status(400).json({ error: 'Неизвестный тип заявления' });
 
@@ -369,18 +366,16 @@ export default async function handler(req, res) {
   let result;
   let embed = baseEmbed;
   let hrAuditNumber = null;
-  if (type === 'report' || type === 'highrank') {
+  if (type === 'highrank') {
     const submittedAt = new Date().toISOString();
     // The existing high-rank form does not send a client idempotency token.
     // A short-lived fingerprint prevents duplicate clicks/retries without blocking a later new report.
-    const auditRequestId = type === 'report'
-      ? submissionId
-      : `highrank-${createHash('sha256').update(JSON.stringify([
-          formData.fullName,
-          formData.rankRange,
-          formData.workLink
-        ])).digest('hex')}`;
-    const auditIdempotencyTtl = type === 'report' ? 2592000 : 600;
+    const auditRequestId = `highrank-${createHash('sha256').update(JSON.stringify([
+      formData.fullName,
+      formData.rankRange,
+      formData.workLink
+    ])).digest('hex')}`;
+    const auditIdempotencyTtl = 600;
     const auditItem = {
       id: '',
       number: 0,
@@ -597,9 +592,9 @@ return {number, 1}
     }
   }
 
-  // Discord delivery succeeded (or a report was durably queued for retry).
+  // Discord delivery succeeded.
   try {
-    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber, referenceId: submissionRecordId });
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: type === 'highrank' ? hrAuditNumber : null });
   } catch (historyError) {
     console.error('Submission history update failed after delivery:', historyError);
   }
@@ -636,6 +631,7 @@ return {number, 1}
     const today = new Date().toISOString().split('T')[0];
     await kv.incr('lspd:stats:total');
     await kv.incr(`lspd:stats:${today}`);
+    if (type === 'highrank') {
     const globalRequest = {
       id: submissionRecordId,
       type: type || 'unknown',
@@ -649,6 +645,7 @@ return {number, 1}
     await kv.set(`lspd:submission:detail:${user.id}:${submissionRecordId}`, globalRequest);
     await kv.lpush('lspd:submissions:all', JSON.stringify(globalRequest));
     await kv.ltrim('lspd:submissions:all', 0, 199);
+    }
   } catch (storageError) {
     console.error('Submission delivered to Discord, but history storage failed:', storageError);
   }
