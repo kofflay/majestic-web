@@ -309,9 +309,9 @@ export default function HrAuditPage() {
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
               <textarea value={reasons[item.id] || ''} onChange={e => setReasons(prev => ({ ...prev, [item.id]: e.target.value }))} maxLength={1000} rows={3} placeholder="Укажи причину, если отклоняешь заявку…" style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 14px', padding: 12, resize: 'vertical', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }} />
-              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Доставка в Discord не подтверждена. При сетевом сбое сообщение могло быть принято; перед повтором проверь канал отдела.</div>}
+              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>{item.deliveryUnconfirmed ? 'Ответ Discord не подтверждён. Сначала вручную проверь канал, чтобы исключить дубликат.' : 'Доставка в Discord не подтверждена. Можно повторить отправку.'}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {item.deliveryPending && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
+                {item.deliveryPending && !item.deliveryUnconfirmed && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
                 <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
                 <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'rejected')} style={{ ...button('red'), opacity: busy === item.id ? .5 : 1 }}>ОТКЛОНИТЬ</button>
               </div>
