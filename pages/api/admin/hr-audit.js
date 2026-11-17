@@ -59,7 +59,15 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
     return { success: false, reason: 'promotion_webhook_missing' };
   }
 
-  let promotion = await kv.get(itemKey).then(value => value?.promotionRequest || null).catch(() => null);
+  const parentBefore = await kv.get(itemKey).catch(() => null);
+  const promotionRef = parentBefore?.promotionRequest || null;
+  let promotionId = promotionRef?.id ? String(promotionRef.id) : '';
+  if (!promotionId) {
+    promotionId = String(await kv.get(`lspd:hr-audit:promotion-from-highrank:${item.id}`).catch(() => '') || '');
+  }
+  let promotion = promotionId
+    ? await kv.get(`lspd:hr-audit:item:${promotionId}`).catch(() => null)
+    : null;
   if (promotion?.deliveryPending === false && promotion?.deliveryMessageId) {
     return { success: true, item: promotion };
   }
@@ -67,7 +75,7 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
     return { success: false, reason: 'promotion_delivery_unconfirmed' };
   }
 
-  const auditMessageUrl = promotion?.auditMessageUrl || await (async () => {
+  const auditMessageUrl = promotion?.auditMessageUrl || promotionRef?.auditMessageUrl || await (async () => {
     const auditMessageUrl = new URL(auditWebhook);
     auditMessageUrl.search = '';
     auditMessageUrl.hash = '';
