@@ -19,6 +19,9 @@ export default function Profile() {
   const [savingDepartment, setSavingDepartment] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [selectedHistory, setSelectedHistory] = useState(null);
+  const [historyDetails, setHistoryDetails] = useState(null);
+  const [historyDetailsLoading, setHistoryDetailsLoading] = useState(false);
   const avatarInputRef = useRef(null);
 
   useEffect(() => {
@@ -163,6 +166,23 @@ export default function Profile() {
       window.toast.error(error.message || 'Не удалось обработать изображение.');
     } finally {
       setSavingAvatar(false);
+    }
+  };
+
+  const openHistoryDetails = async (item) => {
+    setSelectedHistory(item);
+    setHistoryDetails(null);
+    if (!item.auditNumber) return;
+    setHistoryDetailsLoading(true);
+    try {
+      const response = await fetch(`/api/my-submission?id=${encodeURIComponent(item.auditNumber)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось загрузить обращение.');
+      setHistoryDetails(data.item);
+    } catch (error) {
+      window.toast?.error(error.message || 'Не удалось загрузить обращение.');
+    } finally {
+      setHistoryDetailsLoading(false);
     }
   };
 
@@ -436,9 +456,12 @@ export default function Profile() {
                   : 'Дата неизвестна';
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     className="profile-history-row"
                     key={item.id || (item.type || 'request') + '-' + index}
+                    onClick={() => openHistoryDetails(item)}
+                    aria-label={`Открыть обращение: ${item.title || 'Обращение'}`}
                   >
                     <div className={sent ? 'profile-history-row__marker is-sent' : 'profile-history-row__marker is-failed'}>
                       {sent ? '✓' : '!'}
@@ -451,12 +474,34 @@ export default function Profile() {
                       <i />
                       {sent ? 'ОТПРАВЛЕНО' : 'НЕ ОТПРАВЛЕНО'}
                     </span>
-                  </div>
+                    <span className="profile-history-row__open">ОТКРЫТЬ ↗</span>
+                  </button>
                 );
               })
             )}
           </div>
         </section>
+        {selectedHistory && (
+          <div className="profile-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedHistory(null); }}>
+            <section className="profile-request-modal" role="dialog" aria-modal="true" aria-labelledby="profile-request-title">
+              <div className="profile-request-modal__topline"><span>ЛИЧНОЕ ДЕЛО / ОБРАЩЕНИЕ</span><button type="button" onClick={() => setSelectedHistory(null)} aria-label="Закрыть">×</button></div>
+              <h2 id="profile-request-title">{selectedHistory.title || 'Обращение'}</h2>
+              <div className="profile-request-modal__meta"><span>{selectedHistory.date ? new Date(selectedHistory.date).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Дата неизвестна'}</span><strong className={selectedHistory.status === 'not_sent' ? 'is-failed' : 'is-sent'}>{selectedHistory.status === 'not_sent' ? 'НЕ ОТПРАВЛЕНО' : 'ОТПРАВЛЕНО'}</strong></div>
+              {historyDetailsLoading ? <div className="profile-request-modal__loading"><span className="profile-history__loader" />Загрузка обращения...</div> : historyDetails ? (
+                <>
+                  <div className="profile-request-modal__audit"><span>КАДРОВЫЙ АУДИТ · №{historyDetails.number}</span><strong className={`is-${historyDetails.status}`}>{historyDetails.statusLabel}</strong></div>
+                  <div className="profile-request-modal__fields">
+                    {Object.entries(historyDetails.data || {}).map(([key, value]) => (
+                      <div className="profile-request-modal__field" key={key}><span>{historyDetails.fieldLabels?.[key] || key}</span><p>{String(value ?? '—')}</p></div>
+                    ))}
+                  </div>
+                  {historyDetails.reason && <div className="profile-request-modal__reason"><strong>Причина отказа</strong><p>{historyDetails.reason}</p></div>}
+                </>
+              ) : selectedHistory.auditNumber ? <p className="profile-request-modal__hint">Подробности этого обращения сейчас недоступны. Обновите страницу и попробуйте ещё раз.</p> : <p className="profile-request-modal__hint">Для этого старого обращения подробные данные пока не связаны с историей. В истории сохранены дата и результат отправки.</p>}
+              <button type="button" className="profile-button profile-button--secondary profile-request-modal__close" onClick={() => setSelectedHistory(null)}>ЗАКРЫТЬ</button>
+            </section>
+          </div>
+        )}
       </main>
     </PageLayout>
   );
