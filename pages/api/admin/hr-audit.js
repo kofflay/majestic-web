@@ -216,6 +216,11 @@ async function sendDecision(item, reviewer, decision, reason) {
         signal: AbortSignal.timeout(15000)
       });
     } catch (error) {
+      console.error('HR audit applicant ping request failed:', {
+        auditId: String(item.id), auditType: item.type, decision,
+        errorName: error?.name || 'Error',
+        errorMessage: String(error?.message || error).slice(0, 1200)
+      });
       await writeSystemLog({
         level: 'error', category: 'discord',
         event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
@@ -229,6 +234,10 @@ async function sendDecision(item, reviewer, decision, reason) {
     if (!pingResponse.ok) {
       let responseBody = '';
       try { responseBody = (await pingResponse.text()).slice(0, 2000); } catch {}
+      console.error('HR audit applicant ping rejected by Discord:', {
+        auditId: String(item.id), auditType: item.type, decision,
+        httpStatus: pingResponse.status, responseBody
+      });
       await writeSystemLog({
         level: 'error', category: 'discord', event: 'discord_http_error',
         message: 'Карточка HR-заявки обновлена, но Discord отклонил отдельный пинг заявителю',
