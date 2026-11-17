@@ -89,7 +89,7 @@ export default function Home() {
           </section>
 
           <section className="landing-cards">
-            <a href="/applications"><span>01</span><strong>Центр обращений</strong><small>Заявления и жалобы</small><b>↗</b></a>
+            <a href="/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
             <a href="/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
           </section>
 
