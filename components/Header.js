@@ -92,7 +92,6 @@ export default function Header({ user }) {
 
   const navItems = [
     { label: 'Обращения', path: '/applications' },
-    { label: 'Отделы', path: '/departments' },
     { label: 'Для сотрудников', path: '/hub' },
     { label: 'Пропуска', path: '/passes' },
   ];
