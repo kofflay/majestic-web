@@ -1,5 +1,79 @@
 // components/StaffCard.js
 export default function StaffCard({ member, onDelete, isAdminView }) {
+  if (!isAdminView) {
+    return (
+      <div
+        style={{
+          width: 'min(308px, 100%)',
+          minHeight: '505px',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          textAlign: 'center',
+          color: '#f5f5f5',
+          fontFamily: "'Inter', sans-serif",
+          backgroundColor: '#171717',
+          backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0, rgba(255,255,255,.045) 1px, transparent 1px, transparent 10px)',
+          border: '1px solid #303030',
+          borderRadius: '27px',
+          boxShadow: '0 16px 42px rgba(0,0,0,.28)',
+          transition: 'transform .2s ease, border-color .2s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.borderColor = 'rgba(255, 0, 76, .65)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.borderColor = '#303030';
+        }}
+      >
+        <div style={{
+          position: 'absolute', top: 0, right: 0, padding: '6px 15px 7px',
+          background: '#ed0050', color: '#fff', fontSize: '12px',
+          fontWeight: 800, letterSpacing: '.06em', borderRadius: '0 0 0 13px',
+          boxShadow: '0 3px 14px rgba(237,0,80,.22)',
+        }}>TOP SECRET</div>
+
+        <div style={{
+          height: '220px', display: 'grid', placeItems: 'center',
+          borderBottom: '1px solid rgba(255,255,255,.09)',
+          paddingTop: '28px',
+        }}>
+          <div style={{
+            width: '106px', height: '106px', borderRadius: '22px',
+            display: 'grid', placeItems: 'center',
+            background: '#202020', border: '1px solid #383838',
+          }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#f4f4f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="4" y="10" width="16" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+          </div>
+        </div>
+
+        <div style={{ padding: '18px 18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
+          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>AGENT NAME</div>
+          <div style={{ color: '#fff', fontSize: '19px', fontWeight: 800, lineHeight: 1.3, overflowWrap: 'anywhere' }}>{member.name}</div>
+          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', margin: '18px 0 8px' }}>POSITION</div>
+          <div style={{ color: '#f1f1f1', fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{member.rank}</div>
+        </div>
+
+        <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
+          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>CONTACT · DISCORD</div>
+          <div style={{ color: '#ff0755', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
+        </div>
+
+        <div style={{
+          marginTop: 'auto', padding: '18px 12px 20px',
+          color: '#a3a3a3', fontSize: '11px', letterSpacing: '.04em',
+        }}>CLASSIFIED // NOFORN</div>
+      </div>
+    );
+  }
+
   const getRankGradient = (rank) => {
     if (rank === 'Chief of Police') return 'linear-gradient(45deg, #9e6bff, #9fc1ff)';
     if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #2a2b36, #a0a3ce)';
