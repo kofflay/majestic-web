@@ -487,21 +487,82 @@ export default function Profile() {
         {selectedHistory && (
           <div className="profile-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedHistory(null); }}>
             <section className="profile-request-modal" role="dialog" aria-modal="true" aria-labelledby="profile-request-title">
-              <div className="profile-request-modal__topline"><span>ЛИЧНОЕ ДЕЛО / ОБРАЩЕНИЕ</span><button type="button" onClick={() => setSelectedHistory(null)} aria-label="Закрыть">×</button></div>
-              <h2 id="profile-request-title">{selectedHistory.title || 'Обращение'}</h2>
-              <div className="profile-request-modal__meta"><span>{selectedHistory.date ? new Date(selectedHistory.date).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Дата неизвестна'}</span><strong className={selectedHistory.status === 'not_sent' ? 'is-failed' : 'is-sent'}>{selectedHistory.status === 'not_sent' ? 'НЕ ОТПРАВЛЕНО' : 'ОТПРАВЛЕНО'}</strong></div>
-              {historyDetailsLoading ? <div className="profile-request-modal__loading"><span className="profile-history__loader" />Загрузка обращения...</div> : historyDetails ? (
+              <div className="profile-request-modal__topline">
+                <button type="button" className="profile-request-modal__back" onClick={() => setSelectedHistory(null)}>← К ИСТОРИИ</button>
+                <span>ЛИЧНЫЙ КАБИНЕТ / КАРТОЧКА ОБРАЩЕНИЯ</span>
+              </div>
+              {historyDetailsLoading ? (
+                <div className="profile-request-modal__loading"><span className="profile-history__loader" />Загрузка полной карточки...</div>
+              ) : historyDetails ? (
                 <>
-                  <div className="profile-request-modal__audit"><span>{historyDetails.isHrAudit ? `КАДРОВЫЙ АУДИТ · №${historyDetails.number}` : 'ДАННЫЕ ОТПРАВЛЕННОГО ОБРАЩЕНИЯ'}</span><strong className={`is-${historyDetails.status}`}>{historyDetails.statusLabel}</strong></div>
-                  <div className="profile-request-modal__fields">
-                    {Object.entries(historyDetails.data || {}).map(([key, value]) => (
-                      <div className="profile-request-modal__field" key={key}><span>{historyDetails.fieldLabels?.[key] || key}</span><p>{String(value ?? '—')}</p></div>
-                    ))}
-                  </div>
-                  {historyDetails.reason && <div className="profile-request-modal__reason"><strong>Причина отказа</strong><p>{historyDetails.reason}</p></div>}
+                  <header className="profile-request-modal__header">
+                    <div>
+                      <span className="profile-request-modal__eyebrow">{historyDetails.typeLabel || 'ОБРАЩЕНИЕ'}{historyDetails.number ? ` · №${historyDetails.number}` : ''}</span>
+                      <h2 id="profile-request-title">{historyDetails.title || historyDetails.typeLabel || selectedHistory.title || 'Обращение'}</h2>
+                      <span className="profile-request-modal__date">Подано: {historyDetails.submittedAt ? new Date(historyDetails.submittedAt).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' }) : 'дата неизвестна'}</span>
+                    </div>
+                    <div className={`profile-request-modal__status is-${historyDetails.status}`}>
+                      <span className="profile-request-modal__status-dot" />
+                      {historyDetails.statusLabel || 'Статус неизвестен'}
+                    </div>
+                  </header>
+
+                  {historyDetails.isHrAudit && (
+                    <section className="profile-request-section">
+                      <div className="profile-request-section__heading"><span>01 / ПРОЦЕСС РАССМОТРЕНИЯ</span><span>{historyDetails.status === 'pending' ? 'В ПРОЦЕССЕ' : 'ЗАВЕРШЕНО'}</span></div>
+                      <div className="profile-request-timeline">
+                        {(historyDetails.timeline || []).map((entry, index) => (
+                          <div className={`profile-request-timeline__item ${entry.action === 'accepted' ? 'is-accepted' : entry.action === 'rejected' ? 'is-rejected' : ''}`} key={entry.action + '-' + index}>
+                            <span className="profile-request-timeline__marker">{entry.action === 'accepted' ? '✓' : entry.action === 'rejected' ? '×' : '•'}</span>
+                            <div><strong>{entry.label}</strong><span>{entry.at ? new Date(entry.at).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Время не указано'}</span></div>
+                          </div>
+                        ))}
+                        {historyDetails.status === 'pending' && !historyDetails.deliveryPending && (
+                          <div className="profile-request-timeline__item is-current"><span className="profile-request-timeline__marker">…</span><div><strong>Ожидает решения проверяющего</strong><span>Результат появится здесь после рассмотрения</span></div></div>
+                        )}
+                        {historyDetails.deliveryPending && <p className="profile-request-modal__hint">Обращение сохранено, но доставка в Discord ещё не подтверждена. Рассмотрение пока не началось.</p>}
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="profile-request-section">
+                    <div className="profile-request-section__heading"><span>{historyDetails.isHrAudit ? '02' : '01'} / ЗАПОЛНЕННЫЕ ДАННЫЕ</span><span>{Object.keys(historyDetails.data || {}).length} ПОЛЕЙ</span></div>
+                    {Object.keys(historyDetails.data || {}).length ? (
+                      <div className="profile-request-modal__fields">
+                        {Object.entries(historyDetails.data).map(([key, value]) => {
+                          const label = historyDetails.fieldLabels?.[key] || key.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ').replace(/^./, letter => letter.toUpperCase());
+                          const links = String(value).match(/https?:\/\/[^\s,]+/g) || [];
+                          return (
+                            <div className="profile-request-modal__field" key={key}>
+                              <span>{label}</span>
+                              <p>{String(value) || '—'}</p>
+                              {links.map((link, linkIndex) => <a key={linkIndex} href={link.replace(/[),.!?;:]+$/, '')} target="_blank" rel="noopener noreferrer">ОТКРЫТЬ ССЫЛКУ ↗</a>)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : <p className="profile-request-modal__hint">Для этой старой записи подробные заполненные данные не сохранились.</p>}
+                  </section>
+
+                  {historyDetails.reason && (
+                    <section className="profile-request-section profile-request-section--reason">
+                      <div className="profile-request-section__heading"><span>РЕШЕНИЕ ПРОВЕРЯЮЩЕГО</span><span>ОТКЛОНЕНО</span></div>
+                      <h3>Причина отказа</h3>
+                      <p>{historyDetails.reason}</p>
+                    </section>
+                  )}
+                  {historyDetails.isHrAudit && historyDetails.status === 'accepted' && (
+                    <div className="profile-request-result is-accepted">Обращение подтверждено. Решение зафиксировано в кадровом аудите.</div>
+                  )}
+                  <button type="button" className="profile-button profile-button--secondary profile-request-modal__close" onClick={() => setSelectedHistory(null)}>ВЕРНУТЬСЯ К ИСТОРИИ</button>
                 </>
-              ) : (selectedHistory.auditNumber || selectedHistory.referenceId) ? <p className="profile-request-modal__hint">Подробности этого обращения сейчас недоступны. Возможно, запись уже вышла за пределы хранимой истории.</p> : <p className="profile-request-modal__hint">Для этого старого обращения подробные данные пока не связаны с историей. В истории сохранены дата и результат отправки.</p>}
-              <button type="button" className="profile-button profile-button--secondary profile-request-modal__close" onClick={() => setSelectedHistory(null)}>ЗАКРЫТЬ</button>
+              ) : (
+                <>
+                  <h2 id="profile-request-title">{selectedHistory.title || 'Обращение'}</h2>
+                  <p className="profile-request-modal__hint">Подробности этой старой записи не сохранились или больше недоступны. Новые обращения будут открываться с полной карточкой и всеми заполненными данными.</p>
+                  <button type="button" className="profile-button profile-button--secondary profile-request-modal__close" onClick={() => setSelectedHistory(null)}>ВЕРНУТЬСЯ К ИСТОРИИ</button>
+                </>
+              )}
             </section>
           </div>
         )}
