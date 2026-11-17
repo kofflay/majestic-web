@@ -212,6 +212,9 @@ async function sendDecision(item, reviewer, decision, reason) {
       footer: { text: `HR Audit • Заявка №${item.number}` }
     };
 
+    // Brief pause after the HR card update before publishing the personnel audit.
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     let auditResponse;
     try {
       auditResponse = await fetch(webhookUrlWithWait(auditWebhook), {
@@ -237,7 +240,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     let auditMessage = null;
     try { auditMessage = await auditResponse.json(); } catch {}
     const auditMessageId = String(auditMessage?.id || '');
-    if (!/^\\d{17,20}$/.test(auditMessageId)) {
+    if (!/^\d{17,20}$/.test(auditMessageId)) {
       await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_message_metadata_missing', message: 'Discord принял карточку кадрового аудита, но не вернул ID сообщения', auditId: item.id, auditType: item.type, decision });
       return { success: false, messageId: reportMessageId, reason: 'audit_message_metadata_missing' };
     }
