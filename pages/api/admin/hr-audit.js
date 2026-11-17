@@ -191,10 +191,16 @@ return {number, 1}
   try {
     const url = new URL(promotionWebhook);
     url.searchParams.set('wait', 'true');
-    response = await fetch(url.toString(), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload), signal: AbortSignal.timeout(15000)
-    });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      response = await fetch(url.toString(), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: AbortSignal.timeout(15000)
+      });
+      if (response.status !== 429 || attempt === 2) break;
+      const retryAfter = Number.parseFloat(response.headers.get('Retry-After'));
+      const delaySeconds = Number.isFinite(retryAfter) ? Math.min(Math.max(retryAfter, 1), 10) : 2;
+      await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+    }
   } catch (error) {
     const latest = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => promotion);
     await kv.set(`lspd:hr-audit:item:${promotion.id}`, {
