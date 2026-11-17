@@ -59,6 +59,13 @@ const ADMIN_TOOLS = [
     code: 'SYS-09',
     path: '/admin/logs',
     isRestricted: true
+  },
+  {
+    title: 'Системные логи',
+    description: 'Технические события сайта и диагностика ошибок интеграций.',
+    code: 'SYS-10',
+    path: '/admin/system-logs',
+    isRestricted: true
   }
 ];
 
