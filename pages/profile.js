@@ -518,7 +518,7 @@ export default function Profile() {
 
                   {historyDetails.isHrAudit && (
                     <section className="profile-request-section">
-                      <div className="profile-request-section__heading"><span>01 / ПРОЦЕСС РАССМОТРЕНИЯ</span><span>{historyDetails.status === 'pending' ? 'В ПРОЦЕССЕ' : 'ЗАВЕРШЕНО'}</span></div>
+                      <div className="profile-request-section__heading"><span>01 / ПРОЦЕСС РАССМОТРЕНИЯ</span><span>{historyDetails.status === 'pending' ? 'В ОБРАБОТКЕ' : 'ЗАВЕРШЕНО'}</span></div>
                       <div className="profile-request-timeline">
                         {(historyDetails.timeline || []).map((entry, index) => (
                           <div className={`profile-request-timeline__item ${entry.action === 'accepted' ? 'is-accepted' : entry.action === 'rejected' ? 'is-rejected' : ''}`} key={entry.action + '-' + index}>
