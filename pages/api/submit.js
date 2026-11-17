@@ -1,4 +1,5 @@
 // pages/api/submit.js
+import { createHash } from 'crypto';
 import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { checkSpam } from '../../lib/antispam';
@@ -367,12 +368,22 @@ export default async function handler(req, res) {
   let result;
   let embed = baseEmbed;
   let hrAuditNumber = null;
-  if (type === 'report') {
+  if (type === 'report' || type === 'highrank') {
     const submittedAt = new Date().toISOString();
+    // The existing high-rank form does not send a client idempotency token.
+    // A short-lived fingerprint prevents duplicate clicks/retries without blocking a later new report.
+    const auditRequestId = type === 'report'
+      ? submissionId
+      : `highrank-${createHash('sha256').update(JSON.stringify([
+          formData.fullName,
+          formData.rankRange,
+          formData.workLink
+        ])).digest('hex')}`;
+    const auditIdempotencyTtl = type === 'report' ? 2592000 : 600;
     const auditItem = {
       id: '',
       number: 0,
-      type: 'report',
+      type,
       title: baseEmbed.title,
       status: 'pending',
       deliveryPending: true,
@@ -403,11 +414,11 @@ item.number = number
 item.discordPayload.embeds[1].title = item.discordPayload.embeds[1].title .. ' • Заявка №' .. tostring(number)
 redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
 redis.call('LPUSH', KEYS[3], tostring(number))
-redis.call('SET', KEYS[4], tostring(number), 'EX', 2592000)
+redis.call('SET', KEYS[4], tostring(number), 'EX', tonumber(ARGV[2]))
 return {number, 1}
 `,
-        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:request:${user.id}:${submissionId}`],
-        [JSON.stringify(auditItem)]
+        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:request:${user.id}:${auditRequestId}`],
+        [JSON.stringify(auditItem), String(auditIdempotencyTtl)]
       );
       if (!Array.isArray(allocation) || allocation.length !== 2) {
         throw new Error('HR audit allocation returned an invalid response');
@@ -424,12 +435,16 @@ return {number, 1}
       const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
       if (!created) {
         const existing = await kv.get(itemKey);
-        if (!existing) throw new Error('HR audit idempotency record points to a missing item');
+        if (!existing || existing.type !== type || String(existing.submitter?.id || '') !== String(user.id)) {
+          throw new Error('HR audit idempotency record points to a missing or mismatched item');
+        }
         return res.status(200).json({
           success: true,
           number: hrAuditNumber,
           duplicate: true,
-          ...(existing.deliveryPending ? { warning: `Заявка №${hrAuditNumber} уже сохранена. Повторная отправка не выполнялась; проверьте её статус в кадровом реестре.` } : {})
+          ...(existing.deliveryPending ? {
+            warning: `Заявка №${hrAuditNumber} уже сохранена. Повторная отправка не выполнялась; проверьте её состояние в кадровом реестре.`
+          } : {})
         });
       }
 
@@ -449,7 +464,7 @@ return {number, 1}
         const storedBeforeSend = await kv.get(itemKey);
         if (
           !storedBeforeSend
-          || storedBeforeSend.type !== 'report'
+          || storedBeforeSend.type !== type
           || String(storedBeforeSend.id) !== String(hrAuditNumber)
         ) {
           throw new Error('Persisted HR audit record is missing or invalid');
