@@ -369,7 +369,14 @@ async function sendDecision(item, reviewer, decision, reason) {
 
     const latestBeforeAudit = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
     if (latestBeforeAudit?.auditMessageId) {
-      return { success: true, messageId: latestBeforeAudit.auditMessageId, approvedReportMessageId: reportMessageId, auditMessageId: latestBeforeAudit.auditMessageId };
+      const promotionResult = await createPromotionFromHighrank(item, reviewer, latestBeforeAudit.auditMessageId);
+      return {
+        success: promotionResult.success,
+        messageId: latestBeforeAudit.auditMessageId,
+        approvedReportMessageId: reportMessageId,
+        auditMessageId: latestBeforeAudit.auditMessageId,
+        reason: promotionResult.reason || null
+      };
     }
 
     if (!auditWebhook) {
@@ -444,7 +451,14 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
 
     await writeSystemLog({ level: 'info', category: 'discord', event: 'highrank_audit_report_sent', message: 'HR-карточка обновлена, карточка кадрового аудита отправлена', auditId: item.id, auditType: item.type, decision });
-    return { success: true, messageId: auditMessageId, approvedReportMessageId: reportMessageId, auditMessageId };
+    const promotionResult = await createPromotionFromHighrank(item, reviewer, auditMessageId);
+    return {
+      success: promotionResult.success,
+      messageId: auditMessageId,
+      approvedReportMessageId: reportMessageId,
+      auditMessageId,
+      reason: promotionResult.reason || null
+    };
   }
   const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
 
