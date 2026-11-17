@@ -63,6 +63,116 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
 
   const accepted = decision === 'accepted';
+  const auditUrl = `[(Открыть заявку на сайте)](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`;
+
+  // Для отчётов на повышение хай-состава обновляем исходную карточку,
+  // отправленную тем же вебхуком. Остальные типы заявок сохраняют прежний POST-процесс.
+  if (item.type === 'highrank') {
+    const originalMessageId = String(item.deliveryMessageId || '');
+    if (!/^\d{17,20}$/.test(originalMessageId)) {
+      await writeSystemLog({
+        level: 'error', category: 'discord', event: 'original_message_id_missing',
+        message: 'Нельзя обновить карточку HR-заявки: отсутствует ID исходного сообщения',
+        auditId: item.id, auditType: item.type, decision
+      });
+      return { success: false, messageId: null, reason: 'original_message_id_missing' };
+    }
+
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${originalMessageId}`;
+
+    let response;
+    try {
+      response = await fetch(messageUrl.toString(), {
+        method: 'GET',
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!response.ok) {
+        const responseBody = (await response.text()).slice(0, 2000);
+        await writeSystemLog({
+          level: 'error', category: 'discord', event: 'discord_http_error',
+          message: 'Не удалось получить исходную карточку HR-заявки из Discord',
+          auditId: item.id, auditType: item.type, decision,
+          httpStatus: response.status, details: responseBody
+        });
+        return { success: false, messageId: null, reason: `discord_http_${response.status}` };
+      }
+
+      const originalMessage = await response.json();
+      const embeds = Array.isArray(originalMessage.embeds) ? originalMessage.embeds : [];
+      const originalEmbed = embeds[0] || {};
+      const updatedEmbed = {
+        ...originalEmbed,
+        title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        color: accepted ? 0x4CAF50 : 0xDC3545,
+        description: [originalEmbed.description, auditUrl].filter(Boolean).join('\n'),
+        fields: [
+          ...(Array.isArray(originalEmbed.fields) ? originalEmbed.fields : []),
+          ...(!accepted && reason ? [{ name: 'Причина отказа', value: String(reason).slice(0, 1024), inline: false }] : []),
+          { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true }
+        ],
+        footer: {
+          ...(originalEmbed.footer || {}),
+          text: 'LSPD HR Audit'
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      const content = `По отчёту от ${DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'заявителя'}, ${accepted ? 'одобрил' : 'отклонил'} <@${reviewerId}>`;
+      response = await fetch(messageUrl.toString(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          embeds: [updatedEmbed],
+          allowed_mentions: {
+            users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+          }
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+    } catch (error) {
+      console.error('HR audit Discord original message update failed:', {
+        auditId: String(item.id), auditType: item.type, decision,
+        errorName: error?.name || 'Error',
+        errorMessage: String(error?.message || error).slice(0, 500)
+      });
+      await writeSystemLog({
+        level: 'error', category: 'discord',
+        event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
+        message: 'Не удалось обновить исходную карточку HR-заявки в Discord',
+        auditId: item.id, auditType: item.type, decision,
+        details: String(error?.message || error).slice(0, 1200)
+      });
+      return { success: false, messageId: null, reason: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error' };
+    }
+
+    if (!response.ok) {
+      let responseBody = '';
+      try { responseBody = (await response.text()).slice(0, 2000); } catch {}
+      console.error('HR audit Discord rejected original message update:', {
+        auditId: String(item.id), auditType: item.type, decision,
+        httpStatus: response.status, responseBody
+      });
+      await writeSystemLog({
+        level: 'error', category: 'discord', event: 'discord_http_error',
+        message: 'Discord отклонил обновление исходной карточки HR-заявки',
+        auditId: item.id, auditType: item.type, decision,
+        httpStatus: response.status, details: responseBody
+      });
+      return { success: false, messageId: null, reason: `discord_http_${response.status}` };
+    }
+
+    await writeSystemLog({
+      level: 'info', category: 'discord', event: 'decision_notification_sent',
+      message: 'Исходная карточка HR-заявки успешно обновлена в Discord',
+      auditId: item.id, auditType: item.type, decision, httpStatus: response.status
+    });
+    return { success: true, messageId: originalMessageId };
+  }
+
   const fields = [
     {
       name: 'Заявитель',
@@ -70,15 +180,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       inline: true
     },
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
-    ...(item.type === 'highrank' && accepted ? [
-      { name: 'Диапазон рангов', value: String(item.data?.rankRange || 'Не указан'), inline: true },
-      { name: 'Доказательства проделанной работы', value: String(item.data?.workLink || 'Не указаны').slice(0, 1024), inline: false }
-    ] : []),
-    ...(item.type === 'highrank' && !accepted && reason
-      ? [{ name: 'Причина отказа', value: reason, inline: false }]
-      : item.type !== 'highrank' && reason
-        ? [{ name: 'Причина отказа', value: reason, inline: false }]
-        : [])
+    ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
   ];
   const content = [
     DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : null,
@@ -94,18 +196,16 @@ async function sendDecision(item, reviewer, decision, reason) {
         username: 'LSPD Forms',
         content,
         embeds: [{
-          title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт на повышение'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+          title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
           color: accepted ? 0x4CAF50 : 0xDC3545,
-          description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`,
+          description: auditUrl,
           fields,
           timestamp: new Date().toISOString(),
           footer: { text: 'LSPD HR Audit' }
         }],
-        ...(item.type !== 'highrank' ? {
-          allowed_mentions: {
-            users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
-          }
-        } : {})
+        allowed_mentions: {
+          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+        }
       }),
       signal: AbortSignal.timeout(15000)
     });
@@ -134,7 +234,6 @@ async function sendDecision(item, reviewer, decision, reason) {
   await writeSystemLog({ level: 'info', category: 'discord', event: 'decision_notification_sent', message: 'Уведомление о решении успешно отправлено в Discord', auditId: item.id, auditType: item.type, decision, httpStatus: response.status });
   return { success: true, messageId: typeof message?.id === 'string' ? message.id : null };
 }
-
 async function recordNotificationAttempt(itemKey, item, userId, action) {
   const at = new Date().toISOString();
   const attempted = {
