@@ -159,9 +159,9 @@ export default function Header({ user }) {
 
             {user?.id === '200102286473691139' && (
               <button
-                className={`hr-audit-nav-btn ${router.pathname === '/admin/hr-audit' ? 'is-active' : ''}`}
-                onClick={() => navigate('/admin/hr-audit')}
-                aria-current={router.pathname === '/admin/hr-audit' ? 'page' : undefined}
+                className={`hr-audit-nav-btn ${router.pathname === '/audit' ? 'is-active' : ''}`}
+                onClick={() => navigate('/audit')}
+                aria-current={router.pathname === '/audit' ? 'page' : undefined}
               >
                 Кадровый аудит
               </button>
