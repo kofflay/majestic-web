@@ -65,6 +65,10 @@ async function sendDecision(item, reviewer, decision, reason) {
       inline: true
     },
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
+    ...(item.type === 'highrank' ? [
+      { name: 'Диапазон рангов', value: String(item.data?.rankRange || 'Не указан'), inline: true },
+      { name: 'Ссылка на работу', value: String(item.data?.workLink || 'Не указана').slice(0, 1024), inline: false }
+    ] : []),
     ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
   ];
   const content = [
@@ -178,7 +182,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'В записи отсутствуют данные проверяющего; уведомление нельзя безопасно повторить' });
       }
       if (!getAuditWebhook(item)) {
-        return res.status(503).json({ error: 'Вебхук отдела не настроен. Решение сохранено; повтор уведомления пока недоступен.' });
+        return res.status(503).json({ error: 'Вебхук для этой категории заявки не настроен. Решение сохранено; повтор уведомления пока недоступен.' });
       }
 
       const attempted = await recordNotificationAttempt(
@@ -264,7 +268,7 @@ export default async function handler(req, res) {
       }
 
       const webhook = getAuditWebhook(item);
-      if (!webhook) return res.status(503).json({ error: 'Вебхук отдела не настроен' });
+      if (!webhook) return res.status(503).json({ error: 'Вебхук для этой категории заявки не настроен' });
 
       const attempted = await recordDeliveryAttempt(
         itemKey, item, user.id, 'delivery_retry_attempted'
@@ -491,7 +495,7 @@ export default async function handler(req, res) {
       notificationPending: !result.success,
       ...(!result.success ? {
         warning: result.reason === 'webhook_not_configured'
-          ? 'Решение сохранено, но вебхук отдела не настроен. После настройки его можно будет отправить повторно.'
+          ? 'Решение сохранено, но вебхук для этой категории заявки не настроен. После настройки его можно будет отправить повторно.'
           : 'Решение сохранено, но Discord не подтвердил уведомление. Перед повторной отправкой проверьте канал отдела: сообщение могло быть принято.'
       } : {})
     });
