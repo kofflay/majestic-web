@@ -3,6 +3,7 @@ import { hasHrAuditAccess } from '../../../lib/hr-audit-access';
 import { kv } from '../../../lib/redis.js';
 import { getDepartment, getReportWebhook } from '../../../lib/departments';
 import { acquireHrAuditLock } from '../../../lib/hr-audit-locks';
+import { writeSystemLog } from '../../../lib/system-logs';
 
 const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
 const DISCORD_ID_PATTERN = /^\d{17,20}$/;
@@ -52,8 +53,12 @@ async function sendDecision(item, reviewer, decision, reason) {
   const applicantId = String(item.submitter?.id || '');
   const reviewerId = String(reviewer?.id || '');
 
-  if (!webhook) return { success: false, messageId: null, reason: 'webhook_not_configured' };
+  if (!webhook) {
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'webhook_not_configured', message: 'Вебхук для уведомления о решении не настроен', auditId: item.id, auditType: item.type, decision });
+    return { success: false, messageId: null, reason: 'webhook_not_configured' };
+  }
   if (!DISCORD_ID_PATTERN.test(reviewerId)) {
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'reviewer_invalid', message: 'Не удалось отправить уведомление: некорректный Discord ID проверяющего', auditId: item.id, auditType: item.type, decision });
     return { success: false, messageId: null, reason: 'reviewer_invalid' };
   }
 
@@ -108,6 +113,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       errorName: error?.name || 'Error',
       errorMessage: String(error?.message || error).slice(0, 500)
     });
+    await writeSystemLog({ level: 'error', category: 'discord', event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error', message: 'Не удалось установить соединение с Discord при отправке уведомления', auditId: item.id, auditType: item.type, decision, details: String(error?.message || error).slice(0, 1200) });
     return { success: false, messageId: null, reason: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error' };
   }
 
@@ -118,10 +124,12 @@ async function sendDecision(item, reviewer, decision, reason) {
       auditId: String(item.id), auditType: item.type, decision,
       httpStatus: response.status, responseBody
     });
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'discord_http_error', message: 'Discord отклонил уведомление о решении', auditId: item.id, auditType: item.type, decision, httpStatus: response.status, details: responseBody });
     return { success: false, messageId: null, reason: `discord_http_${response.status}` };
   }
   let message = null;
   try { message = await response.json(); } catch {}
+  await writeSystemLog({ level: 'info', category: 'discord', event: 'decision_notification_sent', message: 'Уведомление о решении успешно отправлено в Discord', auditId: item.id, auditType: item.type, decision, httpStatus: response.status });
   return { success: true, messageId: typeof message?.id === 'string' ? message.id : null };
 }
 
