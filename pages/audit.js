@@ -58,7 +58,8 @@ const FIELD_LABELS = {
   isInstructor: 'Назначение инструктором',
   workLinks: 'Ссылки на проделанную работу',
   rankRange: 'Диапазон рангов',
-  workLink: 'Ссылка на проделанную работу'
+  workLink: 'Ссылка на проделанную работу',
+  reportLink: 'Ссылка на кадровый аудит'
 };
 
 const STATUS_LABELS = {
@@ -79,7 +80,7 @@ function displayFieldValue(key, value) {
 }
 
 function renderFieldContent(key, value) {
-  if (!['workLinks', 'workLink'].includes(key) || !value) return displayFieldValue(key, value);
+  if (!['workLinks', 'workLink', 'reportLink'].includes(key) || !value) return displayFieldValue(key, value);
   const parts = String(value).split(/(https?:\/\/[^\s,]+)/gi);
   return parts.map((part, index) => /^https?:\/\//i.test(part)
     ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
@@ -188,7 +189,8 @@ export default function HrAuditPage() {
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
   const TYPE_LABELS = {
     report: 'Отчёт о повышении',
-    highrank: 'Повышение хай-состава'
+    highrank: 'Повышение хай-состава',
+    promotion: 'Запрос на повышение'
   };
   const uniqueValues = values => Array.from(new Set(values.filter(value => value !== null && value !== undefined && String(value).trim() !== '').map(String)));
   const departmentOptions = uniqueValues(items.map(item => item.data?.department)).sort((a, b) => {
@@ -234,7 +236,7 @@ export default function HrAuditPage() {
 
   return (
     <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." backHref="/" backLabel="НА ГЛАВНУЮ" />
+        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов хайранга и запросов на повышение: просмотр, доставка в Discord и фиксация решений проверяющих." backHref="/" backLabel="НА ГЛАВНУЮ" />
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
         <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
           <div><div style={label}>ВСЕГО</div><div style={{ ...value, fontSize: 23, fontWeight: 800 }}>{items.length}</div></div>
@@ -282,13 +284,16 @@ export default function HrAuditPage() {
           const [statusText, statusColor] = status(item);
           return <section id={`audit-item-${item.id}`} key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Повышение хай-состава' : 'Отчёт о повышении'} · №{item.number}</h2>
+              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Отчёт хайранга' : item.type === 'promotion' ? 'Запрос на повышение' : 'Отчёт о повышении'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
               <div><div style={label}>ЗАЯВИТЕЛЬ</div><div style={value}>{item.data?.fullName || item.submitter?.username || 'Не указано'}</div><div style={{ ...value, color: '#9ca3af', fontSize: 12 }}>Discord: {item.submitter?.id || '—'}</div></div>
               {item.type === 'highrank' ? <>
                 <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>Повышение хай-состава</div></div>
+                <div><div style={label}>ДИАПАЗОН РАНГОВ</div><div style={value}>{displayFieldValue('rankRange', item.data?.rankRange)}</div></div>
+              </> : item.type === 'promotion' ? <>
+                <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>Автоматический запрос после одобрения отчёта хайранга</div></div>
                 <div><div style={label}>ДИАПАЗОН РАНГОВ</div><div style={value}>{displayFieldValue('rankRange', item.data?.rankRange)}</div></div>
               </> : <>
                 <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
@@ -299,7 +304,7 @@ export default function HrAuditPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
               {Object.entries(item.data || {}).filter(([key]) => item.type === 'highrank'
                 ? !['fullName', 'rankRange'].includes(key)
-                : !['fullName', 'department', 'currentRank', 'targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
+                : item.type === 'promotion' ? !['fullName', 'rankRange'].includes(key) : !['fullName', 'department', 'currentRank', 'targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
