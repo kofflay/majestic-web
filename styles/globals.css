@@ -1558,3 +1558,15 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
 @keyframes hr-audit-reveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:760px){.site-page-content:has(.hr-audit-layout){width:calc(100% - 28px)}.hr-audit-card-summary{align-items:flex-start;padding:17px 15px;gap:12px}.hr-audit-card-summary-main strong{font-size:15px}.hr-audit-card-summary-main>span{font-size:14px}.hr-audit-card-summary-meta{flex-wrap:wrap;justify-content:flex-end;font-size:12px}.hr-audit-card-details{padding:18px 15px}.hr-audit-card-status{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.hr-audit-card-summary,.hr-audit-card-chevron{transition:none}.hr-audit-card-details{animation:none}}
+
+/* HR audit: simple sorting and action timeline */
+.hr-audit-list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 12px 4px}
+.hr-audit-list-toolbar>div{margin:0!important}
+.hr-audit-sort-control{display:flex;align-items:center;gap:9px;color:#8294a9;font:9px 'DM Mono',monospace;letter-spacing:.08em}
+.hr-audit-sort-control select{min-height:36px;padding:7px 30px 7px 10px;border:1px solid rgba(71,215,176,.25);border-radius:5px;background:#0b121c;color:#dce8f4;font:12px Arial,sans-serif;cursor:pointer}
+.hr-audit-history-timeline{display:grid;gap:0;padding:2px 0}
+.hr-audit-history-entry{position:relative;display:block;min-width:0;padding:0 0 13px 19px!important;color:#aeb8c7!important;font-size:13px!important;line-height:1.55}
+.hr-audit-history-entry:not(:last-child)::before{position:absolute;content:'';left:5px;top:10px;bottom:-2px;width:1px;background:rgba(71,215,176,.22)}
+.hr-audit-history-entry::after{position:absolute;content:'';left:1px;top:5px;width:9px;height:9px;border:2px solid #48c9a8;border-radius:50%;background:#101a25;box-shadow:0 0 0 3px rgba(71,215,176,.07)}
+.hr-audit-history-entry strong{color:#e5e7eb;font-size:13px}
+@media(max-width:600px){.hr-audit-list-toolbar{align-items:flex-start;flex-direction:column;gap:9px}.hr-audit-sort-control{width:100%;justify-content:space-between}.hr-audit-sort-control select{flex:1;max-width:220px}}
