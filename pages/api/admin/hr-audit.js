@@ -104,7 +104,16 @@ async function sendDecision(item, reviewer, decision, reason) {
       const embeds = Array.isArray(originalMessage.embeds) ? originalMessage.embeds : [];
       const originalEmbed = embeds[0] || {};
       const updatedEmbed = {
-        ...originalEmbed,
+        ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
+        ...(originalEmbed.author?.name ? {
+          author: {
+            name: originalEmbed.author.name,
+            ...(originalEmbed.author.url ? { url: originalEmbed.author.url } : {}),
+            ...(originalEmbed.author.icon_url ? { icon_url: originalEmbed.author.icon_url } : {})
+          }
+        } : {}),
+        ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
+        ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
         title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: originalEmbed.description?.includes(auditUrl)
@@ -117,8 +126,8 @@ async function sendDecision(item, reviewer, decision, reason) {
           { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true }
         ],
         footer: {
-          ...(originalEmbed.footer || {}),
-          text: 'LSPD HR Audit'
+          text: 'LSPD HR Audit',
+          ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {})
         },
         timestamp: new Date().toISOString()
       };
