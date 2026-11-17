@@ -3,6 +3,7 @@ import PageLayout from '../../components/PageLayout';
 import AdminSectionHeader from '../../components/AdminSectionHeader';
 import { verifyToken } from '../../lib/discord';
 import { SUPER_ADMIN_ID } from '../../lib/admins';
+import { getDepartment } from '../../lib/departments';
 
 const panel = {
   background: 'rgba(11,15,22,.72)',
@@ -54,8 +55,8 @@ function displayFieldValue(key, value) {
   if (value === null || value === undefined || value === '') return '—';
   if (key === 'isInstructor') return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
   if (key === 'department') {
-    const known = { patrol: 'Патрульный отдел', traffic: 'Дорожный отдел', detective: 'Детективный отдел', swat: 'SWAT', training: 'Учебный отдел' };
-    return known[value] || String(value);
+    const department = getDepartment(value);
+    return department ? `${department.emoji} ${department.name}` : String(value);
   }
   return String(value);
 }
@@ -207,7 +208,7 @@ export default function HrAuditPage() {
             {Array.isArray(item.history) && item.history.length > 0 && <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.12)' }}>
               <div style={{ ...label, marginBottom: 10 }}>ИСТОРИЯ ДЕЙСТВИЙ</div>
               <div style={{ display: 'grid', gap: 10 }}>
-                {item.history.map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
+                {item.history.slice().reverse().map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
                   <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_pending' ? 'Ожидает доставки' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
                   {' · '}{entry.at ? new Date(entry.at).toLocaleString('ru-RU') : 'Время не указано'}
                   {' · Discord ID: '}{entry.userId || 'не указан'}
