@@ -120,7 +120,7 @@ export default function Header({ user }) {
 
   return (
     <>
-      <header className={`site-header${router.pathname === '/start' ? ' site-header--landing' : ''}${isMenuOpen ? ' site-header--menu-open' : ''}`}>
+      <header className={isMenuOpen ? 'site-header site-header--menu-open' : 'site-header'}>
         <div className="site-header__inner">
           <button
             className="brand"
