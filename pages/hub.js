@@ -70,7 +70,7 @@ export default function HubPage() {
           <div style={{ background: 'rgba(255, 38, 64, 0.05)', border: '1px solid #ff2640', padding: '50px', borderRadius: '4px', textAlign: 'center', maxWidth: '500px', boxShadow: '0 10px 40px rgba(255, 38, 64, 0.1)' }}>
             <div style={{ fontSize: '64px', marginBottom: '20px' }}>⛔</div>
             <h1 style={{ color: '#ff2640', fontSize: '32px', margin: '0 0 16px 0', fontWeight: '900', letterSpacing: '2px', fontFamily: "'Space Grotesk', sans-serif" }}>ACCESS DENIED</h1>
-            <p style={{ color: '#9ca3af', margin: 0, fontSize: '15px', lineHeight: 1.6 }}>У вас недостаточно прав для доступа к этому разделу.<br/>Требуется роль сотрудника LSPD.</p>
+            <p style={{ color: '#9ca3af', margin: 0, fontSize: '16px', lineHeight: 1.6 }}>У вас недостаточно прав для доступа к этому разделу.<br/>Требуется роль сотрудника LSPD.</p>
           </div>
         </div>
       </PageLayout>
@@ -89,8 +89,8 @@ export default function HubPage() {
   return (
     <PageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Для сотрудников</h1>
-        <p style={{ color: '#9ca3af', fontSize: '15px', margin: 0 }}>Внутренние служебные документы и формы.</p>
+        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Для сотрудников</h1>
+        <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Внутренние служебные документы и формы.</p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -105,14 +105,14 @@ export default function HubPage() {
             
             {/* Шапка категории */}
             <div style={{ 
-              padding: '16px 24px', 
+              padding: '18px 28px', 
               borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
               background: 'rgba(0, 0, 0, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               color: 'var(--blue)',
-              fontSize: '12px',
+              fontSize: '14px',
               letterSpacing: '1px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -132,7 +132,7 @@ export default function HubPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '20px 24px',
+                    padding: '22px 28px',
                     borderBottom: index !== category.items.length - 1 ? '1px solid rgba(148, 163, 184, 0.05)' : 'none',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -172,16 +172,16 @@ export default function HubPage() {
                     </span>
                     
                     {/* Код формы */}
-                    <div style={{ color: 'var(--blue)', fontSize: '13px', fontWeight: 'bold', minWidth: '50px' }}>
+                    <div style={{ color: 'var(--blue)', fontSize: '14px', fontWeight: 'bold', minWidth: '50px' }}>
                       [{form.code}]
                     </div>
 
                     {/* Название и описание */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ color: 'white', fontSize: '15px', fontWeight: 'bold', fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', fontFamily: "'Space Grotesk', sans-serif" }}>
                         {form.title}
                       </span>
-                      <span style={{ color: '#7f8a9a', fontSize: '12px' }}>
+                      <span style={{ color: '#7f8a9a', fontSize: '14px' }}>
                         {form.description}
                       </span>
                     </div>
@@ -191,7 +191,7 @@ export default function HubPage() {
                   <div 
                     className="terminal-status"
                     style={{ 
-                      fontSize: '11px', 
+                      fontSize: '13px', 
                       color: '#6b7280',
                       border: '1px solid rgba(148, 163, 184, 0.2)',
                       padding: '4px 8px',
