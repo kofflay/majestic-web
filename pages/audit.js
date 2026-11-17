@@ -80,6 +80,8 @@ export default function HrAuditPage() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   const load = async () => {
@@ -157,13 +159,29 @@ export default function HrAuditPage() {
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
   const counts = items.reduce((acc, item) => ({ ...acc, [item.status]: (acc[item.status] || 0) + 1 }), {});
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
+  const departmentOptions = Array.from(new Set(items
+    .map(item => item.data?.department)
+    .filter(value => value !== null && value !== undefined && String(value).trim() !== '')
+    .map(value => String(value))
+  )).sort((a, b) => {
+    const nameA = getDepartment(a)?.name || a;
+    const nameB = getDepartment(b)?.name || b;
+    return nameA.localeCompare(nameB, 'ru-RU');
+  });
+  const TYPE_LABELS = {
+    all: 'Все типы заявок',
+    report: 'Отчёт о повышении',
+    highrank: 'Повышение хай-состава'
+  };
   const visibleItems = items.filter(item => {
     const statusMatches = statusFilter === 'all' || item.status === statusFilter;
+    const departmentMatches = departmentFilter === 'all' || String(item.data?.department || '') === departmentFilter;
+    const typeMatches = typeFilter === 'all' || item.type === typeFilter;
     const haystack = [
       item.number, item.submitter?.username, item.submitter?.id,
       ...Object.values(item.data || {})
     ].join(' ').toLocaleLowerCase('ru-RU');
-    return statusMatches && (!normalizedSearch || haystack.includes(normalizedSearch));
+    return statusMatches && departmentMatches && typeMatches && (!normalizedSearch || haystack.includes(normalizedSearch));
   });
 
   return (
@@ -180,8 +198,15 @@ export default function HrAuditPage() {
           <div><div style={label}>ОДОБРЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#81c784' }}>{counts.accepted || 0}</div></div>
           <div><div style={label}>ОТКЛОНЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#ff7b88' }}>{counts.rejected || 0}</div></div>
         </div>
-        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'minmax(220px,1fr) minmax(160px,240px)', gap: 12 }}>
-          <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID, отделу…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
+        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
+          <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
+          <select aria-label="Фильтр по отделу" value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
+            <option value="all">Все отделы</option>
+            {departmentOptions.map(department => <option key={department} value={department}>{displayFieldValue('department', department)}</option>)}
+          </select>
+          <select aria-label="Фильтр по типу заявки" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
+            {Object.entries(TYPE_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
+          </select>
           <select aria-label="Фильтр по статусу" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
             {Object.entries(STATUS_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
           </select>
