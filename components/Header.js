@@ -374,22 +374,49 @@ export default function Header({ user }) {
           transform: scaleX(1);
         }
 
+        .site-nav .hr-audit-nav-btn,
+        .site-nav .admin-nav-btn {
+          min-height: 36px;
+          padding: 0 12px;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+        }
+
+        .site-nav .hr-audit-nav-btn {
+          border-color: rgba(76, 190, 177, .38);
+          background: rgba(45, 166, 153, .10);
+          color: #9bded5;
+        }
+
+        .site-nav .hr-audit-nav-btn:hover,
+        .site-nav .hr-audit-nav-btn.is-active {
+          border-color: rgba(104, 218, 202, .72);
+          background: rgba(45, 166, 153, .20);
+          color: #d5fff8;
+          transform: translateY(-1px);
+        }
+
         .site-nav .admin-nav-btn {
           margin-left: 4px;
-          color: #91bdff;
+          border-color: rgba(207, 157, 83, .38);
+          background: rgba(177, 119, 43, .10);
+          color: #e6c18b;
         }
 
         .site-nav .admin-nav-btn:hover,
         .site-nav .admin-nav-btn.is-active {
-          color: #d8e8ff;
+          border-color: rgba(230, 181, 105, .76);
+          background: rgba(177, 119, 43, .20);
+          color: #ffe5bd;
+          transform: translateY(-1px);
         }
 
-        .site-nav .hr-audit-nav-btn {
-          color: #83b8ff;
-        }
-
-        .site-nav .hr-audit-nav-btn.is-active {
-          color: #b7d5ff;
+        .site-nav .hr-audit-nav-btn::after,
+        .site-nav .admin-nav-btn::after {
+          content: none;
         }
 
         .site-header__actions {
