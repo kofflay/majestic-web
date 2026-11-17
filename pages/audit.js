@@ -129,6 +129,7 @@ export default function HrAuditPage() {
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set());
+  const [sortOrder, setSortOrder] = useState('newest');
 
   const load = async () => {
     setError('');
@@ -251,6 +252,11 @@ export default function HrAuditPage() {
       && (!selectedDepartments.length || selectedDepartments.includes(department))
       && (!selectedStatuses.length || selectedStatuses.includes(item.status));
   });
+  const sortedVisibleItems = visibleItems.slice().sort((a, b) => {
+    const dateA = getSubmittedDate(a)?.getTime() ?? 0;
+    const dateB = getSubmittedDate(b)?.getTime() ?? 0;
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+  });
 
   return (
     <PageLayout user={user}>
@@ -318,8 +324,16 @@ export default function HrAuditPage() {
           </div>}
         </div>
 
-        <div style={{ ...label, margin: '0 0 12px 4px' }}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
-        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : activeCategory !== 'all' && !connectedCategories.includes(activeCategory) ? <div className="hr-audit-empty"><div className="hr-audit-empty-icon">⌁</div><h3>Раздел готовится к подключению</h3><p>Навигация для этой категории уже создана. Интеграция формы и её обработка будут добавлены отдельно.</p><span>ПОКА НЕТ ПОДКЛЮЧЁННЫХ ЗАЯВЛЕНИЙ</span></div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
+        <div className="hr-audit-list-toolbar">
+          <div style={label}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
+          <label className="hr-audit-sort-control">СОРТИРОВКА
+            <select aria-label="Сортировка заявлений" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+            </select>
+          </label>
+        </div>
+        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : activeCategory !== 'all' && !connectedCategories.includes(activeCategory) ? <div className="hr-audit-empty"><div className="hr-audit-empty-icon">⌁</div><h3>Раздел готовится к подключению</h3><p>Навигация для этой категории уже создана. Интеграция формы и её обработка будут добавлены отдельно.</p><span>ПОКА НЕТ ПОДКЛЮЧЁННЫХ ЗАЯВЛЕНИЙ</span></div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : sortedVisibleItems.map(item => {
           const [statusText, statusColor] = status(item);
           return <section id={`audit-item-${item.id}`} key={item.id} className="hr-audit-card" style={panel}>
             <button type="button" className="hr-audit-card-summary" aria-expanded={expandedItems.has(item.id)} aria-controls={`audit-details-${item.id}`} onClick={() => setExpandedItems(prev => { const next = new Set(prev); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })}>
@@ -370,8 +384,8 @@ export default function HrAuditPage() {
             </div>}
             {Array.isArray(item.history) && item.history.length > 0 && <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.12)' }}>
               <div style={{ ...label, marginBottom: 10 }}>ИСТОРИЯ ДЕЙСТВИЙ</div>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {item.history.slice().reverse().map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
+              <div className="hr-audit-history-timeline">
+                {item.history.slice().reverse().map((entry, index) => <div className="hr-audit-history-entry" key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
                   <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_attempted' ? 'Начата доставка в Discord' : entry.action === 'delivery_retry_attempted' ? 'Повтор доставки начат' : entry.action === 'delivery_retry_unconfirmed' ? 'Ответ Discord не подтверждён' : entry.action === 'delivery_pending' ? 'Ожидает подтверждения доставки' : entry.action === 'notification_attempted' ? 'Начата отправка уведомления' : entry.action === 'notification_retry_attempted' ? 'Повтор уведомления начат' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
                   {' · '}{entry.at ? new Date(entry.at).toLocaleString('ru-RU') : 'Время не указано'}
                   {' · Discord ID: '}{entry.userId || 'не указан'}
