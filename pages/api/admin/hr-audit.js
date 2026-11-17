@@ -261,10 +261,17 @@ export default async function handler(req, res) {
       );
       let response;
       try {
-        response = await fetch(webhookUrlWithWait(webhook), {
+        const retryPayload = { ...attempted.discordPayload };
+        const retryUrl = new URL(webhook);
+        if (retryPayload.thread_id) {
+          retryUrl.searchParams.set('thread_id', String(retryPayload.thread_id));
+          delete retryPayload.thread_id;
+        }
+        retryUrl.searchParams.set('wait', 'true');
+        response = await fetch(retryUrl.toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(attempted.discordPayload),
+          body: JSON.stringify(retryPayload),
           signal: AbortSignal.timeout(15000)
         });
       } catch (deliveryError) {
