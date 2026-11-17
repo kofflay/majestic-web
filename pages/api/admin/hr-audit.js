@@ -248,6 +248,71 @@ async function sendDecision(item, reviewer, decision, reason) {
 
   const accepted = decision === 'accepted';
 
+  if (item.type === 'promotion') {
+    const messageId = String(item.deliveryMessageId || '');
+    if (!/^\d{17,20}$/.test(messageId) || !webhook) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_source_message_missing', message: 'Нет исходной карточки запроса на повышение для обновления', auditId: item.id, auditType: item.type, decision });
+      return { success: false, messageId: null, reason: 'promotion_source_message_missing' };
+    }
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${messageId}`;
+    let original;
+    try {
+      const response = await fetch(messageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
+      if (!response.ok) return { success: false, messageId: null, reason: `promotion_message_http_${response.status}` };
+      original = await response.json();
+    } catch (error) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_message_lookup_failed', message: 'Не удалось получить карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, details: String(error?.message || error).slice(0, 1000) });
+      return { success: false, messageId: null, reason: 'promotion_message_lookup_failed' };
+    }
+    const data = item.data || {};
+    const fieldValue = value => (typeof value === 'string' ? value.trim() : '').slice(0, 1024) || 'Не указано';
+    const fields = [
+      { name: 'Имя Фамилия + Статик', value: fieldValue(data.fullName), inline: false },
+      { name: 'С какого на какой ранг', value: fieldValue(data.rankRange), inline: true },
+      { name: 'Доказательство — кадровый аудит', value: fieldValue(data.reportLink), inline: false },
+      { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
+      { name: 'Discord ID', value: fieldValue(applicantId), inline: true },
+      { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
+      { name: accepted ? 'Одобрил' : 'Отклонил', value: `<@${reviewerId}>`, inline: true },
+      { name: 'Discord ID проверяющего', value: reviewerId, inline: true },
+      ...(!accepted && reason ? [{ name: 'Причина отказа', value: fieldValue(reason), inline: false }] : [])
+    ];
+    const previousEmbed = Array.isArray(original.embeds) ? original.embeds[0] || {} : {};
+    const embed = {
+      ...(previousEmbed.author ? { author: previousEmbed.author } : {}),
+      title: `Запрос на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+      color: accepted ? 0x4CAF50 : 0xDC3545,
+      description: `[Открыть запрос в кадровом реестре](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${item.id})`,
+      fields,
+      footer: { text: 'Suspect Forms • Запрос на повышение' },
+      timestamp: item.resolvedAt || new Date().toISOString()
+    };
+    try {
+      const response = await fetch(messageUrl.toString(), {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}.`,
+          embeds: [embed],
+          allowed_mentions: { users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)) }
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!response.ok) {
+        const details = (await response.text()).slice(0, 1500);
+        await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_card_update_failed', message: 'Discord не обновил карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, httpStatus: response.status, details });
+        return { success: false, messageId: null, reason: `promotion_update_http_${response.status}` };
+      }
+      return { success: true, messageId };
+    } catch (error) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_card_update_failed', message: 'Не удалось обновить карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, details: String(error?.message || error).slice(0, 1000) });
+      return { success: false, messageId: null, reason: 'promotion_card_update_failed' };
+    }
+  }
+
+
   // Approved high-rank reports: update the existing HR card, persist that
   // stage, then publish the separate personnel-audit card.
   if (item.type === 'highrank' && accepted) {
