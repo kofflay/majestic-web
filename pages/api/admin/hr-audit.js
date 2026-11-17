@@ -199,6 +199,20 @@ export default async function handler(req, res) {
         await kv.set(itemKey, updated);
       } catch (saveError) {
         console.error('HR audit notification result could not be saved:', saveError);
+        const persisted = await kv.get(itemKey).catch(() => null);
+        const persistedResult = persisted
+          && persisted.status === attempted.status
+          && persisted.resolvedAt === attempted.resolvedAt
+          && persisted.notificationPending === false
+          && persisted.notificationSentAt === at
+          && historyOf(persisted).some(entry => entry.action === 'notification_sent' && entry.at === at);
+        if (persistedResult) {
+          return res.status(200).json({
+            success: true,
+            item: persisted,
+            notificationPending: false
+          });
+        }
         if (result.success) {
           return res.status(200).json({
             success: true,
@@ -306,6 +320,10 @@ export default async function handler(req, res) {
         await kv.set(itemKey, updated);
       } catch (saveError) {
         console.error('Discord accepted the HR audit delivery but Redis state update failed:', saveError);
+        const persisted = await kv.get(itemKey).catch(() => null);
+        if (persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt) {
+          return res.status(200).json({ success: true, item: persisted });
+        }
         return res.status(200).json({
           success: true,
           item: attempted,
@@ -376,11 +394,24 @@ export default async function handler(req, res) {
     };
 
     // Persist the irreversible decision before contacting Discord.
-    const saved = await kv.eval(
-      SAVE_DECISION_SCRIPT,
-      [itemKey],
-      [JSON.stringify(decisionRecord), String(id)]
-    );
+    let saved;
+    try {
+      saved = await kv.eval(
+        SAVE_DECISION_SCRIPT,
+        [itemKey],
+        [JSON.stringify(decisionRecord), String(id)]
+      );
+    } catch (commitError) {
+      // Redis may have committed the script even when the client lost its reply.
+      const persisted = await kv.get(itemKey).catch(() => null);
+      const decisionWasCommitted = persisted
+        && persisted.type === 'report'
+        && persisted.status === decision
+        && persisted.resolvedAt === resolvedAt
+        && String(persisted.reviewer?.id || '') === String(user.id);
+      if (!decisionWasCommitted) throw commitError;
+      saved = 1;
+    }
     if (saved === -1) return res.status(404).json({ error: 'Заявка не найдена' });
     if (saved === -2) return res.status(404).json({ error: 'Запись кадрового аудита повреждена или не является отчётом' });
     if (saved === -3) return res.status(409).json({ error: 'Сначала необходимо подтвердить доставку заявки в Discord' });
@@ -412,11 +443,28 @@ export default async function handler(req, res) {
       await kv.set(itemKey, updated);
     } catch (saveError) {
       console.error('HR audit decision was saved but notification state update failed:', saveError);
+      const persisted = await kv.get(itemKey).catch(() => null);
+      const finalAction = result.success ? 'notification_sent' : 'notification_pending';
+      const persistedFinalState = persisted
+        && persisted.status === decision
+        && persisted.resolvedAt === resolvedAt
+        && persisted.notificationPending === !result.success
+        && historyOf(persisted).some(entry => entry.action === finalAction && entry.at === notificationAt);
+      if (persistedFinalState) {
+        return res.status(200).json({
+          success: true,
+          item: persisted,
+          notificationPending: !result.success,
+          ...(!result.success ? {
+            warning: 'Решение сохранено, но Discord не подтвердил уведомление. Перед повторной отправкой проверьте канал отдела: сообщение могло быть принято.'
+          } : {})
+        });
+      }
       return res.status(200).json({
         success: true,
         item: decisionRecord,
         notificationPending: true,
-        warning: 'Решение сохранено. Состояние уведомления не удалось обновить; перед повторной отправкой проверьте канал отдела.'
+        warning: 'Решение сохранено. Состояние уведомления не удалось подтвердить; перед повторной отправкой проверьте канал отдела.'
       });
     }
 
