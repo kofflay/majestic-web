@@ -63,7 +63,7 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
 
   const accepted = decision === 'accepted';
-  const auditUrl = `[(Открыть заявку на сайте)](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`;
+  const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
 
   // Для отчётов на повышение хай-состава обновляем исходную карточку,
   // отправленную тем же вебхуком. Остальные типы заявок сохраняют прежний POST-процесс.
@@ -139,7 +139,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
         title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: auditUrl,
+        description: profileReportUrl,
         fields: decisionFields,
         footer: {
           text: 'LSPD HR Audit',
