@@ -434,7 +434,7 @@ export default async function handler(req, res) {
       saved = 1;
     }
     if (saved === -1) return res.status(404).json({ error: 'Заявка не найдена' });
-    if (saved === -2) return res.status(404).json({ error: 'Запись кадрового аудита повреждена или не является отчётом' });
+    if (saved === -2) return res.status(404).json({ error: 'Запись кадрового аудита повреждена или не является поддерживаемой заявкой' });
     if (saved === -3) return res.status(409).json({ error: 'Сначала необходимо подтвердить доставку заявки в Discord' });
     if (saved !== 1) return res.status(409).json({ error: 'По этой заявке уже принято решение' });
 
