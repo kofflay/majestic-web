@@ -596,6 +596,13 @@ return {number, 1}
     }
   }
 
+  // Discord delivery succeeded (or a report was durably queued for retry).
+  try {
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
+  } catch (historyError) {
+    console.error('Submission history update failed after delivery:', historyError);
+  }
+
   let publicWarning = null;
   if (type === 'complaint') {
     if (!webhooks.complaintPublic) {
@@ -644,7 +651,7 @@ return {number, 1}
     console.error('Submission delivered to Discord, but history storage failed:', storageError);
   }
 
-  res.status(200).json({ success: true, ...(publicWarning ? { warning: publicWarning } : {}) });
+  res.status(200).json({ success: true, ...(hrAuditNumber ? { number: hrAuditNumber } : {}), ...(publicWarning ? { warning: publicWarning } : {}) });
 }
 
 function getFormTitle(type, department, targetDepartment, leaveType) {
