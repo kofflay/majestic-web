@@ -252,6 +252,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { type, leaveType, submissionId, ...formData } = req.body || {};
+  const submissionRecordId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   if (type === 'report' && !/^[a-zA-Z0-9_-]{16,80}$/.test(String(submissionId || ''))) {
     return res.status(400).json({ error: 'Не удалось подтвердить отправку отчёта. Обновите форму и повторите попытку.' });
   }
@@ -565,7 +566,7 @@ return {number, 1}
             console.error('HR audit delivery-pending history failed:', historyError);
           }
           try {
-            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending', auditNumber: hrAuditNumber });
+            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending', auditNumber: hrAuditNumber, referenceId: submissionRecordId });
           } catch (historyError) {
             console.error('HR audit delivery-pending submission history failed:', historyError);
           }
@@ -598,7 +599,7 @@ return {number, 1}
 
   // Discord delivery succeeded (or a report was durably queued for retry).
   try {
-    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber });
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber, referenceId: submissionRecordId });
   } catch (historyError) {
     console.error('Submission history update failed after delivery:', historyError);
   }
@@ -636,7 +637,7 @@ return {number, 1}
     await kv.incr('lspd:stats:total');
     await kv.incr(`lspd:stats:${today}`);
     const globalRequest = {
-      id: Date.now().toString(),
+      id: submissionRecordId,
       type: type || 'unknown',
       title: embed.title,
       username: user.username,
