@@ -1,8 +1,10 @@
 // pages/api/submit.js
+import { createHash } from 'crypto';
 import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { checkSpam } from '../../lib/antispam';
 import { kv } from '../../lib/redis.js';
+import { acquireHrAuditLock } from '../../lib/hr-audit-locks';
 import { recordSubmissionHistory } from '../../lib/submission-history';
 import { 
   getDepartment, 
@@ -198,18 +200,47 @@ function validateEmbed(embed) {
   return null;
 }
 
-async function sendToDiscord(webhookUrl, data, retries = 3) {
+async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
   let lastError = null;
-  const url = data.thread_id ? `${webhookUrl}?thread_id=${data.thread_id}` : webhookUrl;
+  const baseUrl = data.thread_id ? `${webhookUrl}?${new URLSearchParams({ thread_id: String(data.thread_id) })}` : webhookUrl;
+  const url = options.waitForConfirmation
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}wait=true`
+    : baseUrl;
   const { thread_id, ...payload } = data;
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) return { success: true };
-      if (res.status === 429) { await new Promise(r => setTimeout(r, (parseInt(res.headers.get('Retry-After')) || 5) * 1000)); continue; }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (res.ok) {
+        if (!options.waitForConfirmation) return { success: true };
+        let messageId = null;
+        try {
+          const message = await res.json();
+          messageId = typeof message?.id === 'string' ? message.id : null;
+        } catch {}
+        return { success: true, messageId };
+      }
+      if (res.status === 429) {
+        if (i >= retries - 1) {
+          return { success: false, error: 'Discord временно ограничил отправку' };
+        }
+        const retryAfter = Number.parseFloat(res.headers.get('Retry-After'));
+        const delaySeconds = Number.isFinite(retryAfter)
+          ? Math.min(Math.max(retryAfter, 1), 10)
+          : 5;
+        await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+        continue;
+      }
       console.error('Submission webhook failed:', { status: res.status });
       return { success: false, error: 'ошибка Discord' };
-    } catch (e) { lastError = e; if (i < retries - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1))); }
+    } catch (error) {
+      lastError = error;
+      if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
   }
   return { success: false, error: lastError?.message };
 }
@@ -220,7 +251,10 @@ export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { type, leaveType, ...formData } = req.body || {};
+  const { type, leaveType, submissionId, ...formData } = req.body || {};
+  if (type === 'report' && !/^[a-zA-Z0-9_-]{16,80}$/.test(String(submissionId || ''))) {
+    return res.status(400).json({ error: 'Не удалось подтвердить отправку отчёта. Обновите форму и повторите попытку.' });
+  }
   const validTypes = new Set(['report', 'transfer', 'highrank', 'resignation', 'reinstatement', 'transfer-to-lspd', 'hiring', 'weapon-request', 'premium', 'complaint', 'leave', 'promotion']);
   if (!validTypes.has(type)) return res.status(400).json({ error: 'Неизвестный тип заявления' });
 
@@ -312,7 +346,7 @@ export default async function handler(req, res) {
     if (ipCount && parseInt(ipCount) >= 6) return rejectSubmission(res, user, type, formData, leaveType, 429, '🚫 Слишком много с IP.');
   }
 
-  const embed = {
+  const baseEmbed = {
     title: getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
@@ -320,24 +354,247 @@ export default async function handler(req, res) {
     footer: { text: 'LSPD Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
-  const embedError = validateEmbed(embed);
+  const embedError = validateEmbed(baseEmbed);
   if (embedError) return rejectSubmission(res, user, type, formData, leaveType, 400, embedError);
 
-  // Приватная запись — каноническая копия жалобы. Публичная сводка отправляется после неё.
-  const result = await sendToDiscord(webhookUrl, {
+  const discordPayload = {
     content: roleMentions.trim() || undefined,
-    embeds: [embed],
+    embeds: [baseEmbed],
     username: 'LSPD Forms',
     avatar_url: 'https://i.imgur.com/AfFp7pu.png',
     ...(threadId ? { thread_id: threadId } : {})
-  });
+  };
 
-  if (!result.success) {
-    return rejectSubmission(res, user, type, formData, leaveType, 502, `Не удалось отправить: ${result.error || 'ошибка Discord'}`);
+  let result;
+  let embed = baseEmbed;
+  let hrAuditNumber = null;
+  if (type === 'report' || type === 'highrank') {
+    const submittedAt = new Date().toISOString();
+    // The existing high-rank form does not send a client idempotency token.
+    // A short-lived fingerprint prevents duplicate clicks/retries without blocking a later new report.
+    const auditRequestId = type === 'report'
+      ? submissionId
+      : `highrank-${createHash('sha256').update(JSON.stringify([
+          formData.fullName,
+          formData.rankRange,
+          formData.workLink
+        ])).digest('hex')}`;
+    const auditIdempotencyTtl = type === 'report' ? 2592000 : 600;
+    const auditItem = {
+      id: '',
+      number: 0,
+      type,
+      title: baseEmbed.title,
+      status: 'pending',
+      deliveryPending: true,
+      submittedAt,
+      submitter: { id: String(user.id), username: user.username || 'Unknown' },
+      data: formData,
+      history: [{ action: 'submitted', at: submittedAt, userId: String(user.id) }],
+      discordPayload
+    };
+
+    try {
+      // Allocate the immutable number and persist the complete retry payload in one Redis transaction.
+      const allocation = await kv.eval(
+        `
+local existing = redis.call('GET', KEYS[4])
+if existing then
+  return {tonumber(existing), 0}
+end
+local current = tonumber(redis.call('GET', KEYS[1]) or '0') or 0
+local latest = tonumber(redis.call('LINDEX', KEYS[3], 0) or '0') or 0
+if latest > current then
+  redis.call('SET', KEYS[1], tostring(latest))
+end
+local number = redis.call('INCR', KEYS[1])
+local item = cjson.decode(ARGV[1])
+item.id = tostring(number)
+item.number = number
+redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
+redis.call('LPUSH', KEYS[3], tostring(number))
+redis.call('SET', KEYS[4], tostring(number), 'EX', tonumber(ARGV[2]))
+return {number, 1}
+`,
+        ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:request:${user.id}:${auditRequestId}`],
+        [JSON.stringify(auditItem), String(auditIdempotencyTtl)]
+      );
+      if (!Array.isArray(allocation) || allocation.length !== 2) {
+        throw new Error('HR audit allocation returned an invalid response');
+      }
+      hrAuditNumber = Number(allocation[0]);
+      if (!Number.isSafeInteger(hrAuditNumber) || hrAuditNumber < 1 || hrAuditNumber > 999999999999) {
+        throw new Error('HR audit allocation returned an invalid sequence number');
+      }
+      const allocationCreated = Number(allocation[1]);
+      if (allocationCreated !== 0 && allocationCreated !== 1) {
+        throw new Error('HR audit allocation returned an invalid creation status');
+      }
+      const created = allocationCreated === 1;
+      const itemKey = `lspd:hr-audit:item:${hrAuditNumber}`;
+      if (!created) {
+        const existing = await kv.get(itemKey);
+        if (!existing || existing.type !== type || String(existing.submitter?.id || '') !== String(user.id)) {
+          throw new Error('HR audit idempotency record points to a missing or mismatched item');
+        }
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          duplicate: true,
+          ...(existing.deliveryPending ? {
+            warning: `Заявка №${hrAuditNumber} уже сохранена. Повторная отправка не выполнялась; проверьте её состояние в кадровом реестре.`
+          } : {})
+        });
+      }
+
+      const deliveryLock = await acquireHrAuditLock('delivery', hrAuditNumber);
+      if (!deliveryLock) {
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          warning: `Заявка №${hrAuditNumber} сохранена в реестре. Отправка занята другим процессом; проверяющий сможет повторить доставку.`
+        });
+      }
+
+      try {
+        embed = baseEmbed;
+        discordPayload.embeds = [embed];
+
+        const storedBeforeSend = await kv.get(itemKey);
+        if (
+          !storedBeforeSend
+          || storedBeforeSend.type !== type
+          || String(storedBeforeSend.id) !== String(hrAuditNumber)
+        ) {
+          throw new Error('Persisted HR audit record is missing or invalid');
+        }
+
+        // A reviewer retry may win the short race between the atomic record creation
+        // and this initial sender acquiring its lock. Never send the same item twice.
+        if (storedBeforeSend.deliveryPending !== true) {
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            duplicate: true,
+            alreadyDelivered: storedBeforeSend.deliveryPending === false
+          });
+        }
+
+        const previousDeliveryAttempt = Number(storedBeforeSend.deliveryAttempts) > 0
+          || (Array.isArray(storedBeforeSend.history) && storedBeforeSend.history.some(entry =>
+            ['delivery_attempted', 'delivery_pending', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
+              .includes(entry?.action)
+          ));
+        if (previousDeliveryAttempt) {
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Для заявки №${hrAuditNumber} отправка уже предпринималась. Чтобы не создать дубликат, автоматическую повторную отправку остановил; проверьте канал отдела и используйте ручной повтор из кадрового аудита только после проверки.`
+          });
+        }
+
+        const attemptAt = new Date().toISOString();
+        const attempted = {
+          ...storedBeforeSend,
+          deliveryAttempts: (Number.isSafeInteger(storedBeforeSend.deliveryAttempts) ? storedBeforeSend.deliveryAttempts : 0) + 1,
+          lastDeliveryAttemptAt: attemptAt,
+          history: [...(Array.isArray(storedBeforeSend.history) ? storedBeforeSend.history : []), {
+            action: 'delivery_attempted',
+            at: attemptAt,
+            userId: 'system'
+          }]
+        };
+
+        try {
+          // Persist the attempt before calling Discord; never send if this write fails.
+          await kv.set(itemKey, attempted);
+        } catch (attemptStateError) {
+          console.error('HR audit delivery attempt could not be recorded:', { number: hrAuditNumber, error: attemptStateError });
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Заявка №${hrAuditNumber} сохранена, но состояние попытки доставки не удалось записать. Проверьте кадровый реестр перед повторной отправкой.`
+          });
+        }
+
+        // Audit submissions use one confirmed attempt. A network timeout is ambiguous,
+        // so automatic retries could create duplicate Discord messages.
+        result = await sendToDiscord(webhookUrl, discordPayload, 1, { waitForConfirmation: true });
+        if (result.success) {
+          const deliveredAt = new Date().toISOString();
+          const delivered = {
+            ...attempted,
+            deliveryPending: false,
+            discordPayload: null,
+            deliveredAt,
+            deliveryMessageId: result.messageId || null,
+            history: [...attempted.history, {
+              action: 'delivered',
+              at: deliveredAt,
+              userId: 'system'
+            }]
+          };
+
+          try {
+            await kv.set(itemKey, delivered);
+          } catch (deliveryStateError) {
+            console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
+            const persisted = await kv.get(itemKey).catch(() => null);
+            if (!(persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt)) {
+              return res.status(200).json({
+                success: true,
+                number: hrAuditNumber,
+                warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил обновление. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
+              });
+            }
+          }
+        } else {
+          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error });
+          const pendingAt = new Date().toISOString();
+          const pending = {
+            ...attempted,
+            history: [...attempted.history, {
+              action: 'delivery_pending',
+              at: pendingAt,
+              userId: 'system'
+            }]
+          };
+          try {
+            await kv.set(itemKey, pending);
+          } catch (historyError) {
+            console.error('HR audit delivery-pending history failed:', historyError);
+          }
+          try {
+            await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'delivery_pending' });
+          } catch (historyError) {
+            console.error('HR audit delivery-pending submission history failed:', historyError);
+          }
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord не подтвердил доставку. Перед повтором проверяющий должен убедиться, что сообщения нет в канале отдела.`
+          });
+        }
+      } finally {
+        await deliveryLock.release();
+      }
+    } catch (storageError) {
+      console.error('HR audit register transaction failed:', storageError);
+      if (hrAuditNumber) {
+        return res.status(200).json({
+          success: true,
+          number: hrAuditNumber,
+          warning: `Заявка №${hrAuditNumber} уже получила номер в кадровом реестре. Состояние доставки не удалось подтвердить; не отправляйте её повторно, сначала проверьте реестр и канал отдела.`
+        });
+      }
+      return res.status(503).json({ error: 'Не удалось надёжно сохранить заявку в кадровом реестре. Повторите отправку позже.' });
+    }
+  } else {
+    result = await sendToDiscord(webhookUrl, discordPayload);
+    if (!result.success) {
+      return rejectSubmission(res, user, type, formData, leaveType, 502, `Не удалось отправить: ${result.error || 'ошибка Discord'}`);
+    }
   }
-
-  // Discord подтвердил доставку основного сообщения — фиксируем успех сразу.
-  await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent' });
 
   let publicWarning = null;
   if (type === 'complaint') {
