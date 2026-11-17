@@ -1684,3 +1684,86 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   .site-page-content h1{font-size:clamp(28px,8vw,36px)!important}
   .site-page-content h2{font-size:24px!important}
 }
+
+
+/* HR audit: filter panel mirrors the category navigation. */
+.hr-audit-filters{
+  padding:15px;
+  border:1px solid rgba(148,163,184,.16);
+  border-radius:8px;
+  background:rgba(9,14,22,.78);
+  box-shadow:none;
+}
+.hr-audit-filters-head{
+  min-height:30px;
+  padding:2px 4px 12px;
+  border-bottom:0;
+  color:#71849a;
+  font:11px 'DM Mono',monospace;
+  letter-spacing:1.2px;
+}
+.hr-audit-filters-head b{
+  min-width:auto;
+  height:auto;
+  padding:0;
+  border-radius:0;
+  background:transparent;
+  color:#8da0b3;
+  font:10px 'DM Mono',monospace;
+}
+.hr-audit-filter-section{
+  padding:13px 4px;
+  border-top:1px solid rgba(148,163,184,.12);
+}
+.hr-audit-filter-section:first-of-type{padding-top:13px}
+.hr-audit-filters .hr-audit-filter-section>div:first-child{
+  color:#71849a!important;
+  font:10px 'DM Mono',monospace!important;
+  letter-spacing:1.1px!important;
+}
+.hr-audit-date-fields{gap:7px}
+.hr-audit-filters input[type="date"]{
+  min-height:38px!important;
+  border-color:rgba(148,163,184,.18)!important;
+  border-radius:5px!important;
+  background:#101a25!important;
+  color:#cbd8e8!important;
+  font-size:13px!important;
+}
+.hr-audit-filters [style*="max-height: 168px"]{
+  border-color:rgba(148,163,184,.12)!important;
+  border-radius:5px!important;
+  background:transparent!important;
+}
+.hr-audit-filters [style*="max-height: 168px"] label{
+  padding:3px 2px;
+  border-radius:4px;
+  color:#b9c7d7!important;
+  transition:background .15s ease,color .15s ease;
+}
+.hr-audit-filters [style*="max-height: 168px"] label:hover{
+  background:rgba(71,215,176,.06);
+  color:#e4f8f2!important;
+}
+.hr-audit-reset-filters{
+  min-height:38px;
+  margin-top:13px;
+  border-color:rgba(148,163,184,.2);
+  border-radius:5px;
+  background:#101a25;
+  color:#a9bacb;
+  font:10px 'DM Mono',monospace;
+  letter-spacing:.08em;
+}
+.hr-audit-reset-filters:not(:disabled):hover{
+  border-color:rgba(71,215,176,.55);
+  background:rgba(71,215,176,.06);
+  color:#67dfbd;
+}
+@media(max-width:1180px){
+  .hr-audit-filters-head{grid-column:1/-1}
+  .hr-audit-filter-section{border-top:0}
+}
+@media(max-width:760px){
+  .hr-audit-filter-section{border-top:1px solid rgba(148,163,184,.12)}
+}
