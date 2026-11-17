@@ -182,9 +182,19 @@ export default async function handler(req, res) {
   if (!['accepted', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Некорректное решение' });
   const cleanReason = decision === 'rejected' && typeof reason === 'string' ? reason.trim() : '';
   if (decision === 'rejected' && !cleanReason) return res.status(400).json({ error: 'Для отказа обязательно укажите причину' });
-  if (decision === 'rejected' && cleanReason.length > 1000) return res.status(400).json({ error: 'Причина слишком длинная' });
+  if (decision === 'rejected' && Array.from(cleanReason).length > 1000) return res.status(400).json({ error: 'Причина слишком длинная' });
+
+  const notificationLockKey = `lspd:hr-audit:notification-lock:${id}`;
+  const notificationLockToken = randomUUID();
+  let notificationLockAcquired = false;
 
   try {
+    const locked = await kv.set(notificationLockKey, notificationLockToken, { nx: true, ex: 60 });
+    if (locked !== 'OK') {
+      return res.status(409).json({ error: 'Уведомление по этой заявке уже обрабатывается. Обновите список позже.' });
+    }
+    notificationLockAcquired = true;
+
     const itemKey = `lspd:hr-audit:item:${id}`;
     const item = await kv.get(itemKey);
     if (!item) return res.status(404).json({ error: 'Заявка не найдена' });
@@ -227,5 +237,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('HR audit decision failed:', error);
     return res.status(500).json({ error: 'Не удалось сохранить решение' });
+  } finally {
+    if (notificationLockAcquired) {
+      await kv.eval(UNLOCK_SCRIPT, [notificationLockKey], [notificationLockToken]).catch(() => {});
+    }
   }
 }
