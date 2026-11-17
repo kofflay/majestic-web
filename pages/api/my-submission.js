@@ -43,12 +43,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       item: {
-        number: Number(item.number),
-        status: item.status,
-        statusLabel: statusLabels[item.status] || 'Статус неизвестен',
+        number: isHrAudit ? Number(item.number) : null,
+        isHrAudit,
+        type: item.type,
+        title: item.title || '',
+        status: isHrAudit ? item.status : 'sent',
+        statusLabel: isHrAudit ? (statusLabels[item.status] || 'Статус неизвестен') : 'Отправлено в Discord',
         data,
         fieldLabels: FIELD_LABELS,
-        reason: item.status === 'rejected' ? String(item.reason || '') : '',
+        reason: isHrAudit && item.status === 'rejected' ? String(item.reason || '') : '',
         submittedAt: item.submittedAt || null,
         resolvedAt: item.resolvedAt || null
       }
