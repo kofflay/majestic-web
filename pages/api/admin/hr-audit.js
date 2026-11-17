@@ -155,7 +155,7 @@ export default async function handler(req, res) {
       }
 
       const item = await kv.get(itemKey);
-      if (!item || item.type !== 'report') {
+      if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
       }
       if (!['accepted', 'rejected'].includes(item.status) || item.notificationPending !== true) {
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
       }
 
       const item = await kv.get(itemKey);
-      if (!item || item.type !== 'report') {
+      if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
       }
       if (item.status !== 'pending' || item.deliveryPending !== true || !item.discordPayload) {
@@ -323,7 +323,7 @@ export default async function handler(req, res) {
   if (decision === 'rejected' && !cleanReason) {
     return res.status(400).json({ error: 'Для отказа обязательно укажите причину' });
   }
-  if (decision === 'rejected' && Array.from(cleanReason).length > 1000) {
+  if (decision === 'rejected' && cleanReason.length > 1000) {
     return res.status(400).json({ error: 'Причина слишком длинная' });
   }
 
@@ -335,7 +335,7 @@ export default async function handler(req, res) {
     }
 
     const item = await kv.get(itemKey);
-    if (!item || item.type !== 'report') {
+    if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
       return res.status(404).json({ error: 'Заявка не найдена' });
     }
     if (item.status !== 'pending') {
