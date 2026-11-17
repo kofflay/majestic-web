@@ -13,7 +13,7 @@ const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return -1 end
 local current = cjson.decode(raw)
-if current.type ~= 'report' and current.type ~= 'highrank' then return -2 end
+if current.type ~= 'report' and current.type ~= 'highrank' and current.type ~= 'promotion' then return -2 end
 if current.status ~= 'pending' then return 0 end
 if current.deliveryPending ~= false then return -3 end
 if tostring(current.id) ~= ARGV[2] then return -2 end
@@ -31,6 +31,7 @@ function historyOf(item) {
 
 function getAuditWebhook(item) {
   if (item?.type === 'highrank') return process.env.WEBHOOK_HIGH_RANK_REPORT || null;
+  if (item?.type === 'promotion') return process.env.WEBHOOK_PROMOTION || null;
   if (item?.type === 'report') {
     const department = getDepartment(item.data?.department);
     return department ? getReportWebhook(department.id) : null;
@@ -39,13 +40,196 @@ function getAuditWebhook(item) {
 }
 
 function isSupportedAuditItem(item) {
-  return Boolean(item && ['report', 'highrank'].includes(item.type));
+  return Boolean(item && ['report', 'highrank', 'promotion'].includes(item.type));
 }
 
 function webhookUrlWithWait(webhook) {
   const url = new URL(webhook);
   url.searchParams.set('wait', 'true');
   return url.toString();
+}
+
+
+async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
+  const itemKey = `lspd:hr-audit:item:${item.id}`;
+  const auditWebhook = process.env.WEBHOOK_AUDIT_URL || '';
+  const promotionWebhook = process.env.WEBHOOK_PROMOTION || '';
+  if (!auditWebhook || !promotionWebhook) {
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_webhook_missing', message: 'Не настроен вебхук кадрового аудита или запроса на повышение', auditId: item.id, auditType: item.type });
+    return { success: false, reason: 'promotion_webhook_missing' };
+  }
+
+  let promotion = await kv.get(itemKey).then(value => value?.promotionRequest || null).catch(() => null);
+  if (promotion?.deliveryPending === false && promotion?.deliveryMessageId) {
+    return { success: true, item: promotion };
+  }
+  if (promotion?.deliveryUnconfirmed) {
+    return { success: false, reason: 'promotion_delivery_unconfirmed' };
+  }
+
+  const auditMessageUrl = promotion?.auditMessageUrl || await (async () => {
+    const auditMessageUrl = new URL(auditWebhook);
+    auditMessageUrl.search = '';
+    auditMessageUrl.hash = '';
+    auditMessageUrl.pathname = `${auditMessageUrl.pathname.replace(/\/$/, '')}/messages/${auditMessageId}`;
+    const [messageResponse, webhookResponse] = await Promise.all([
+      fetch(auditMessageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) }),
+      fetch(auditWebhook, { method: 'GET', signal: AbortSignal.timeout(15000) })
+    ]);
+    if (!messageResponse.ok || !webhookResponse.ok) throw new Error('Не удалось получить ссылку на сообщение кадрового аудита');
+    const [message, webhookInfo] = await Promise.all([messageResponse.json(), webhookResponse.json()]);
+    const guildId = String(webhookInfo.guild_id || '');
+    const channelId = String(message.channel_id || webhookInfo.channel_id || '');
+    if (!/^\d{17,20}$/.test(guildId) || !/^\d{17,20}$/.test(channelId)) throw new Error('Discord не вернул сервер или канал кадрового аудита');
+    return `https://discord.com/channels/${guildId}/${channelId}/${auditMessageId}`;
+  })();
+
+  const reviewerId = String(reviewer?.id || '');
+  const applicantId = String(item.submitter?.id || '');
+  if (!DISCORD_ID_PATTERN.test(reviewerId) || !DISCORD_ID_PATTERN.test(applicantId)) {
+    return { success: false, reason: 'promotion_user_id_invalid' };
+  }
+
+  if (!promotion) {
+    const data = {
+      fullName: String(item.data?.fullName || '').trim(),
+      rankRange: String(item.data?.rankRange || '').trim(),
+      reportLink: auditMessageUrl
+    };
+    const submittedAt = new Date().toISOString();
+    const title = 'Запрос на повышение';
+    const embed = {
+      title,
+      color: 0x3498DB,
+      fields: [
+        { name: 'Имя Фамилия + Статик', value: data.fullName.slice(0, 1024), inline: false },
+        { name: 'С какого на какой ранг', value: data.rankRange.slice(0, 1024), inline: true },
+        { name: 'Ссылка на кадровый аудит', value: data.reportLink, inline: false },
+        { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
+        { name: 'Discord ID', value: applicantId, inline: true }
+      ],
+      footer: { text: 'Suspect Forms • Запрос на повышение' },
+      timestamp: submittedAt
+    };
+    const allocation = await kv.eval(
+      `
+local existing = redis.call('GET', KEYS[4])
+if existing then return {tonumber(existing), 0} end
+local current = tonumber(redis.call('GET', KEYS[1]) or '0') or 0
+local latest = tonumber(redis.call('LINDEX', KEYS[3], 0) or '0') or 0
+if latest > current then redis.call('SET', KEYS[1], tostring(latest)) end
+local number = redis.call('INCR', KEYS[1])
+local item = cjson.decode(ARGV[1])
+item.id = tostring(number)
+item.number = number
+redis.call('SET', KEYS[2] .. tostring(number), cjson.encode(item))
+redis.call('LPUSH', KEYS[3], tostring(number))
+redis.call('SET', KEYS[4], tostring(number))
+return {number, 1}
+`,
+      ['lspd:hr-audit:sequence', 'lspd:hr-audit:item:', 'lspd:hr-audit:ids', `lspd:hr-audit:promotion-from-highrank:${item.id}`],
+      [JSON.stringify({
+        id: '', number: 0, type: 'promotion', title, status: 'pending',
+        deliveryPending: true, submittedAt,
+        submitter: { id: applicantId, username: item.submitter?.username || 'Unknown' },
+        data, sourceHighrankId: String(item.id), sourceHighrankNumber: item.number,
+        auditMessageId: String(auditMessageId), auditMessageUrl,
+        history: [{ action: 'submitted', at: submittedAt, userId: 'system' }]
+      })]
+    );
+    if (!Array.isArray(allocation) || allocation.length < 2) throw new Error('Не удалось создать запись запроса на повышение');
+    const promotionId = String(allocation[0]);
+    promotion = await kv.get(`lspd:hr-audit:item:${promotionId}`);
+    if (!promotion || promotion.type !== 'promotion' || String(promotion.sourceHighrankId) !== String(item.id)) {
+      throw new Error('Запись запроса на повышение не найдена после создания');
+    }
+    const parent = await kv.get(itemKey);
+    await kv.set(itemKey, { ...parent, promotionRequest: { id: promotion.id, number: promotion.number, auditMessageUrl } });
+  }
+
+  if (!promotion.deliveryPending) return { success: true, item: promotion };
+  if (promotion.deliveryUnconfirmed) return { success: false, reason: 'promotion_delivery_unconfirmed' };
+
+  const payload = {
+    username: 'Suspect Forms',
+    content: `<@&1514608894679191597> <@${applicantId}>`,
+    embeds: [{
+      title: `Запрос на повышение №${promotion.number}`,
+      color: 0x3498DB,
+      description: `[Открыть запрос для одобрения или отклонения](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${promotion.id})`,
+      fields: [
+        { name: 'Имя Фамилия + Статик', value: promotion.data.fullName.slice(0, 1024), inline: false },
+        { name: 'С какого на какой ранг', value: promotion.data.rankRange.slice(0, 1024), inline: true },
+        { name: 'Доказательство — кадровый аудит', value: promotion.data.reportLink, inline: false },
+        { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
+        { name: 'Discord ID', value: applicantId, inline: true }
+      ],
+      footer: { text: 'Suspect Forms • Запрос на повышение' },
+      timestamp: promotion.submittedAt
+    }],
+    allowed_mentions: { roles: ['1514608894679191597'], users: [applicantId] }
+  };
+  const attemptAt = new Date().toISOString();
+  promotion = {
+    ...promotion,
+    deliveryAttempts: (Number(promotion.deliveryAttempts) || 0) + 1,
+    lastDeliveryAttemptAt: attemptAt,
+    history: [...historyOf(promotion), { action: 'delivery_attempted', at: attemptAt, userId: 'system' }]
+  };
+  await kv.set(`lspd:hr-audit:item:${promotion.id}`, promotion);
+
+  let response;
+  try {
+    const url = new URL(promotionWebhook);
+    url.searchParams.set('wait', 'true');
+    response = await fetch(url.toString(), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), signal: AbortSignal.timeout(15000)
+    });
+  } catch (error) {
+    const latest = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => promotion);
+    await kv.set(`lspd:hr-audit:item:${promotion.id}`, {
+      ...latest, deliveryUnconfirmed: true,
+      history: [...historyOf(latest), { action: 'delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+    }).catch(() => {});
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_delivery_unconfirmed', message: 'Не удалось подтвердить отправку запроса на повышение; автоматический повтор остановлен во избежание дубликата', auditId: item.id, auditType: 'promotion', details: String(error?.message || error).slice(0, 1000) });
+    return { success: false, reason: 'promotion_delivery_unconfirmed' };
+  }
+  if (!response.ok) {
+    const details = (await response.text()).slice(0, 1200);
+    const latest = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => promotion);
+    await kv.set(`lspd:hr-audit:item:${promotion.id}`, {
+      ...latest, deliveryPending: true, deliveryUnconfirmed: false,
+      history: [...historyOf(latest), { action: 'delivery_failed', at: new Date().toISOString(), userId: 'system' }]
+    });
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_delivery_failed', message: 'Discord не принял запрос на повышение; повтор будет выполнен при следующей обработке', auditId: item.id, auditType: 'promotion', httpStatus: response.status, details });
+    return { success: false, reason: 'promotion_delivery_failed' };
+  }
+  let message = null;
+  try { message = await response.json(); } catch {}
+  const messageId = String(message?.id || '');
+  if (!/^\d{17,20}$/.test(messageId)) {
+    const latest = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => promotion);
+    await kv.set(`lspd:hr-audit:item:${promotion.id}`, {
+      ...latest, deliveryPending: true, deliveryUnconfirmed: true,
+      history: [...historyOf(latest), { action: 'delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+    });
+    return { success: false, reason: 'promotion_message_id_missing' };
+  }
+  const deliveredAt = new Date().toISOString();
+  const latest = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => promotion);
+  const delivered = {
+    ...latest, deliveryPending: false, deliveryUnconfirmed: false,
+    deliveryMessageId: messageId, deliveredAt, discordPayload: null,
+    history: [...historyOf(latest), { action: 'delivered', at: deliveredAt, userId: 'system' }]
+  };
+  await kv.set(`lspd:hr-audit:item:${promotion.id}`, delivered);
+  const parent = await kv.get(itemKey);
+  await kv.set(itemKey, {
+    ...parent,
+    promotionRequest: { id: delivered.id, number: delivered.number, auditMessageUrl, deliveryMessageId: messageId, deliveredAt }
+  });
+  return { success: true, item: delivered };
 }
 
 async function sendDecision(item, reviewer, decision, reason) {
