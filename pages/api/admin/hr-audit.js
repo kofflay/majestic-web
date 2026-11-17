@@ -55,9 +55,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = verifyToken(req.cookies.token);
+  const user = verifyToken(req.cookies?.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (String(user.id) !== SUPER_ADMIN_ID) return res.status(403).json({ error: 'Доступ разрешён только владельцу тестовой версии' });
+  if (String(user.id) !== SUPER_ADMIN_ID) return res.status(403).json({ error: 'Доступ разрешён только уполномоченному проверяющему' });
 
   if (req.method === 'GET') {
     try {
