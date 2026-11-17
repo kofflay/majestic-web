@@ -91,8 +91,8 @@ export default function Header({ user }) {
   const isApplicationsActive = router.pathname === '/applications' || router.pathname === '/complaint' || router.pathname.startsWith('/forms/');
 
   const navItems = [
-    { label: 'Обращения', path: '/applications' },
-    { label: 'Для сотрудников', path: '/hub' },
+    { label: 'Заявления', path: '/applications' },
+    { label: 'Внутренние отчёты', path: '/hub' },
     { label: 'Пропуска', path: '/passes' },
   ];
 
@@ -177,7 +177,7 @@ export default function Header({ user }) {
               onClick={() => navigate('/audit')}
               aria-current={router.pathname === '/audit' ? 'page' : undefined}
             >
-              Кадровый аудит
+              Обработка отчётов
             </button>
           )}
           {user ? (
