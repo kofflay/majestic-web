@@ -453,7 +453,8 @@ export default function Profile() {
               </div>
             ) : (
               history.slice(0, 10).map((item, index) => {
-                const sent = item.status !== 'not_sent';
+                const sent = item.status === 'sent';
+                const pending = item.status === 'delivery_pending';
                 const date = item.date && !Number.isNaN(new Date(item.date).getTime())
                   ? new Date(item.date).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })
                   : 'Дата неизвестна';
@@ -466,16 +467,16 @@ export default function Profile() {
                     onClick={() => openHistoryDetails(item)}
                     aria-label={`Открыть обращение: ${item.title || 'Обращение'}`}
                   >
-                    <div className={sent ? 'profile-history-row__marker is-sent' : 'profile-history-row__marker is-failed'}>
-                      {sent ? '✓' : '!'}
+                    <div className={sent ? 'profile-history-row__marker is-sent' : pending ? 'profile-history-row__marker is-pending' : 'profile-history-row__marker is-failed'}>
+                      {sent ? '✓' : pending ? '…' : '!'}
                     </div>
                     <div className="profile-history-row__content">
                       <strong>{item.title || 'Обращение'}</strong>
                       <span>{date}</span>
                     </div>
-                    <span className={sent ? 'profile-status is-sent' : 'profile-status is-failed'}>
+                    <span className={sent ? 'profile-status is-sent' : pending ? 'profile-status is-pending' : 'profile-status is-failed'}>
                       <i />
-                      {sent ? 'ОТПРАВЛЕНО' : 'НЕ ОТПРАВЛЕНО'}
+                      {sent ? 'ОТПРАВЛЕНО' : pending ? 'ОЖИДАЕТ ОТПРАВКИ' : 'НЕ ОТПРАВЛЕНО'}
                     </span>
                     <span className="profile-history-row__open">ОТКРЫТЬ ↗</span>
                   </button>
