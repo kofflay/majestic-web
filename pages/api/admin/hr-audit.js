@@ -74,7 +74,6 @@ async function sendDecision(item, reviewer, decision, reason) {
       const text = typeof value === 'string' ? value.trim() : '';
       return (text || fallback).slice(0, 1024);
     };
-    const reviewerName = String(reviewer?.username || 'Неизвестно').slice(0, 256);
     const applicantName = fieldValue(reportData.fullName);
     const rankRange = fieldValue(reportData.rankRange);
     const originalMessageId = String(item.deliveryMessageId || '');
@@ -132,13 +131,13 @@ async function sendDecision(item, reviewer, decision, reason) {
         color: 0x4CAF50,
         description: profileReportUrl,
         fields: [
-          { name: '👤 Имя Фамилия + Статик', value: applicantName, inline: false },
-          { name: '📊 Диапазон повышения', value: rankRange, inline: true },
-          { name: '🔗 Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
-          { name: '👤 Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
-          { name: '🆔 Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
-          { name: '⚖️ Решение', value: 'Одобрено', inline: true },
-          { name: '👮 Проверил', value: `<@${reviewerId}>`, inline: true }
+          { name: ' Имя Фамилия + Статик', value: applicantName, inline: false },
+          { name: ' Диапазон повышения', value: rankRange, inline: true },
+          { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
+          { name: ' Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
+          { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
+          { name: ' Решение', value: 'Одобрено', inline: true },
+          { name: ' Проверил', value: `<@${reviewerId}>`, inline: true }
         ],
         footer: { text: 'LSPD HR Audit', ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {}) },
         timestamp: item.resolvedAt || new Date().toISOString()
@@ -195,18 +194,17 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
 
     const auditEmbed = {
-      title: '📑 ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
+      title: ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
       color: 0x4CAF50,
       fields: [
-        { name: '🔗 Причина повышения', value: reportMessageUrl, inline: false },
-        { name: '📊 Повышен с ранга', value: rankRange, inline: true },
-        { name: '👤 Повышен', value: `<@${applicantId}>`, inline: true },
+        { name: ' Причина повышения', value: reportMessageUrl, inline: false },
+        { name: ' Повышен с ранга', value: rankRange, inline: true },
+        { name: ' Повышен', value: `<@${applicantId}>`, inline: true },
         { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
-        { name: '🆔 Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
-        { name: '👮 Повышает', value: `<@${reviewerId}>`, inline: true },
-        { name: 'Имя Фамилия проверяющего', value: reviewerName, inline: false },
-        { name: '🆔 Discord ID проверяющего', value: reviewerId, inline: true },
-        { name: '📅 Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
+        { name: ' Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
+        { name: ' Повышает', value: `<@${reviewerId}>`, inline: true },
+        { name: ' Discord ID проверяющего', value: reviewerId, inline: true },
+        { name: ' Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
       ],
       timestamp: item.resolvedAt || new Date().toISOString(),
       footer: { text: `HR Audit • Заявка №${item.number}` }
@@ -221,7 +219,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: 'LSPD Forms',
+          username: 'Suspect Forms',
           content: `<@${reviewerId}> повышает <@${applicantId}>`,
           embeds: [auditEmbed]
         }),
@@ -312,19 +310,19 @@ async function sendDecision(item, reviewer, decision, reason) {
       // Rebuild the high-rank card from the submitted form data, not from
       // the old Discord embed, so every submitted field remains visible.
       const decisionFields = [
-        { name: '👤 Имя Фамилия + Статик', value: fieldValue(reportData.fullName), inline: false },
-        { name: '📊 Диапазон повышения', value: fieldValue(reportData.rankRange), inline: true },
-        { name: '🔗 Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
+        { name: ' Имя Фамилия + Статик', value: fieldValue(reportData.fullName), inline: false },
+        { name: ' Диапазон повышения', value: fieldValue(reportData.rankRange), inline: true },
+        { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
         {
-          name: '👤 Отправитель',
+          name: ' Отправитель',
           value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан',
           inline: true
         },
-        { name: '🆔 Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
-        { name: '⚖️ Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
-        { name: '👮 Проверил', value: `<@${reviewerId}>`, inline: true },
+        { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
+        { name: ' Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
+        { name: ' Проверил', value: `<@${reviewerId}>`, inline: true },
         ...(!accepted && reason
-          ? [{ name: '❌ Причина отказа', value: fieldValue(reason), inline: false }]
+          ? [{ name: ' Причина отказа', value: fieldValue(reason), inline: false }]
           : [])
       ];
       const updatedEmbed = {
@@ -415,7 +413,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: 'LSPD Forms',
+        username: 'Suspect Forms',
         content,
         embeds: [{
           title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
