@@ -19,26 +19,38 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
   const id = String(req.query.id || '');
-  if (!/^[1-9]\d{0,11}$/.test(id)) {
-    return res.status(400).json({ error: 'Некорректный номер обращения' });
-  }
+  const referenceId = String(req.query.ref || '');
+  if (id && !/^[1-9]\\d{0,11}$/.test(id)) return res.status(400).json({ error: 'Некорректный номер обращения' });
+  if (!id && !/^[a-z0-9-]{8,80}$/i.test(referenceId)) return res.status(400).json({ error: 'Некорректная ссылка на обращение' });
 
   try {
-    const item = await kv.get(`lspd:hr-audit:item:${id}`);
-    if (!item || !['report', 'highrank'].includes(item.type) || String(item.submitter?.id || '') !== String(user.id)) {
-      return res.status(404).json({ error: 'Обращение не найдено' });
+    let item = null;
+    let isHrAudit = false;
+    if (id) {
+      item = await kv.get(`lspd:hr-audit:item:${id}`);
+      if (!item || !['report', 'highrank'].includes(item.type) || String(item.submitter?.id || '') !== String(user.id)) {
+        return res.status(404).json({ error: 'Обращение не найдено' });
+      }
+      isHrAudit = true;
+    } else {
+      const entries = await kv.lrange('lspd:submissions:all', 0, 199);
+      for (const raw of Array.isArray(entries) ? entries : []) {
+        let candidate = raw;
+        if (typeof raw === 'string') {
+          try { candidate = JSON.parse(raw); } catch { continue; }
+        }
+        if (String(candidate?.id || '') === referenceId && String(candidate?.userId || '') === String(user.id)) {
+          item = candidate;
+          break;
+        }
+      }
+      if (!item) return res.status(404).json({ error: 'Подробности обращения не найдены' });
     }
 
-    const statusLabels = {
-      pending: 'На рассмотрении',
-      accepted: 'Одобрено',
-      rejected: 'Отклонено'
-    };
+    const statusLabels = { pending: 'На рассмотрении', accepted: 'Одобрено', rejected: 'Отклонено' };
     const data = {};
     for (const [key, value] of Object.entries(item.data || {})) {
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        data[key] = String(value);
-      }
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') data[key] = String(value);
     }
 
     return res.status(200).json({
@@ -52,8 +64,8 @@ export default async function handler(req, res) {
         data,
         fieldLabels: FIELD_LABELS,
         reason: isHrAudit && item.status === 'rejected' ? String(item.reason || '') : '',
-        submittedAt: item.submittedAt || null,
-        resolvedAt: item.resolvedAt || null
+        submittedAt: isHrAudit ? item.submittedAt || null : item.date || null,
+        resolvedAt: isHrAudit ? item.resolvedAt || null : null
       }
     });
   } catch (error) {
