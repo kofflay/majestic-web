@@ -41,16 +41,32 @@ export default async function handler(req, res) {
     // Максимум для шкалы графика
     const maxCount = Math.max(...chart.map(d => d.count), 1);
 
+    const parsedHistory = history.map(raw => {
+      let item = raw;
+      try { item = JSON.parse(raw); } catch {}
+      return item && typeof item === 'object' ? item : null;
+    }).filter(Boolean);
+
+    const enrichedHistory = await Promise.all(parsedHistory.map(async item => {
+      const auditNumber = String(item.auditNumber || '');
+      if (!/^[1-9][0-9]{0,11}$/.test(auditNumber)) {
+        return { ...item, status: item.status === 'accepted' || item.status === 'rejected' ? item.status : 'pending' };
+      }
+      const audit = await kv.get(`lspd:hr-audit:item:${auditNumber}`).catch(() => null);
+      if (!audit || String(audit.submitter?.id || '') !== String(user.id)) {
+        return { ...item, status: 'pending' };
+      }
+      return {
+        ...item,
+        status: ['pending', 'accepted', 'rejected'].includes(audit.status) ? audit.status : 'pending',
+        date: audit.submittedAt || item.date
+      };
+    }));
+
     res.status(200).json({
       total: parseInt(total),
       today: parseInt(todayCount),
-      history: history.map(h => {
-        let item = h;
-        try { item = JSON.parse(h); } catch {}
-        if (!item || typeof item !== 'object') return item;
-        // До появления статусов в истории сохранялись только успешные отправки.
-        return { ...item, status: item.status === 'not_sent' ? 'not_sent' : item.status === 'delivery_pending' ? 'delivery_pending' : 'sent' };
-      }),
+      history: enrichedHistory,
       chart,
       maxCount
     });
