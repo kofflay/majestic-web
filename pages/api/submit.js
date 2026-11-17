@@ -646,6 +646,7 @@ return {number, 1}
       processed: false,
       data: formData
     };
+    await kv.set(`lspd:submission:detail:${user.id}:${submissionRecordId}`, globalRequest);
     await kv.lpush('lspd:submissions:all', JSON.stringify(globalRequest));
     await kv.ltrim('lspd:submissions:all', 0, 199);
   } catch (storageError) {
