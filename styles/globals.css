@@ -1668,15 +1668,15 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
 .site-page-content .hr-audit-filters-head,
 .site-page-content .hr-audit-sort-control{font-size:11px!important}
 .site-page-content .hr-audit-nav-item{font-size:14px!important}
-.site-header:not(.site-header--landing) .site-header__inner{width:min(1560px,calc(100% - 64px));min-height:88px}
-.site-header:not(.site-header--landing) .brand__text strong{font-size:14px}
-.site-header:not(.site-header--landing) .brand__text small{font-size:9px}
-.site-header:not(.site-header--landing) .site-nav button{min-height:88px;font-size:15px}
-.site-header:not(.site-header--landing) .site-header__actions .hr-audit-nav-btn,
-.site-header:not(.site-header--landing) .site-header__actions .admin-nav-btn,
-.site-header:not(.site-header--landing) .profile-link,
-.site-header:not(.site-header--landing) .header-login{font-size:13px}
-.site-header:not(.site-header--landing) .header-logout{font-size:12px}
+.site-header .site-header__inner{width:min(1560px,calc(100% - 64px));min-height:88px}
+.site-header .brand__text strong{font-size:14px}
+.site-header .brand__text small{font-size:9px}
+.site-header .site-nav button{min-height:88px;font-size:15px}
+.site-header .site-header__actions .hr-audit-nav-btn,
+.site-header .site-header__actions .admin-nav-btn,
+.site-header .profile-link,
+.site-header .header-login{font-size:13px}
+.site-header .header-logout{font-size:12px}
 @media(max-width:760px){
   .site-page-content{width:calc(100% - 28px);padding:40px 0 72px;font-size:14px}
   .site-page-content .page-container,.site-page-content .form-container{max-width:none}
