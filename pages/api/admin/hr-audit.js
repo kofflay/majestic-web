@@ -12,7 +12,7 @@ const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return -1 end
 local current = cjson.decode(raw)
-if current.type ~= 'report' then return -2 end
+if current.type ~= 'report' and current.type ~= 'highrank' then return -2 end
 if current.status ~= 'pending' then return 0 end
 if current.deliveryPending ~= false then return -3 end
 if tostring(current.id) ~= ARGV[2] then return -2 end
@@ -28,6 +28,19 @@ function historyOf(item) {
   return Array.isArray(item.history) ? item.history : [];
 }
 
+function getAuditWebhook(item) {
+  if (item?.type === 'highrank') return process.env.WEBHOOK_HIGH_RANK_REPORT || null;
+  if (item?.type === 'report') {
+    const department = getDepartment(item.data?.department);
+    return department ? getReportWebhook(department.id) : null;
+  }
+  return null;
+}
+
+function isSupportedAuditItem(item) {
+  return Boolean(item && ['report', 'highrank'].includes(item.type));
+}
+
 function webhookUrlWithWait(webhook) {
   const url = new URL(webhook);
   url.searchParams.set('wait', 'true');
@@ -35,8 +48,7 @@ function webhookUrlWithWait(webhook) {
 }
 
 async function sendDecision(item, reviewer, decision, reason) {
-  const department = getDepartment(item.data?.department);
-  const webhook = department ? getReportWebhook(department.id) : null;
+  const webhook = getAuditWebhook(item);
   const applicantId = String(item.submitter?.id || '');
   const reviewerId = String(reviewer?.id || '');
 
@@ -67,7 +79,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       username: 'LSPD Forms',
       content,
       embeds: [{
-        title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт на повышение'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit)`,
         fields,
@@ -133,7 +145,7 @@ export default async function handler(req, res) {
       const safeIds = Array.isArray(ids) ? ids.filter(validItemId) : [];
       const items = await Promise.all(safeIds.map(id => kv.get(`lspd:hr-audit:item:${id}`)));
       return res.status(200).json({
-        items: items.filter(item => item && item.type === 'report')
+        items: items.filter(isSupportedAuditItem)
       });
     } catch (error) {
       console.error('HR audit list failed:', error);
@@ -156,7 +168,7 @@ export default async function handler(req, res) {
       }
 
       const item = await kv.get(itemKey);
-      if (!item || item.type !== 'report' || String(item.id) !== String(id)) {
+      if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
       }
       if (!['accepted', 'rejected'].includes(item.status) || item.notificationPending !== true) {
@@ -165,8 +177,7 @@ export default async function handler(req, res) {
       if (!item.reviewer || !DISCORD_ID_PATTERN.test(String(item.reviewer.id || ''))) {
         return res.status(409).json({ error: 'В записи отсутствуют данные проверяющего; уведомление нельзя безопасно повторить' });
       }
-      const department = getDepartment(item.data?.department);
-      if (!department || !getReportWebhook(department.id)) {
+      if (!getAuditWebhook(item)) {
         return res.status(503).json({ error: 'Вебхук отдела не настроен. Решение сохранено; повтор уведомления пока недоступен.' });
       }
 
@@ -252,8 +263,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'Для этой заявки нет ожидающей доставки' });
       }
 
-      const department = getDepartment(item.data?.department);
-      const webhook = department ? getReportWebhook(department.id) : null;
+      const webhook = getAuditWebhook(item);
       if (!webhook) return res.status(503).json({ error: 'Вебхук отдела не настроен' });
 
       const attempted = await recordDeliveryAttempt(
