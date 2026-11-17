@@ -63,6 +63,247 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
 
   const accepted = decision === 'accepted';
+
+  // Approved high-rank reports are published to the HR reports channel first,
+  // then to the general audit channel. Persist stage one before stage two so
+  // retry-notification never republishes the first message.
+  if (item.type === 'highrank' && accepted) {
+    const auditWebhook = process.env.WEBHOOK_AUDIT_URL || null;
+    if (!auditWebhook) {
+      await writeSystemLog({
+        level: 'error', category: 'discord', event: 'audit_webhook_not_configured',
+        message: 'Не настроен WEBHOOK_AUDIT_URL для кадрового аудита',
+        auditId: item.id, auditType: item.type, decision
+      });
+      return { success: false, messageId: null, reason: 'audit_webhook_not_configured' };
+    }
+
+    const reportData = item.data && typeof item.data === 'object' ? item.data : {};
+    const safeValue = (value, fallback = 'Не указано') => {
+      const text = typeof value === 'string' ? value.trim() : '';
+      return (text || fallback).slice(0, 1024);
+    };
+    const reviewerName = String(reviewer?.username || 'Неизвестно').slice(0, 256);
+    const applicantName = safeValue(reportData.fullName);
+    const rankRange = safeValue(reportData.rankRange);
+    const originalMessageId = String(item.deliveryMessageId || '');
+    const reportWebhook = getAuditWebhook(item);
+
+    if (!/^\d{17,20}$/.test(originalMessageId) || !reportWebhook) {
+      await writeSystemLog({
+        level: 'error', category: 'discord', event: 'highrank_source_message_missing',
+        message: 'Нет исходного сообщения HR-отчёта для формирования ссылки кадрового аудита',
+        auditId: item.id, auditType: item.type, decision
+      });
+      return { success: false, messageId: null, reason: 'highrank_source_message_missing' };
+    }
+
+    let reportMessageId = item.approvedReportMessageId || null;
+    let reportMessageUrl = item.approvedReportMessageUrl || null;
+
+    if (!reportMessageId || !reportMessageUrl) {
+      let webhookInfo;
+      let sourceMessage;
+      try {
+        const [webhookResponse, sourceResponse] = await Promise.all([
+          fetch(reportWebhook, { method: 'GET', signal: AbortSignal.timeout(15000) }),
+          fetch((() => {
+            const url = new URL(reportWebhook);
+            url.search = '';
+            url.hash = '';
+            url.pathname = `${url.pathname.replace(/\/$/, '')}/messages/${originalMessageId}`;
+            return url.toString();
+          })(), { method: 'GET', signal: AbortSignal.timeout(15000) })
+        ]);
+        if (!webhookResponse.ok || !sourceResponse.ok) {
+          const failed = !webhookResponse.ok ? webhookResponse : sourceResponse;
+          const responseBody = (await failed.text()).slice(0, 1500);
+          await writeSystemLog({
+            level: 'error', category: 'discord', event: 'discord_http_error',
+            message: 'Не удалось получить данные исходного HR-сообщения',
+            auditId: item.id, auditType: item.type, decision,
+            httpStatus: failed.status, details: responseBody
+          });
+          return { success: false, messageId: null, reason: `discord_http_${failed.status}` };
+        }
+        webhookInfo = await webhookResponse.json();
+        sourceMessage = await sourceResponse.json();
+      } catch (error) {
+        await writeSystemLog({
+          level: 'error', category: 'discord',
+          event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
+          message: 'Не удалось получить ссылку на исходный HR-отчёт',
+          auditId: item.id, auditType: item.type, decision,
+          details: String(error?.message || error).slice(0, 1200)
+        });
+        return { success: false, messageId: null, reason: 'source_message_lookup_failed' };
+      }
+
+      const sourceChannelId = String(sourceMessage.channel_id || webhookInfo.channel_id || '');
+      const guildId = String(webhookInfo.guild_id || '');
+      if (!/^\d{17,20}$/.test(sourceChannelId) || !/^\d{17,20}$/.test(guildId)) {
+        await writeSystemLog({
+          level: 'error', category: 'discord', event: 'highrank_source_link_unavailable',
+          message: 'Discord не вернул сервер или канал исходного HR-отчёта',
+          auditId: item.id, auditType: item.type, decision
+        });
+        return { success: false, messageId: null, reason: 'source_link_unavailable' };
+      }
+
+      const originalReportUrl = `https://discord.com/channels/${guildId}/${sourceChannelId}/${originalMessageId}`;
+      const approvedEmbed = {
+        title: '📑 ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
+        color: 0x4CAF50,
+        fields: [
+          { name: '🔗 Причина повышения', value: originalReportUrl, inline: false },
+          { name: '📊 Повышен с ранга', value: rankRange, inline: true },
+          { name: '👤 Повышен', value: `<@${applicantId}>`, inline: true },
+          { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
+          { name: '🆔 Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
+          { name: '👮 Повышает', value: `<@${reviewerId}>`, inline: true },
+          { name: 'Имя Фамилия проверяющего', value: reviewerName, inline: false },
+          { name: '🆔 Discord ID проверяющего', value: reviewerId, inline: true },
+          { name: '📅 Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
+        ],
+        timestamp: item.resolvedAt || new Date().toISOString(),
+        footer: { text: `HR Audit • Заявка №${item.number}` }
+      };
+      let reportResponse;
+      try {
+        reportResponse = await fetch(webhookUrlWithWait(reportWebhook), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'LSPD Forms',
+            content: `<@${reviewerId}> повышает <@${applicantId}>`,
+            embeds: [approvedEmbed],
+            allowed_mentions: {
+              users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+            }
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+      } catch (error) {
+        await writeSystemLog({
+          level: 'error', category: 'discord',
+          event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
+          message: 'Не удалось отправить одобренный отчёт в канал HR-отчётов',
+          auditId: item.id, auditType: item.type, decision,
+          details: String(error?.message || error).slice(0, 1200)
+        });
+        return { success: false, messageId: null, reason: 'approved_report_delivery_failed' };
+      }
+      if (!reportResponse.ok) {
+        const responseBody = (await reportResponse.text()).slice(0, 2000);
+        await writeSystemLog({
+          level: 'error', category: 'discord', event: 'discord_http_error',
+          message: 'Discord отклонил публикацию одобренного HR-отчёта',
+          auditId: item.id, auditType: item.type, decision,
+          httpStatus: reportResponse.status, details: responseBody
+        });
+        return { success: false, messageId: null, reason: `discord_http_${reportResponse.status}` };
+      }
+      const reportMessage = await reportResponse.json();
+      reportMessageId = String(reportMessage.id || '');
+      const reportChannelId = String(reportMessage.channel_id || '');
+      if (!/^\d{17,20}$/.test(reportMessageId) || !/^\d{17,20}$/.test(reportChannelId)) {
+        await writeSystemLog({
+          level: 'error', category: 'discord', event: 'approved_report_message_metadata_missing',
+          message: 'HR-отчёт отправлен, но Discord не вернул ID сообщения или канала',
+          auditId: item.id, auditType: item.type, decision
+        });
+        return { success: false, messageId: reportMessageId || null, reason: 'approved_report_metadata_missing' };
+      }
+      reportMessageUrl = `https://discord.com/channels/${guildId}/${reportChannelId}/${reportMessageId}`;
+      const stageOneAt = new Date().toISOString();
+      const stageOneSaved = {
+        ...item,
+        approvedReportMessageId: reportMessageId,
+        approvedReportMessageUrl: reportMessageUrl,
+        approvedReportSentAt: stageOneAt,
+        history: [...historyOf(item), { action: 'approved_report_sent', at: stageOneAt, userId: 'system' }]
+      };
+      try {
+        await kv.set(`lspd:hr-audit:item:${item.id}`, stageOneSaved);
+      } catch (saveError) {
+        const persisted = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
+        if (persisted?.approvedReportMessageId !== reportMessageId) {
+          await writeSystemLog({
+            level: 'error', category: 'discord', event: 'approved_report_state_save_failed',
+            message: 'HR-отчёт опубликован, но его ID не удалось надёжно сохранить; повторную публикацию нельзя выполнять автоматически',
+            auditId: item.id, auditType: item.type, decision,
+            details: String(saveError?.message || saveError).slice(0, 1000)
+          });
+          return { success: false, messageId: reportMessageId, reason: 'approved_report_state_save_failed' };
+        }
+      }
+    }
+
+    const auditEmbed = {
+      title: '📑 ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
+      color: 0x4CAF50,
+      fields: [
+        { name: '🔗 Причина повышения', value: reportMessageUrl, inline: false },
+        { name: '📊 Повышен с ранга', value: rankRange, inline: true },
+        { name: '👤 Повышен', value: `<@${applicantId}>`, inline: true },
+        { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
+        { name: '🆔 Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
+        { name: '👮 Повышает', value: `<@${reviewerId}>`, inline: true },
+        { name: 'Имя Фамилия проверяющего', value: reviewerName, inline: false },
+        { name: '🆔 Discord ID проверяющего', value: reviewerId, inline: true },
+        { name: '📅 Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
+      ],
+      timestamp: item.resolvedAt || new Date().toISOString(),
+      footer: { text: `HR Audit • Заявка №${item.number}` }
+    };
+    let auditResponse;
+    try {
+      auditResponse = await fetch(webhookUrlWithWait(auditWebhook), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'LSPD Forms',
+          content: `<@${reviewerId}> повышает <@${applicantId}>`,
+          embeds: [auditEmbed],
+          allowed_mentions: {
+            users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+          }
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+    } catch (error) {
+      await writeSystemLog({
+        level: 'error', category: 'discord',
+        event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error',
+        message: 'Не удалось отправить карточку во второй канал кадрового аудита',
+        auditId: item.id, auditType: item.type, decision,
+        details: String(error?.message || error).slice(0, 1200)
+      });
+      return { success: false, messageId: reportMessageId, reason: 'audit_delivery_failed' };
+    }
+    if (!auditResponse.ok) {
+      const responseBody = (await auditResponse.text()).slice(0, 2000);
+      await writeSystemLog({
+        level: 'error', category: 'discord', event: 'discord_http_error',
+        message: 'Discord отклонил публикацию карточки в кадровый аудит',
+        auditId: item.id, auditType: item.type, decision,
+        httpStatus: auditResponse.status, details: responseBody
+      });
+      return { success: false, messageId: reportMessageId, reason: `audit_http_${auditResponse.status}` };
+    }
+    const auditMessage = await auditResponse.json();
+    await writeSystemLog({
+      level: 'info', category: 'discord', event: 'highrank_audit_report_sent',
+      message: 'Одобренный HR-отчёт опубликован в канале отчётов и кадровом аудите',
+      auditId: item.id, auditType: item.type, decision
+    });
+    return {
+      success: true,
+      messageId: String(auditMessage.id || reportMessageId),
+      approvedReportMessageId: reportMessageId,
+      auditMessageId: String(auditMessage.id || '')
+    };
+  }
   const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
 
   // Для отчётов на повышение хай-состава обновляем исходную карточку,
