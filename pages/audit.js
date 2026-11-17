@@ -41,7 +41,9 @@ const FIELD_LABELS = {
   currentRank: 'Текущий ранг',
   targetRank: 'Запрашиваемый ранг',
   isInstructor: 'Назначение инструктором',
-  workLinks: 'Ссылки на проделанную работу'
+  workLinks: 'Ссылки на проделанную работу',
+  rankRange: 'Диапазон рангов',
+  workLink: 'Ссылка на проделанную работу'
 };
 
 const STATUS_LABELS = {
@@ -62,7 +64,7 @@ function displayFieldValue(key, value) {
 }
 
 function renderFieldContent(key, value) {
-  if (key !== 'workLinks' || !value) return displayFieldValue(key, value);
+  if (!['workLinks', 'workLink'].includes(key) || !value) return displayFieldValue(key, value);
   const parts = String(value).split(/(https?:\/\/[^\s,]+)/gi);
   return parts.map((part, index) => /^https?:\/\//i.test(part)
     ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
@@ -195,12 +197,19 @@ export default function HrAuditPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
               <div><div style={label}>ЗАЯВИТЕЛЬ</div><div style={value}>{item.data?.fullName || item.submitter?.username || 'Не указано'}</div><div style={{ ...value, color: '#9ca3af', fontSize: 12 }}>Discord: {item.submitter?.id || '—'}</div></div>
-              <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
+              {item.type === 'highrank' ? <>
+                <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>Повышение хай-состава</div></div>
+                <div><div style={label}>ДИАПАЗОН РАНГОВ</div><div style={value}>{displayFieldValue('rankRange', item.data?.rankRange)}</div></div>
+              </> : <>
+                <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
+                <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
+              </>}
               <div><div style={label}>ОТПРАВЛЕНО</div><div style={value}>{item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU') : '—'}</div></div>
-              <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-              {Object.entries(item.data || {}).filter(([key]) => !['fullName','department','currentRank','targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
+              {Object.entries(item.data || {}).filter(([key]) => item.type === 'highrank'
+                ? !['fullName', 'rankRange'].includes(key)
+                : !['fullName', 'department', 'currentRank', 'targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
