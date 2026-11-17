@@ -29,7 +29,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
         }}
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.borderColor = 'rgba(255, 0, 76, .65)';
+          e.currentTarget.style.borderColor = 'rgba(71, 215, 176, .55)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)';
@@ -38,9 +38,9 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       >
         <div style={{
           position: 'absolute', top: 0, right: 0, padding: '6px 15px 7px',
-          background: '#ed0050', color: '#fff', fontSize: '12px',
+          background: '#245a73', color: '#fff', fontSize: '12px',
           fontWeight: 800, letterSpacing: '.06em', borderRadius: '0 0 0 13px',
-          boxShadow: '0 3px 14px rgba(237,0,80,.22)',
+          boxShadow: '0 3px 14px rgba(71,215,176,.14)',
         }}>TOP SECRET</div>
 
         <div style={{
@@ -69,7 +69,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
 
         <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>CONTACT · DISCORD</div>
-          <div style={{ color: '#ff0755', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
+          <div style={{ color: '#78c8dc', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
         </div>
 
         <div style={{
