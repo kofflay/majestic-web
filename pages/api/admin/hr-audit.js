@@ -126,7 +126,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       }
 
       const originalEmbed = Array.isArray(sourceMessage.embeds) ? sourceMessage.embeds[0] || {} : {};
-      const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
+      const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? { author: { name: originalEmbed.author.name, ...(originalEmbed.author.url ? { url: originalEmbed.author.url } : {}), ...(originalEmbed.author.icon_url ? { icon_url: originalEmbed.author.icon_url } : {}) } } : {}),
