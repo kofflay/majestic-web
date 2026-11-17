@@ -200,17 +200,11 @@ function validateEmbed(embed) {
 }
 
 async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
-  let url;
-  try {
-    const targetUrl = new URL(webhookUrl);
-    if (data.thread_id) targetUrl.searchParams.set('thread_id', String(data.thread_id));
-    if (options.waitForConfirmation) targetUrl.searchParams.set('wait', 'true');
-    url = targetUrl.toString();
-  } catch {
-    return { success: false, error: 'Некорректный адрес Discord-вебхука' };
-  }
-
   let lastError = null;
+  const baseUrl = data.thread_id ? `${webhookUrl}?${new URLSearchParams({ thread_id: String(data.thread_id) })}` : webhookUrl;
+  const url = options.waitForConfirmation
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}wait=true`
+    : baseUrl;
   const { thread_id, ...payload } = data;
   for (let i = 0; i < retries; i++) {
     try {
@@ -221,25 +215,20 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
         signal: AbortSignal.timeout(15000)
       });
       if (res.ok) {
+        if (!options.waitForConfirmation) return { success: true };
         let messageId = null;
-        if (options.waitForConfirmation) {
-          try {
-            const message = await res.json();
-            messageId = typeof message?.id === 'string' ? message.id : null;
-          } catch {}
-        }
+        try {
+          const message = await res.json();
+          messageId = typeof message?.id === 'string' ? message.id : null;
+        } catch {}
         return { success: true, messageId };
       }
       if (res.status === 429) {
-        if (i < retries - 1) {
-          const retryAfter = Number.parseFloat(res.headers.get('Retry-After'));
-          const delaySeconds = Number.isFinite(retryAfter)
-            ? Math.min(Math.max(retryAfter, 1), 10)
-            : 5;
-          await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
-          continue;
-        }
-        return { success: false, error: 'Discord временно ограничил отправку' };
+        await new Promise(resolve => setTimeout(
+          resolve,
+          (parseInt(res.headers.get('Retry-After')) || 5) * 1000
+        ));
+        continue;
       }
       console.error('Submission webhook failed:', { status: res.status });
       return { success: false, error: 'ошибка Discord' };
@@ -248,7 +237,7 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
       if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-  return { success: false, error: lastError?.message || 'Discord не подтвердил отправку' };
+  return { success: false, error: lastError?.message };
 }
 
 export default async function handler(req, res) {
