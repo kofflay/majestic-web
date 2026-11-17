@@ -14,7 +14,7 @@ if not raw then return -1 end
 local current = cjson.decode(raw)
 if current.type ~= 'report' then return -2 end
 if current.status ~= 'pending' then return 0 end
-if current.deliveryPending == true then return -3 end
+if current.deliveryPending ~= false then return -3 end
 if tostring(current.id) ~= ARGV[2] then return -2 end
 redis.call('SET', KEYS[1], ARGV[1])
 return 1
