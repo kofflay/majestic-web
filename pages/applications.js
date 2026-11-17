@@ -27,7 +27,7 @@ export default function ApplicationsPage() {
   return (
     <PageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Центр обращений</h1>
+        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Заявления</h1>
         <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников LSPD.</p>
       </div>
 
@@ -54,7 +54,7 @@ export default function ApplicationsPage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ animation: 'blink 1s step-end infinite' }}>█</span>
-            СИСТЕМА ПРИЕМА ОБРАЩЕНИЙ
+            СИСТЕМА ПРИЁМА ЗАЯВЛЕНИЙ
           </div>
           <span style={{ color: '#7f8a9a' }}>[{publicForms.length}]</span>
         </div>
