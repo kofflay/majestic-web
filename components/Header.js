@@ -158,29 +158,30 @@ export default function Header({ user }) {
               </button>
             ))}
 
-            {hasHrAuditAccess(user) && (
-              <button
-                className={`hr-audit-nav-btn ${router.pathname === '/audit' ? 'is-active' : ''}`}
-                onClick={() => navigate('/audit')}
-                aria-current={router.pathname === '/audit' ? 'page' : undefined}
-              >
-                Кадровый аудит
-              </button>
-            )}
-
-            {isAdmin && (
-              <button
-                className={`admin-nav-btn ${router.pathname.startsWith('/admin') ? 'is-active' : ''}`}
-                onClick={() => navigate('/admin')}
-                aria-current={router.pathname.startsWith('/admin') ? 'page' : undefined}
-              >
-                Админка
-              </button>
-            )}
-          </nav>
+         </nav>
 
           <div className="site-header__actions">
-            {user ? (
+            {isAdmin && (
+            <button
+              type="button"
+              className={`admin-nav-btn ${router.pathname.startsWith('/admin') ? 'is-active' : ''}`}
+              onClick={() => navigate('/admin')}
+              aria-current={router.pathname.startsWith('/admin') ? 'page' : undefined}
+            >
+              Админка
+            </button>
+          )}
+          {hasHrAuditAccess(user) && (
+            <button
+              type="button"
+              className={`hr-audit-nav-btn ${router.pathname === '/audit' ? 'is-active' : ''}`}
+              onClick={() => navigate('/audit')}
+              aria-current={router.pathname === '/audit' ? 'page' : undefined}
+            >
+              Кадровый аудит
+            </button>
+          )}
+          {user ? (
               <>
                 <button
                   type="button"
@@ -374,8 +375,8 @@ export default function Header({ user }) {
           transform: scaleX(1);
         }
 
-        .site-nav .hr-audit-nav-btn,
-        .site-nav .admin-nav-btn {
+        .site-header__actions .hr-audit-nav-btn,
+        .site-header__actions .admin-nav-btn {
           min-height: 36px;
           padding: 0 12px;
           border: 1px solid transparent;
@@ -385,37 +386,37 @@ export default function Header({ user }) {
           transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
         }
 
-        .site-nav .hr-audit-nav-btn {
+        .site-header__actions .hr-audit-nav-btn {
           border-color: rgba(76, 190, 177, .38);
           background: rgba(45, 166, 153, .10);
           color: #9bded5;
         }
 
-        .site-nav .hr-audit-nav-btn:hover,
-        .site-nav .hr-audit-nav-btn.is-active {
+        .site-header__actions .hr-audit-nav-btn:hover,
+        .site-header__actions .hr-audit-nav-btn.is-active {
           border-color: rgba(104, 218, 202, .72);
           background: rgba(45, 166, 153, .20);
           color: #d5fff8;
           transform: translateY(-1px);
         }
 
-        .site-nav .admin-nav-btn {
+        .site-header__actions .admin-nav-btn {
           margin-left: 4px;
           border-color: rgba(207, 157, 83, .38);
           background: rgba(177, 119, 43, .10);
           color: #e6c18b;
         }
 
-        .site-nav .admin-nav-btn:hover,
-        .site-nav .admin-nav-btn.is-active {
+        .site-header__actions .admin-nav-btn:hover,
+        .site-header__actions .admin-nav-btn.is-active {
           border-color: rgba(230, 181, 105, .76);
           background: rgba(177, 119, 43, .20);
           color: #ffe5bd;
           transform: translateY(-1px);
         }
 
-        .site-nav .hr-audit-nav-btn::after,
-        .site-nav .admin-nav-btn::after {
+        .site-header__actions .hr-audit-nav-btn::after,
+        .site-header__actions .admin-nav-btn::after {
           content: none;
         }
 
@@ -424,8 +425,10 @@ export default function Header({ user }) {
           justify-self: end;
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: clamp(7px, .8vw, 12px);
           min-width: 0;
+          justify-self: end;
+          flex-wrap: nowrap;
         }
 
         .header-audit-button {
@@ -666,7 +669,7 @@ export default function Header({ user }) {
             transform: scaleX(1);
           }
 
-          .site-nav .admin-nav-btn {
+          .site-header__actions .admin-nav-btn {
             margin-left: 0;
           }
         }
@@ -693,7 +696,14 @@ export default function Header({ user }) {
           }
 
           .site-header__actions {
-            gap: 9px;
+            gap: 7px;
+          }
+
+          .site-header__actions .hr-audit-nav-btn,
+          .site-header__actions .admin-nav-btn {
+            min-height: 32px;
+            padding: 0 8px;
+            font-size: 10px;
           }
 
           .header-audit-button {
