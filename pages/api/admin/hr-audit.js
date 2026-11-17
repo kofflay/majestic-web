@@ -5,8 +5,8 @@ import { getDepartment, getReportWebhook } from '../../../lib/departments';
 import { acquireHrAuditLock } from '../../../lib/hr-audit-locks';
 
 const AUDIT_IDS_KEY = 'lspd:hr-audit:ids';
-const DISCORD_ID_PATTERN = /^\\d{17,20}$/;
-const AUDIT_ITEM_ID_PATTERN = /^[1-9]\\d{0,11}$/;
+const DISCORD_ID_PATTERN = /^\d{17,20}$/;
+const AUDIT_ITEM_ID_PATTERN = /^[1-9]\d{0,11}$/;
 
 const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
@@ -68,7 +68,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       embeds: [{
         title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\\/$/, '')}/audit)`,
+        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit)`,
         fields,
         timestamp: new Date().toISOString(),
         footer: { text: 'LSPD HR Audit' }
