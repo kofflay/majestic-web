@@ -80,34 +80,49 @@ async function sendDecision(item, reviewer, decision, reason) {
     `<@${reviewerId}>`
   ].filter(Boolean).join(' ');
 
-  const response = await fetch(webhookUrlWithWait(webhook), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: 'LSPD Forms',
-      content,
-      embeds: [{
-        title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт на повышение'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
-        color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`,
-        fields,
-        timestamp: new Date().toISOString(),
-        footer: { text: 'LSPD HR Audit' }
-      }],
-      allowed_mentions: {
-        users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
-      }
-    }),
-    signal: AbortSignal.timeout(15000)
-  });
+  let response;
+  try {
+    response = await fetch(webhookUrlWithWait(webhook), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'LSPD Forms',
+        content,
+        embeds: [{
+          title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт на повышение'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+          color: accepted ? 0x4CAF50 : 0xDC3545,
+          description: `[Открыть заявку на сайте](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`,
+          fields,
+          timestamp: new Date().toISOString(),
+          footer: { text: 'LSPD HR Audit' }
+        }],
+        allowed_mentions: {
+          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+        }
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+  } catch (error) {
+    console.error('HR audit Discord decision request failed:', {
+      auditId: String(item.id), auditType: item.type, decision,
+      errorName: error?.name || 'Error',
+      errorMessage: String(error?.message || error).slice(0, 500)
+    });
+    return { success: false, messageId: null, reason: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error' };
+  }
 
-  if (!response.ok) return { success: false, messageId: null };
+  if (!response.ok) {
+    let responseBody = '';
+    try { responseBody = (await response.text()).slice(0, 2000); } catch {}
+    console.error('HR audit Discord rejected decision notification:', {
+      auditId: String(item.id), auditType: item.type, decision,
+      httpStatus: response.status, responseBody
+    });
+    return { success: false, messageId: null, reason: `discord_http_${response.status}` };
+  }
   let message = null;
   try { message = await response.json(); } catch {}
-  return {
-    success: true,
-    messageId: typeof message?.id === 'string' ? message.id : null
-  };
+  return { success: true, messageId: typeof message?.id === 'string' ? message.id : null };
 }
 
 async function recordNotificationAttempt(itemKey, item, userId, action) {
@@ -196,7 +211,11 @@ export default async function handler(req, res) {
       try {
         result = await sendDecision(attempted, attempted.reviewer, attempted.status, attempted.reason || '');
       } catch (error) {
-        console.error('HR audit Discord notification retry failed:', error);
+        console.error('HR audit Discord notification retry failed:', {
+          auditId: String(attempted.id), auditType: attempted.type, decision: attempted.status,
+          errorName: error?.name || 'Error',
+          errorMessage: String(error?.message || error).slice(0, 500)
+        });
       }
 
       const at = new Date().toISOString();
@@ -446,7 +465,11 @@ export default async function handler(req, res) {
     try {
       result = await sendDecision(decisionRecord, decisionRecord.reviewer, decision, cleanReason);
     } catch (error) {
-      console.error('HR audit Discord notification failed:', error);
+      console.error('HR audit Discord notification failed:', {
+        auditId: String(decisionRecord.id), auditType: decisionRecord.type, decision,
+        errorName: error?.name || 'Error',
+        errorMessage: String(error?.message || error).slice(0, 500)
+      });
     }
 
     const notificationAt = new Date().toISOString();
