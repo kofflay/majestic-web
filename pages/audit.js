@@ -23,7 +23,7 @@ function FilterGroup({ title, options, selected, onToggle }) {
     <div style={label}>{title}</div>
     <div style={{ maxHeight: 168, minHeight: 42, overflowY: 'auto', display: 'grid', alignContent: 'start', gap: 9, padding: '5px 7px', border: '1px solid rgba(148,163,184,.12)', borderRadius: 5, background: 'rgba(4,7,12,.28)' }}>
       {options.length ? options.map(option => <label key={option.value} style={{ display: 'flex', alignItems: 'flex-start', minWidth: 0, gap: 9, color: '#cbd5e1', fontSize: 12, lineHeight: 1.45, cursor: 'pointer' }}>
-        <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} style={{ appearance: 'auto', accentColor: '#47d7b0', flex: '0 0 16px', width: 16, height: 16, minWidth: 16, minHeight: 16, margin: '1px 0 0', padding: 0, cursor: 'pointer' }} />
+        <input className="hr-audit-filter-checkbox" type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} />
         <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{option.label}</span>
       </label>) : <span style={{ color: '#7f8a9a', fontSize: 12 }}>Нет данных</span>}
     </div>
