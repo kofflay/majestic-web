@@ -62,34 +62,34 @@ export default async function handler(req, res) {
   }
 
   const fields = [
-    { name: '👤 Сотрудник', value: `<@${user.id}>`, inline: true },
-    { name: '🆔 Discord ID', value: user.id, inline: true },
-    { name: '📛 Имя Фамилия + Статик', value: fullName, inline: false },
-    { name: '🎖️ Ранг', value: rank, inline: true },
-    { name: '📅 Дата выговора', value: date, inline: true },
-    { name: '📸 Скрин в строю', value: screenshotInLine, inline: false },
-    { name: '📸 Скрин на МП', value: screenshotOnMP, inline: false },
+    { name: ' Сотрудник', value: `<@${user.id}>`, inline: true },
+    { name: ' Discord ID', value: user.id, inline: true },
+    { name: ' Имя Фамилия + Статик', value: fullName, inline: false },
+    { name: ' Ранг', value: rank, inline: true },
+    { name: ' Дата выговора', value: date, inline: true },
+    { name: ' Скрин в строю', value: screenshotInLine, inline: false },
+    { name: ' Скрин на МП', value: screenshotOnMP, inline: false },
   ];
 
   (extraScreenshots || []).forEach((s, i) => {
     if (s && s.trim()) {
-      fields.push({ name: `📸 Доп. скрин #${i + 1}`, value: s, inline: false });
+      fields.push({ name: ` Доп. скрин #${i + 1}`, value: s, inline: false });
     }
   });
 
   if (comment) {
-    fields.push({ name: '💬 Комментарий', value: comment, inline: false });
+    fields.push({ name: ' Комментарий', value: comment, inline: false });
   }
 
   const embed = {
-    title: '📜 Обжалование наказания',
+    title: ' Обжалование наказания',
     color: 0x9C27B0,
     author: {
       name: user.username,
       icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
     },
     fields,
-    footer: { text: 'LSPD Forms • ' + new Date().toLocaleDateString('ru-RU') },
+    footer: { text: 'Suspect Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString(),
   };
   const embedTextLength = (embed.title || '').length +
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         content: `<@&${ROLE_PING}> <@${user.id}>`,
         embeds: [embed],
-        username: 'LSPD Forms',
+        username: 'Suspect Forms',
         avatar_url: 'https://i.imgur.com/AfFp7pu.png',
       }),
     });
