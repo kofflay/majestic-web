@@ -68,10 +68,6 @@ async function sendDecision(item, reviewer, decision, reason) {
   // stage, then publish the separate personnel-audit card.
   if (item.type === 'highrank' && accepted) {
     const auditWebhook = process.env.WEBHOOK_AUDIT_URL || null;
-    if (!auditWebhook) {
-      await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_webhook_not_configured', message: 'Не настроен WEBHOOK_AUDIT_URL для кадрового аудита', auditId: item.id, auditType: item.type, decision });
-      return { success: false, messageId: null, reason: 'audit_webhook_not_configured' };
-    }
 
     const reportData = item.data && typeof item.data === 'object' ? item.data : {};
     const fieldValue = (value, fallback = 'Не указано') => {
@@ -191,6 +187,11 @@ async function sendDecision(item, reviewer, decision, reason) {
     const latestBeforeAudit = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
     if (latestBeforeAudit?.auditMessageId) {
       return { success: true, messageId: latestBeforeAudit.auditMessageId, approvedReportMessageId: reportMessageId, auditMessageId: latestBeforeAudit.auditMessageId };
+    }
+
+    if (!auditWebhook) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_webhook_not_configured', message: 'Не настроен WEBHOOK_AUDIT_URL для кадрового аудита', auditId: item.id, auditType: item.type, decision });
+      return { success: false, messageId: reportMessageId, reason: 'audit_webhook_not_configured' };
     }
 
     const auditEmbed = {
