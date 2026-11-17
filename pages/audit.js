@@ -127,10 +127,8 @@ export default function HrAuditPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState([]);
-  const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
-  const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const [selectedReviewers, setSelectedReviewers] = useState([]);
+  const [expandedItems, setExpandedItems] = useState(() => new Set());
 
   const load = async () => {
     setError('');
@@ -225,16 +223,12 @@ export default function HrAuditPage() {
     const nameB = getDepartment(b)?.name || b;
     return nameA.localeCompare(nameB, 'ru-RU');
   });
-  const employeeOptions = uniqueValues(items.map(item => item.data?.fullName || item.submitter?.username || item.submitter?.id)).sort((a, b) => a.localeCompare(b, 'ru-RU'));
-  const reviewerOptions = uniqueValues(items.filter(item => item.reviewer).map(item => item.reviewer.username || item.reviewer.id)).sort((a, b) => a.localeCompare(b, 'ru-RU'));
   const toggleValue = (setter, current, value) => setter(current.includes(value) ? current.filter(entry => entry !== value) : [...current, value]);
   const resetFilters = () => {
     setDateFrom(''); setDateTo('');
-    setSelectedDepartments([]); setSelectedTypes([]); setSelectedStatuses([]);
-    setSelectedEmployees([]); setSelectedReviewers([]);
+    setSelectedDepartments([]); setSelectedStatuses([]);
   };
-  const activeFilterCount = selectedDepartments.length + selectedTypes.length + selectedStatuses.length
-    + selectedEmployees.length + selectedReviewers.length + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
+  const activeFilterCount = selectedDepartments.length + selectedStatuses.length + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
   const getSubmittedDate = item => {
     if (!item.submittedAt) return null;
     const parsed = new Date(item.submittedAt);
@@ -249,19 +243,13 @@ export default function HrAuditPage() {
     const fromDay = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
     const toDay = dateTo ? new Date(dateTo + 'T23:59:59.999') : null;
     const department = String(item.data?.department || '');
-    const type = String(item.type || '');
-    const employee = String(item.data?.fullName || item.submitter?.username || item.submitter?.id || '');
-    const reviewer = String(item.reviewer?.username || item.reviewer?.id || '');
     const haystack = [item.number, item.submitter?.username, item.submitter?.id, item.reviewer?.username, item.reviewer?.id, ...Object.values(item.data || {})]
       .join(' ').toLocaleLowerCase('ru-RU');
     return (!normalizedSearch || haystack.includes(normalizedSearch))
       && (!dateFrom || (submittedDay && submittedDay >= fromDay))
       && (!dateTo || (submittedDay && submittedDay <= toDay))
       && (!selectedDepartments.length || selectedDepartments.includes(department))
-      && (!selectedTypes.length || selectedTypes.includes(type))
-      && (!selectedStatuses.length || selectedStatuses.includes(item.status))
-      && (!selectedEmployees.length || selectedEmployees.includes(employee))
-      && (!selectedReviewers.length || selectedReviewers.includes(reviewer));
+      && (!selectedStatuses.length || selectedStatuses.includes(item.status));
   });
 
   return (
@@ -313,10 +301,7 @@ export default function HrAuditPage() {
           </div>
           {activeFilterCount > 0 && <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
             {selectedDepartments.map(value => <button key={value} onClick={() => toggleValue(setSelectedDepartments, selectedDepartments, value)} style={chipStyle}>{displayFieldValue('department', value)} ×</button>)}
-            {selectedTypes.map(value => <button key={value} onClick={() => toggleValue(setSelectedTypes, selectedTypes, value)} style={chipStyle}>{TYPE_LABELS[value] || value} ×</button>)}
             {selectedStatuses.map(value => <button key={value} onClick={() => toggleValue(setSelectedStatuses, selectedStatuses, value)} style={chipStyle}>{STATUS_LABELS[value] || value} ×</button>)}
-            {selectedEmployees.map(value => <button key={value} onClick={() => toggleValue(setSelectedEmployees, selectedEmployees, value)} style={chipStyle}>{value} ×</button>)}
-            {selectedReviewers.map(value => <button key={value} onClick={() => toggleValue(setSelectedReviewers, selectedReviewers, value)} style={chipStyle}>Проверяющий: {value} ×</button>)}
             {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={chipStyle}>Дата: {dateFrom || '…'} — {dateTo || '…'} ×</button>}
             <button onClick={resetFilters} style={{ ...chipStyle, color: '#ff9aa4' }}>Сбросить всё</button>
           </div>}
@@ -329,17 +314,20 @@ export default function HrAuditPage() {
               </div>
             </div>
             <FilterGroup title="ОТДЕЛ" options={departmentOptions.map(value => ({ value, label: displayFieldValue('department', value) }))} selected={selectedDepartments} onToggle={value => toggleValue(setSelectedDepartments, selectedDepartments, value)} />
-            <FilterGroup title="ТИП ЗАЯВКИ" options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))} selected={selectedTypes} onToggle={value => toggleValue(setSelectedTypes, selectedTypes, value)} />
             <FilterGroup title="СТАТУС" options={Object.entries(STATUS_LABELS).filter(([value]) => value !== 'all').map(([value, label]) => ({ value, label }))} selected={selectedStatuses} onToggle={value => toggleValue(setSelectedStatuses, selectedStatuses, value)} />
-            <FilterGroup title="СОТРУДНИК" options={employeeOptions.map(value => ({ value, label: value }))} selected={selectedEmployees} onToggle={value => toggleValue(setSelectedEmployees, selectedEmployees, value)} />
-            <FilterGroup title="ПРОВЕРЯЮЩИЙ" options={reviewerOptions.map(value => ({ value, label: value }))} selected={selectedReviewers} onToggle={value => toggleValue(setSelectedReviewers, selectedReviewers, value)} />
           </div>}
         </div>
 
         <div style={{ ...label, margin: '0 0 12px 4px' }}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
         {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : activeCategory !== 'all' && !connectedCategories.includes(activeCategory) ? <div className="hr-audit-empty"><div className="hr-audit-empty-icon">⌁</div><h3>Раздел готовится к подключению</h3><p>Навигация для этой категории уже создана. Интеграция формы и её обработка будут добавлены отдельно.</p><span>ПОКА НЕТ ПОДКЛЮЧЁННЫХ ЗАЯВЛЕНИЙ</span></div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
           const [statusText, statusColor] = status(item);
-          return <section id={`audit-item-${item.id}`} key={item.id} style={panel}>
+          return <section id={`audit-item-${item.id}`} key={item.id} className="hr-audit-card" style={panel}>
+            <button type="button" className="hr-audit-card-summary" aria-expanded={expandedItems.has(item.id)} aria-controls={`audit-details-${item.id}`} onClick={() => setExpandedItems(prev => { const next = new Set(prev); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })}>
+              <span className="hr-audit-card-summary-main"><strong>{item.type === 'highrank' ? 'Отчёт хайранга' : item.type === 'promotion' ? 'Запрос на повышение' : 'Отчёт о повышении'} · №{item.number}</strong><span>{item.data?.fullName || item.submitter?.username || 'Заявитель не указан'}</span></span>
+              <span className="hr-audit-card-summary-meta"><span>{item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('ru-RU') : 'Дата не указана'}</span><span className="hr-audit-card-status" style={{ color: statusColor, borderColor: statusColor }}>{statusText}</span><span className={`hr-audit-card-chevron${expandedItems.has(item.id) ? ' is-open' : ''}`}>⌄</span></span>
+            </button>
+            {expandedItems.has(item.id) && <div className="hr-audit-card-details" id={`audit-details-${item.id}`}>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
               <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Отчёт хайранга' : item.type === 'promotion' ? 'Запрос на повышение' : 'Отчёт о повышении'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
@@ -390,6 +378,8 @@ export default function HrAuditPage() {
                   {entry.reason && <div style={{ marginTop: 3, color: '#cbd5e1' }}>Причина: {entry.reason}</div>}
                 </div>)}
               </div>
+            </div>}
+
             </div>}
           </section>;
         })}
