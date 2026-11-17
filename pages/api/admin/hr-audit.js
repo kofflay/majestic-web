@@ -139,7 +139,7 @@ async function sendDecision(item, reviewer, decision, reason) {
           { name: ' Решение', value: 'Одобрено', inline: true },
           { name: ' Проверил', value: `<@${reviewerId}>`, inline: true }
         ],
-        footer: { text: 'LSPD HR Audit', ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {}) },
+        footer: { text: 'Suspect Forms • HR Audit', ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {}) },
         timestamp: item.resolvedAt || new Date().toISOString()
       };
 
@@ -207,7 +207,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         { name: ' Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
       ],
       timestamp: item.resolvedAt || new Date().toISOString(),
-      footer: { text: `HR Audit • Заявка №${item.number}` }
+      footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
     };
 
     // Brief pause after the HR card update before publishing the personnel audit.
@@ -341,7 +341,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         description: profileReportUrl,
         fields: decisionFields,
         footer: {
-          text: 'LSPD HR Audit',
+          text: 'Suspect Forms • HR Audit',
           ...(originalEmbed.footer?.icon_url ? { icon_url: originalEmbed.footer.icon_url } : {})
         },
         timestamp: new Date().toISOString()
@@ -421,7 +421,7 @@ async function sendDecision(item, reviewer, decision, reason) {
           description: auditUrl,
           fields,
           timestamp: new Date().toISOString(),
-          footer: { text: 'LSPD HR Audit' }
+          footer: { text: 'Suspect Forms • HR Audit' }
         }],
         allowed_mentions: {
           users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
