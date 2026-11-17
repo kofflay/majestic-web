@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
 import AdminSectionHeader from '../components/AdminSectionHeader';
 import { verifyToken } from '../lib/discord';
-import { SUPER_ADMIN_ID } from '../lib/admins';
+import { hasHrAuditAccess, HR_AUDIT_ROLE_IDS } from '../lib/hr-audit-access';
 import { getDepartment } from '../lib/departments';
 
 const panel = {
@@ -29,7 +29,7 @@ export async function getServerSideProps({ req, res }) {
   if (!user) {
     return { redirect: { destination: '/start', permanent: false } };
   }
-  if (String(user.id) !== SUPER_ADMIN_ID) {
+  if (!hasHrAuditAccess(user)) {
     return { notFound: true };
   }
   return { props: {} };
@@ -41,7 +41,9 @@ const FIELD_LABELS = {
   currentRank: 'Текущий ранг',
   targetRank: 'Запрашиваемый ранг',
   isInstructor: 'Назначение инструктором',
-  workLinks: 'Ссылки на проделанную работу'
+  workLinks: 'Ссылки на проделанную работу',
+  rankRange: 'Диапазон рангов',
+  workLink: 'Ссылка на проделанную работу'
 };
 
 const STATUS_LABELS = {
@@ -62,7 +64,7 @@ function displayFieldValue(key, value) {
 }
 
 function renderFieldContent(key, value) {
-  if (key !== 'workLinks' || !value) return displayFieldValue(key, value);
+  if (!['workLinks', 'workLink'].includes(key) || !value) return displayFieldValue(key, value);
   const parts = String(value).split(/(https?:\/\/[^\s,]+)/gi);
   return parts.map((part, index) => /^https?:\/\//i.test(part)
     ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
@@ -78,6 +80,8 @@ export default function HrAuditPage() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   const load = async () => {
@@ -114,7 +118,8 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось сохранить решение');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
-      if (data.notificationPending) setError('Решение сохранено, но Discord не подтвердил уведомление. Понадобится повторная отправка.');
+      if (data.warning) setError(data.warning);
+      else if (data.notificationPending) setError('Решение сохранено, но Discord не подтвердил уведомление. Понадобится повторная отправка.');
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -130,6 +135,7 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось повторить отправку');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+      if (data.warning) setError(data.warning);
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -145,6 +151,7 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось повторить уведомление');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+      if (data.warning) setError(data.warning);
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -152,20 +159,36 @@ export default function HrAuditPage() {
   const status = item => item.status === 'pending' ? ['ОЖИДАЕТ', '#ffb74d'] : item.status === 'accepted' ? ['ОДОБРЕНО', '#81c784'] : ['ОТКЛОНЕНО', '#ff7b88'];
   const counts = items.reduce((acc, item) => ({ ...acc, [item.status]: (acc[item.status] || 0) + 1 }), {});
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
+  const departmentOptions = Array.from(new Set(items
+    .map(item => item.data?.department)
+    .filter(value => value !== null && value !== undefined && String(value).trim() !== '')
+    .map(value => String(value))
+  )).sort((a, b) => {
+    const nameA = getDepartment(a)?.name || a;
+    const nameB = getDepartment(b)?.name || b;
+    return nameA.localeCompare(nameB, 'ru-RU');
+  });
+  const TYPE_LABELS = {
+    all: 'Все типы заявок',
+    report: 'Отчёт о повышении',
+    highrank: 'Повышение хай-состава'
+  };
   const visibleItems = items.filter(item => {
     const statusMatches = statusFilter === 'all' || item.status === statusFilter;
+    const departmentMatches = departmentFilter === 'all' || String(item.data?.department || '') === departmentFilter;
+    const typeMatches = typeFilter === 'all' || item.type === typeFilter;
     const haystack = [
       item.number, item.submitter?.username, item.submitter?.id,
       ...Object.values(item.data || {})
     ].join(' ').toLocaleLowerCase('ru-RU');
-    return statusMatches && (!normalizedSearch || haystack.includes(normalizedSearch));
+    return statusMatches && departmentMatches && typeMatches && (!normalizedSearch || haystack.includes(normalizedSearch));
   });
 
   return (
     <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение. Доступ к кадровым решениям есть только у уполномоченного проверяющего." />
+        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." />
         <div style={{ ...panel, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div><div style={label}>ДОСТУП К РЕЕСТРУ</div><div style={value}>Доступ разрешён только Discord ID 200102286473691139</div></div>
+          <div><div style={label}>ДОСТУП К РЕЕСТРУ</div><div style={value}>Доступ по одной из двух кадровых ролей: {HR_AUDIT_ROLE_IDS.join(' / ')}</div></div>
           <button onClick={load} disabled={refreshing} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent', opacity: refreshing ? .55 : 1 }}>{refreshing ? 'ОБНОВЛЕНИЕ…' : 'ОБНОВИТЬ СПИСОК'}</button>
         </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
@@ -175,8 +198,15 @@ export default function HrAuditPage() {
           <div><div style={label}>ОДОБРЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#81c784' }}>{counts.accepted || 0}</div></div>
           <div><div style={label}>ОТКЛОНЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#ff7b88' }}>{counts.rejected || 0}</div></div>
         </div>
-        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'minmax(220px,1fr) minmax(160px,240px)', gap: 12 }}>
-          <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID, отделу…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
+        <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
+          <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
+          <select aria-label="Фильтр по отделу" value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
+            <option value="all">Все отделы</option>
+            {departmentOptions.map(department => <option key={department} value={department}>{displayFieldValue('department', department)}</option>)}
+          </select>
+          <select aria-label="Фильтр по типу заявки" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
+            {Object.entries(TYPE_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
+          </select>
           <select aria-label="Фильтр по статусу" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '11px 12px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>
             {Object.entries(STATUS_LABELS).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
           </select>
@@ -192,17 +222,24 @@ export default function HrAuditPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
               <div><div style={label}>ЗАЯВИТЕЛЬ</div><div style={value}>{item.data?.fullName || item.submitter?.username || 'Не указано'}</div><div style={{ ...value, color: '#9ca3af', fontSize: 12 }}>Discord: {item.submitter?.id || '—'}</div></div>
-              <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
+              {item.type === 'highrank' ? <>
+                <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>Повышение хай-состава</div></div>
+                <div><div style={label}>ДИАПАЗОН РАНГОВ</div><div style={value}>{displayFieldValue('rankRange', item.data?.rankRange)}</div></div>
+              </> : <>
+                <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
+                <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
+              </>}
               <div><div style={label}>ОТПРАВЛЕНО</div><div style={value}>{item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU') : '—'}</div></div>
-              <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-              {Object.entries(item.data || {}).filter(([key]) => !['fullName','department','currentRank','targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
+              {Object.entries(item.data || {}).filter(([key]) => item.type === 'highrank'
+                ? !['fullName', 'rankRange'].includes(key)
+                : !['fullName', 'department', 'currentRank', 'targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
               <textarea value={reasons[item.id] || ''} onChange={e => setReasons(prev => ({ ...prev, [item.id]: e.target.value }))} maxLength={1000} rows={3} placeholder="Укажи причину, если отклоняешь заявку…" style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 14px', padding: 12, resize: 'vertical', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }} />
-              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Заявка сохранена, но не доставлена в Discord.</div>}
+              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Доставка в Discord не подтверждена. При сетевом сбое сообщение могло быть принято; перед повтором проверь канал отдела.</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {item.deliveryPending && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
                 <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
@@ -220,7 +257,7 @@ export default function HrAuditPage() {
               <div style={{ ...label, marginBottom: 10 }}>ИСТОРИЯ ДЕЙСТВИЙ</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 {item.history.slice().reverse().map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
-                  <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_pending' ? 'Ожидает доставки' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
+                  <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_attempted' ? 'Начата доставка в Discord' : entry.action === 'delivery_retry_attempted' ? 'Повтор доставки начат' : entry.action === 'delivery_retry_unconfirmed' ? 'Ответ Discord не подтверждён' : entry.action === 'delivery_pending' ? 'Ожидает подтверждения доставки' : entry.action === 'notification_attempted' ? 'Начата отправка уведомления' : entry.action === 'notification_retry_attempted' ? 'Повтор уведомления начат' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
                   {' · '}{entry.at ? new Date(entry.at).toLocaleString('ru-RU') : 'Время не указано'}
                   {' · Discord ID: '}{entry.userId || 'не указан'}
                   {entry.reason && <div style={{ marginTop: 3, color: '#cbd5e1' }}>Причина: {entry.reason}</div>}
