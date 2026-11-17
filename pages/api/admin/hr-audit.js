@@ -107,9 +107,12 @@ async function sendDecision(item, reviewer, decision, reason) {
         ...originalEmbed,
         title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
-        description: [originalEmbed.description, auditUrl].filter(Boolean).join('\n'),
+        description: originalEmbed.description?.includes(auditUrl)
+          ? originalEmbed.description
+          : [originalEmbed.description, auditUrl].filter(Boolean).join('\n'),
         fields: [
-          ...(Array.isArray(originalEmbed.fields) ? originalEmbed.fields : []),
+          ...(Array.isArray(originalEmbed.fields) ? originalEmbed.fields : [])
+            .filter(field => !['Причина отказа', 'Решение'].includes(field?.name)),
           ...(!accepted && reason ? [{ name: 'Причина отказа', value: String(reason).slice(0, 1024), inline: false }] : []),
           { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true }
         ],
