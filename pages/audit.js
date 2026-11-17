@@ -62,6 +62,31 @@ const FIELD_LABELS = {
   reportLink: 'Ссылка на кадровый аудит'
 };
 
+const FORM_CATEGORY_GROUPS = [
+  { title: 'КАДРОВЫЕ ПРОЦЕССЫ', items: [
+    { id: 'report', label: 'Отчёты о повышении', icon: '↗' },
+    { id: 'highrank', label: 'Отчёты High-Rank', icon: '◆' },
+    { id: 'promotion', label: 'Запросы на повышение', icon: '↑' },
+    { id: 'transfer', label: 'Перевод между отделами', icon: '⇄' },
+    { id: 'transfer-to-lspd', label: 'Перевод в LSPD', icon: '＋' },
+    { id: 'hiring', label: 'Трудоустройство', icon: '＋' },
+    { id: 'reinstatement', label: 'Восстановление', icon: '↺' },
+    { id: 'resignation', label: 'Увольнение', icon: '−' }
+  ]},
+  { title: 'СЛУЖЕБНЫЕ ЗАПРОСЫ', items: [
+    { id: 'leave', label: 'Заявления на отпуск', icon: '◷' },
+    { id: 'weapon-request', label: 'Спецвооружение', icon: '⌁' },
+    { id: 'recovery', label: 'Отработка взыскания', icon: '✓' }
+  ]},
+  { title: 'ОБРАЩЕНИЯ', items: [
+    { id: 'appeal', label: 'Обжалования', icon: '⚖' },
+    { id: 'complaint', label: 'Жалобы на сотрудников', icon: '!' }
+  ]},
+  { title: 'ДОПОЛНИТЕЛЬНО', items: [
+    { id: 'premium', label: 'Заявления на премию', icon: '✦' }
+  ]}
+];
+
 const STATUS_LABELS = {
   all: 'Все заявки',
   pending: 'Ожидают',
@@ -97,6 +122,8 @@ export default function HrAuditPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState([]);
@@ -213,7 +240,10 @@ export default function HrAuditPage() {
     const parsed = new Date(item.submittedAt);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
+  const connectedCategories = ['report', 'highrank', 'promotion'];
+  const activeCategoryLabel = activeCategory === 'all' ? 'Все заявления' : FORM_CATEGORY_GROUPS.flatMap(group => group.items).find(category => category.id === activeCategory)?.label || 'Категория';
   const visibleItems = items.filter(item => {
+    if (activeCategory !== 'all' && item.type !== activeCategory) return false;
     const submitted = getSubmittedDate(item);
     const submittedDay = submitted ? new Date(submitted.getFullYear(), submitted.getMonth(), submitted.getDate()) : null;
     const fromDay = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
@@ -244,6 +274,33 @@ export default function HrAuditPage() {
           <div><div style={label}>ОДОБРЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#81c784' }}>{counts.accepted || 0}</div></div>
           <div><div style={label}>ОТКЛОНЕНО</div><div style={{ ...value, fontSize: 23, fontWeight: 800, color: '#ff7b88' }}>{counts.rejected || 0}</div></div>
         </div>
+        <div className="hr-audit-layout">
+          <aside className={`hr-audit-sidebar${sidebarCollapsed ? ' is-collapsed' : ''}`}>
+            <div className="hr-audit-sidebar-head">
+              {!sidebarCollapsed && <span className="hr-audit-sidebar-caption">РАЗДЕЛЫ АУДИТА</span>}
+              <button type="button" className="hr-audit-collapse" onClick={() => setSidebarCollapsed(value => !value)} aria-label={sidebarCollapsed ? 'Развернуть меню' : 'Свернуть меню'} title={sidebarCollapsed ? 'Развернуть меню' : 'Свернуть меню'}>{sidebarCollapsed ? '»' : '«'}</button>
+            </div>
+            <button type="button" className={`hr-audit-nav-item${activeCategory === 'all' ? ' is-active' : ''}`} onClick={() => setActiveCategory('all')} title="Все заявления">
+              <span className="hr-audit-nav-icon">▦</span>{!sidebarCollapsed && <><span className="hr-audit-nav-label">Все заявления</span><span className="hr-audit-nav-count">{items.length}</span></>}
+            </button>
+            {FORM_CATEGORY_GROUPS.map(group => <div className="hr-audit-nav-group" key={group.title}>
+              {!sidebarCollapsed && <div className="hr-audit-nav-group-title">{group.title}</div>}
+              {group.items.map(category => {
+                const connected = connectedCategories.includes(category.id);
+                const count = items.filter(item => item.type === category.id).length;
+                return <button type="button" key={category.id} className={`hr-audit-nav-item${activeCategory === category.id ? ' is-active' : ''}`} onClick={() => setActiveCategory(category.id)} title={category.label}>
+                  <span className="hr-audit-nav-icon">{category.icon}</span>
+                  {!sidebarCollapsed && <><span className="hr-audit-nav-label">{category.label}</span>{connected ? <span className="hr-audit-nav-count">{count}</span> : <span className="hr-audit-nav-soon">СКОРО</span>}</>}
+                </button>;
+              })}
+            </div>)}
+            {!sidebarCollapsed && <div className="hr-audit-sidebar-note">Новые типы заявлений будут подключаться к реестру постепенно.</div>}
+          </aside>
+          <div className="hr-audit-main">
+            <div className="hr-audit-main-heading">
+              <div><div className="hr-audit-main-eyebrow">ТЕКУЩИЙ РАЗДЕЛ</div><h2>{activeCategoryLabel}</h2></div>
+              <div className="hr-audit-main-total">{activeCategory === 'all' ? items.length : items.filter(item => item.type === activeCategory).length} ЗАЯВЛЕНИЙ</div>
+            </div>
         <div style={{ ...panel, padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
@@ -280,7 +337,7 @@ export default function HrAuditPage() {
         </div>
 
         <div style={{ ...label, margin: '0 0 12px 4px' }}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
-        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
+        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : activeCategory !== 'all' && !connectedCategories.includes(activeCategory) ? <div className="hr-audit-empty"><div className="hr-audit-empty-icon">⌁</div><h3>Раздел готовится к подключению</h3><p>Навигация для этой категории уже создана. Интеграция формы и её обработка будут добавлены отдельно.</p><span>ПОКА НЕТ ПОДКЛЮЧЁННЫХ ЗАЯВЛЕНИЙ</span></div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
           const [statusText, statusColor] = status(item);
           return <section id={`audit-item-${item.id}`} key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -336,6 +393,8 @@ export default function HrAuditPage() {
             </div>}
           </section>;
         })}
+          </div>
+        </div>
     </PageLayout>
   );
 }
