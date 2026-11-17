@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
     },
     fields,
-    footer: { text: 'LSPD Forms • ' + new Date().toLocaleDateString('ru-RU') },
+    footer: { text: 'Suspect Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString(),
   };
   const embedTextLength = (embed.title || '').length +
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         content: `<@&${ROLE_PING}> <@${user.id}>`,
         embeds: [embed],
-        username: 'LSPD Forms',
+        username: 'Suspect Forms',
         avatar_url: 'https://i.imgur.com/AfFp7pu.png',
       }),
     });
