@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import PageLayout from '../components/PageLayout';
 import AdminSectionHeader from '../components/AdminSectionHeader';
 import { verifyToken } from '../lib/discord';
@@ -86,6 +87,7 @@ function renderFieldContent(key, value) {
 }
 
 export default function HrAuditPage() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +119,14 @@ export default function HrAuditPage() {
     fetch('/api/me').then(r => r.json()).then(d => setUser(d.user || null)).catch(() => {});
     load();
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady || loading || !router.query.id) return;
+    const requestedId = String(router.query.id);
+    if (!/^[1-9][0-9]{0,11}$/.test(requestedId)) return;
+    const target = document.getElementById(`audit-item-${requestedId}`);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [router.isReady, router.query.id, loading, items]);
 
   const decide = async (item, decision) => {
     const reason = reasons[item.id] || '';
@@ -270,7 +280,7 @@ export default function HrAuditPage() {
         <div style={{ ...label, margin: '0 0 12px 4px' }}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
         {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
           const [statusText, statusColor] = status(item);
-          return <section key={item.id} style={panel}>
+          return <section id={`audit-item-${item.id}`} key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
               <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Повышение хай-состава' : 'Отчёт о повышении'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
