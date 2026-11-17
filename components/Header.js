@@ -180,16 +180,6 @@ export default function Header({ user }) {
           </nav>
 
           <div className="site-header__actions">
-            {hasHrAuditAccess(user) && (
-              <button
-                type="button"
-                className={`header-audit-button ${router.pathname === '/audit' ? 'is-active' : ''}`}
-                onClick={() => navigate('/audit')}
-                aria-current={router.pathname === '/audit' ? 'page' : undefined}
-              >
-                Кадровый аудит
-              </button>
-            )}
             {user ? (
               <>
                 <button
