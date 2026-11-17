@@ -180,6 +180,7 @@ return {number, 1}
   const attemptAt = new Date().toISOString();
   promotion = {
     ...promotion,
+    discordPayload: payload,
     deliveryAttempts: (Number(promotion.deliveryAttempts) || 0) + 1,
     lastDeliveryAttemptAt: attemptAt,
     history: [...historyOf(promotion), { action: 'delivery_attempted', at: attemptAt, userId: 'system' }]
@@ -887,6 +888,9 @@ export default async function handler(req, res) {
       const item = await kv.get(itemKey);
       if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
+      }
+      if (item.deliveryUnconfirmed === true) {
+        return res.status(409).json({ error: 'Ответ Discord не подтверждён. Сначала вручную проверьте канал, чтобы не создать дубликат.' });
       }
       if (item.status !== 'pending' || item.deliveryPending !== true || !item.discordPayload) {
         return res.status(409).json({ error: 'Для этой заявки нет ожидающей доставки' });
