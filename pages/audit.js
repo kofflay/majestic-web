@@ -114,7 +114,8 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось сохранить решение');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
-      if (data.notificationPending) setError('Решение сохранено, но Discord не подтвердил уведомление. Понадобится повторная отправка.');
+      if (data.warning) setError(data.warning);
+      else if (data.notificationPending) setError('Решение сохранено, но Discord не подтвердил уведомление. Понадобится повторная отправка.');
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -130,6 +131,7 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось повторить отправку');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+      if (data.warning) setError(data.warning);
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -145,6 +147,7 @@ export default function HrAuditPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось повторить уведомление');
       setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+      if (data.warning) setError(data.warning);
     } catch (e) { setError(e.message); }
     finally { setBusy(''); }
   };
@@ -163,9 +166,9 @@ export default function HrAuditPage() {
 
   return (
     <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Тестовый реестр отчётов на повышение. Принимать решения пока может только владелец сайта." />
+        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." />
         <div style={{ ...panel, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div><div style={label}>ТЕСТОВЫЙ ДОСТУП</div><div style={value}>Разрешён только Discord ID 200102286473691139</div></div>
+          <div><div style={label}>ДОСТУП К РЕЕСТРУ</div><div style={value}>Разрешён только Discord ID 200102286473691139</div></div>
           <button onClick={load} disabled={refreshing} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent', opacity: refreshing ? .55 : 1 }}>{refreshing ? 'ОБНОВЛЕНИЕ…' : 'ОБНОВИТЬ СПИСОК'}</button>
         </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
@@ -202,7 +205,7 @@ export default function HrAuditPage() {
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(148,163,184,.12)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
               <textarea value={reasons[item.id] || ''} onChange={e => setReasons(prev => ({ ...prev, [item.id]: e.target.value }))} maxLength={1000} rows={3} placeholder="Укажи причину, если отклоняешь заявку…" style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 14px', padding: 12, resize: 'vertical', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', font: '14px inherit' }} />
-              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Заявка сохранена, но не доставлена в Discord.</div>}
+              {item.deliveryPending && <div style={{ marginBottom: 12, color: '#ffb74d' }}>Доставка в Discord не подтверждена. При сетевом сбое сообщение могло быть принято; перед повтором проверь канал отдела.</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {item.deliveryPending && <button disabled={busy === item.id} onClick={() => retryDelivery(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ОТПРАВКУ</button>}
                 <button disabled={busy === item.id || item.deliveryPending} onClick={() => decide(item, 'accepted')} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ОДОБРИТЬ</button>
@@ -220,7 +223,7 @@ export default function HrAuditPage() {
               <div style={{ ...label, marginBottom: 10 }}>ИСТОРИЯ ДЕЙСТВИЙ</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 {item.history.slice().reverse().map((entry, index) => <div key={`${item.id}-history-${index}`} style={{ ...value, fontSize: 12, color: '#aeb8c7' }}>
-                  <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_pending' ? 'Ожидает доставки' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
+                  <strong style={{ color: '#e5e7eb' }}>{entry.action === 'submitted' ? 'Заявка создана' : entry.action === 'accepted' ? 'Заявка одобрена' : entry.action === 'rejected' ? 'Заявка отклонена' : entry.action === 'delivered' ? 'Доставлено в Discord' : entry.action === 'delivery_attempted' ? 'Начата доставка в Discord' : entry.action === 'delivery_retry_attempted' ? 'Повтор доставки начат' : entry.action === 'delivery_retry_unconfirmed' ? 'Ответ Discord не подтверждён' : entry.action === 'delivery_pending' ? 'Ожидает подтверждения доставки' : entry.action === 'notification_attempted' ? 'Начата отправка уведомления' : entry.action === 'notification_retry_attempted' ? 'Повтор уведомления начат' : entry.action === 'delivery_pending' ? 'Ожидает доставки' : entry.action === 'notification_sent' ? 'Уведомление отправлено' : entry.action === 'notification_pending' ? 'Уведомление ожидает отправки' : entry.action === 'notification_retry_failed' ? 'Повтор уведомления не удался' : entry.action === 'delivery_retry_failed' ? 'Повтор доставки не удался' : entry.action}</strong>
                   {' · '}{entry.at ? new Date(entry.at).toLocaleString('ru-RU') : 'Время не указано'}
                   {' · Discord ID: '}{entry.userId || 'не указан'}
                   {entry.reason && <div style={{ marginTop: 3, color: '#cbd5e1' }}>Причина: {entry.reason}</div>}
