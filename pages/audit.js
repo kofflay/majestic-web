@@ -89,7 +89,6 @@ export default function HrAuditPage() {
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [reasons, setReasons] = useState({});
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -104,7 +103,6 @@ export default function HrAuditPage() {
   const [selectedReviewers, setSelectedReviewers] = useState([]);
 
   const load = async () => {
-    setRefreshing(true);
     setError('');
     try {
       const response = await fetch('/api/admin/hr-audit');
@@ -112,7 +110,7 @@ export default function HrAuditPage() {
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить заявки');
       setItems(data.items || []);
     } catch (e) { setError(e.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -227,9 +225,6 @@ export default function HrAuditPage() {
   return (
     <PageLayout user={user}>
         <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов на повышение: просмотр заявок, доставка в Discord и фиксация решения проверяющего." backHref="/" backLabel="НА ГЛАВНУЮ" />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <button onClick={load} disabled={refreshing} style={{ ...button('green'), color: '#cbd5e1', borderColor: 'rgba(148,163,184,.3)', background: 'transparent', opacity: refreshing ? .55 : 1 }}>{refreshing ? 'ОБНОВЛЕНИЕ…' : 'ОБНОВИТЬ СПИСОК'}</button>
-        </div>
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
         <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
           <div><div style={label}>ВСЕГО</div><div style={{ ...value, fontSize: 23, fontWeight: 800 }}>{items.length}</div></div>
@@ -273,11 +268,11 @@ export default function HrAuditPage() {
         </div>
 
         <div style={{ ...label, margin: '0 0 12px 4px' }}>ПОКАЗАНО: {visibleItems.length} ИЗ {items.length}</div>
-        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и нажмите «Обновить список».</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
+        {loading ? <div style={panel}>Загрузка реестра…</div> : items.length === 0 && error ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Не удалось получить список заявок. Проверьте соединение и перезагрузите страницу.</div> : items.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>Заявок пока нет. Новые отчёты на повышение появятся здесь.</div> : visibleItems.length === 0 ? <div style={{ ...panel, textAlign: 'center', color: '#9ca3af' }}>По заданным условиям заявки не найдены.</div> : visibleItems.map(item => {
           const [statusText, statusColor] = status(item);
           return <section key={item.id} style={panel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>Заявка №{item.number}</h2>
+              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Повышение хай-состава' : 'Отчёт о повышении'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
