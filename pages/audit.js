@@ -19,12 +19,12 @@ const value = { color: '#f3f4f6', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pr
 const filterInputStyle = { width: '100%', boxSizing: 'border-box', padding: '9px 8px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 12, fontFamily: 'inherit', colorScheme: 'dark' };
 const chipStyle = { background: 'rgba(96,165,250,.1)', border: '1px solid rgba(96,165,250,.3)', color: '#bfdbfe', borderRadius: 4, padding: '5px 8px', cursor: 'pointer', fontSize: 11 };
 function FilterGroup({ title, options, selected, onToggle }) {
-  return <div>
+  return <div style={{ minWidth: 0 }}>
     <div style={label}>{title}</div>
-    <div style={{ maxHeight: 150, overflowY: 'auto', display: 'grid', gap: 7, padding: '3px 1px' }}>
-      {options.length ? options.map(option => <label key={option.value} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cbd5e1', fontSize: 12, cursor: 'pointer' }}>
-        <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} />
-        <span>{option.label}</span>
+    <div style={{ maxHeight: 168, minHeight: 42, overflowY: 'auto', display: 'grid', alignContent: 'start', gap: 9, padding: '5px 7px', border: '1px solid rgba(148,163,184,.12)', borderRadius: 5, background: 'rgba(4,7,12,.28)' }}>
+      {options.length ? options.map(option => <label key={option.value} style={{ display: 'flex', alignItems: 'flex-start', minWidth: 0, gap: 9, color: '#cbd5e1', fontSize: 12, lineHeight: 1.45, cursor: 'pointer' }}>
+        <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} style={{ appearance: 'auto', accentColor: '#47d7b0', flex: '0 0 16px', width: 16, height: 16, minWidth: 16, minHeight: 16, margin: '1px 0 0', padding: 0, cursor: 'pointer' }} />
+        <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{option.label}</span>
       </label>) : <span style={{ color: '#7f8a9a', fontSize: 12 }}>Нет данных</span>}
     </div>
   </div>;
@@ -263,11 +263,11 @@ export default function HrAuditPage() {
             {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={chipStyle}>Дата: {dateFrom || '…'} — {dateTo || '…'} ×</button>}
             <button onClick={resetFilters} style={{ ...chipStyle, color: '#ff9aa4' }}>Сбросить всё</button>
           </div>}
-          {filtersOpen && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,.15)' }}>
+          {filtersOpen && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', alignItems: 'start', gap: 18, marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(148,163,184,.15)' }}>
             <div>
               <div style={label}>ДАТА ПОДАЧИ</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                <input aria-label="Дата от" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={filterInputStyle}/>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+                <input aria-label="Дата от" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...filterInputStyle, minWidth: 0, minHeight: 40, padding: '8px 9px', fontSize: 12 }}/>
                 <input aria-label="Дата до" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle}/>
               </div>
             </div>
