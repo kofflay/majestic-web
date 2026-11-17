@@ -157,6 +157,16 @@ export default function Header({ user }) {
               </button>
             ))}
 
+            {user?.id === '200102286473691139' && (
+              <button
+                className={`hr-audit-nav-btn ${router.pathname === '/admin/hr-audit' ? 'is-active' : ''}`}
+                onClick={() => navigate('/admin/hr-audit')}
+                aria-current={router.pathname === '/admin/hr-audit' ? 'page' : undefined}
+              >
+                Кадровый аудит
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 className={`admin-nav-btn ${router.pathname.startsWith('/admin') ? 'is-active' : ''}`}
@@ -370,6 +380,14 @@ export default function Header({ user }) {
         .site-nav .admin-nav-btn:hover,
         .site-nav .admin-nav-btn.is-active {
           color: #d8e8ff;
+        }
+
+        .site-nav .hr-audit-nav-btn {
+          color: #83b8ff;
+        }
+
+        .site-nav .hr-audit-nav-btn.is-active {
+          color: #b7d5ff;
         }
 
         .site-header__actions {
