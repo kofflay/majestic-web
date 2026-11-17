@@ -128,7 +128,7 @@ export default async function handler(req, res) {
     const discordUrl = isHrAudit ? await getDiscordMessageUrl(item) : null;
 
     const statusLabels = {
-      pending: item.deliveryPending === true ? 'Ожидает отправки в Discord' : 'На рассмотрении',
+      pending: 'В обработке',
       accepted: 'Одобрено',
       rejected: 'Отклонено'
     };
