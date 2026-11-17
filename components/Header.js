@@ -1,6 +1,7 @@
 // components/Header.js
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import { hasHrAuditAccess } from '../lib/hr-audit-access';
 
 export default function Header({ user }) {
   const router = useRouter();
@@ -157,7 +158,7 @@ export default function Header({ user }) {
               </button>
             ))}
 
-            {user?.id === '200102286473691139' && (
+            {hasHrAuditAccess(user) && (
               <button
                 className={`hr-audit-nav-btn ${router.pathname === '/audit' ? 'is-active' : ''}`}
                 onClick={() => navigate('/audit')}
@@ -179,7 +180,7 @@ export default function Header({ user }) {
           </nav>
 
           <div className="site-header__actions">
-            {user?.id === '200102286473691139' && (
+            {hasHrAuditAccess(user) && (
               <button
                 type="button"
                 className={`header-audit-button ${router.pathname === '/audit' ? 'is-active' : ''}`}
