@@ -2,12 +2,12 @@
 
 ## Scope
 
-The register is created only when `/api/submit` receives `type === 'report'` (the “Отчёт на повышение” form). The separate “Запрос на повышение” form sends `type === 'promotion'` and must never create an HR audit record.
+The register is created for `/api/submit` requests with `type === 'report'` (department promotion report) and `type === 'highrank'` (senior-staff promotion report). The separate “Запрос на повышение” form sends `type === 'promotion'` and must never create an HR audit record.
 
 ## Creation and numbering
 
-1. The report form creates a request ID and keeps it in `sessionStorage` until the server confirms the request.
-2. The API validates that ID and scopes its idempotency key to the authenticated Discord user.
+1. The department report form creates a request ID and keeps it in `sessionStorage` until the server confirms the request. The high-rank form remains unchanged; the server calculates a short-lived fingerprint from the authenticated user and submitted fields.
+2. The API scopes its idempotency key to the authenticated Discord user. Department reports use the stable client request ID; the existing high-rank form is left unchanged, so high-rank reports use a payload fingerprint with a 10-minute duplicate window.
 3. One Redis Lua script checks the idempotency key, increments the global sequence, writes the full audit item, pushes its number into the register index, and stores the idempotency key for 30 days.
 4. A repeat request with the same ID returns the existing record number. It does not allocate a second number or send a second Discord message.
 5. The stored record includes the submitted fields, submitter identity, timestamp, initial history, status, and a Discord retry payload.
@@ -21,7 +21,8 @@ Redis keys:
 
 ## Delivery and decisions
 
-- Initial report and decision notifications use the existing webhook for the report's department.
+- Department report delivery and decision notifications use the existing report webhook for the selected department.
+- High-rank report delivery and decision notifications use `WEBHOOK_HIGH_RANK_REPORT`.
 - If initial delivery fails, the record remains `pending` with `deliveryPending: true` and retains the exact payload for a reviewer retry.
 - A decision is blocked until initial delivery is confirmed.
 - A decision is written with Redis compare-and-set: only a record whose current status is `pending` can transition to `accepted` or `rejected`.
