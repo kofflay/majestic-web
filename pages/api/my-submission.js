@@ -1,5 +1,6 @@
 import { verifyToken } from '../../lib/discord';
 import { kv } from '../../lib/redis.js';
+import { getDepartment, getReportWebhook } from '../../lib/departments';
 
 const FIELD_LABELS = {
   fullName: 'Имя и статик',
@@ -55,6 +56,38 @@ const TYPE_LABELS = {
   promotion: 'Запрос на повышение'
 };
 
+
+function getAuditWebhook(item) {
+  if (item?.type === 'highrank') return process.env.WEBHOOK_HIGH_RANK_REPORT || null;
+  if (item?.type === 'promotion') return process.env.WEBHOOK_PROMOTION || null;
+  if (item?.type === 'report') {
+    const department = getDepartment(item.data?.department);
+    return department ? getReportWebhook(department.id) : null;
+  }
+  return null;
+}
+
+async function getDiscordMessageUrl(item) {
+  const savedUrl = [item?.discordMessageUrl, item?.approvedReportMessageUrl, item?.auditMessageUrl]
+    .find(value => /^https:\/\/discord(?:app)?\.com\/channels\/\d{17,20}\/\d{17,20}\/\d{17,20}$/i.test(String(value || '')));
+  if (savedUrl) return savedUrl;
+  const messageId = String(item?.deliveryMessageId || '');
+  const webhook = getAuditWebhook(item);
+  if (!/^\d{17,20}$/.test(messageId) || !webhook) return null;
+  try {
+    const response = await fetch(webhook, { method: 'GET', signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return null;
+    const info = await response.json();
+    const guildId = String(info?.guild_id || '');
+    const channelId = String(info?.channel_id || '');
+    return /^\d{17,20}$/.test(guildId) && /^\d{17,20}$/.test(channelId)
+      ? `https://discord.com/channels/${guildId}/${channelId}/${messageId}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function safeData(source) {
   const result = {};
   for (const [key, value] of Object.entries(source || {})) {
@@ -81,7 +114,7 @@ export default async function handler(req, res) {
     let isHrAudit = false;
     if (id) {
       item = await kv.get(`lspd:hr-audit:item:${id}`);
-      if (!item || !['report', 'highrank'].includes(item.type) || String(item.submitter?.id || '') !== String(user.id)) {
+      if (!item || !['report', 'highrank', 'promotion'].includes(item.type) || String(item.submitter?.id || '') !== String(user.id)) {
         return res.status(404).json({ error: 'Обращение не найдено' });
       }
       isHrAudit = true;
@@ -91,6 +124,8 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Подробности обращения не найдены' });
       }
     }
+
+    const discordUrl = isHrAudit ? await getDiscordMessageUrl(item) : null;
 
     const statusLabels = {
       pending: item.deliveryPending === true ? 'Ожидает отправки в Discord' : 'На рассмотрении',
@@ -125,7 +160,8 @@ export default async function handler(req, res) {
         reason: isHrAudit && item.status === 'rejected' ? String(item.reason || '') : '',
         submittedAt: isHrAudit ? item.submittedAt || null : item.date || null,
         resolvedAt: isHrAudit ? item.resolvedAt || null : null,
-        timeline
+        timeline,
+        discordUrl
       }
     });
   } catch (error) {
