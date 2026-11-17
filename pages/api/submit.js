@@ -453,7 +453,7 @@ return {number, 1}
       }
 
       try {
-        const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\\/$/, '')}/audit?id=${hrAuditNumber}`;
+        const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${hrAuditNumber}`;
         embed = {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
@@ -467,7 +467,7 @@ return {number, 1}
         };
         discordPayload.embeds = [embed];
 
-        const storedBeforeSend = await kv.get(itemKey);
+        let storedBeforeSend = await kv.get(itemKey);
         if (
           !storedBeforeSend
           || storedBeforeSend.type !== type
@@ -478,10 +478,11 @@ return {number, 1}
 
         // Keep the direct review link in the durable payload so manual delivery retries
         // publish the same concise message with the exact application URL.
-        await kv.set(itemKey, {
+        storedBeforeSend = {
           ...storedBeforeSend,
           discordPayload: { ...discordPayload }
-        });
+        };
+        await kv.set(itemKey, storedBeforeSend);
 
         // A reviewer retry may win the short race between the atomic record creation
         // and this initial sender acquiring its lock. Never send the same item twice.
