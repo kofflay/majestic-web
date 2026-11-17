@@ -1498,3 +1498,35 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   outline-offset: 2px;
 }
 
+/* HR audit category navigation */
+.hr-audit-layout{display:flex;align-items:flex-start;gap:16px;min-width:0}
+.hr-audit-sidebar{width:258px;flex:0 0 258px;box-sizing:border-box;padding:12px;background:rgba(9,14,22,.78);border:1px solid rgba(148,163,184,.16);border-radius:8px;transition:width .18s ease,flex-basis .18s ease}
+.hr-audit-sidebar.is-collapsed{width:62px;flex-basis:62px}
+.hr-audit-sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 3px 12px}
+.hr-audit-sidebar-caption,.hr-audit-nav-group-title,.hr-audit-main-eyebrow{color:#71849a;font:10px 'DM Mono',monospace;letter-spacing:1.1px}
+.hr-audit-collapse{width:28px;height:28px;flex:0 0 28px;border:1px solid rgba(148,163,184,.2);border-radius:5px;background:#101a25;color:#a9bacb;cursor:pointer;font-size:18px;line-height:1}
+.hr-audit-collapse:hover{border-color:rgba(71,215,176,.55);color:#67dfbd}
+.hr-audit-nav-group{display:grid;gap:3px;margin-top:13px}
+.hr-audit-nav-group-title{padding:5px 7px 4px}
+.hr-audit-nav-item{display:flex;align-items:center;gap:9px;width:100%;min-width:0;min-height:36px;padding:7px 8px;border:1px solid transparent;border-radius:5px;background:transparent;color:#b9c7d7;text-align:left;font:12px inherit;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.hr-audit-nav-item:hover{background:rgba(71,215,176,.06);border-color:rgba(71,215,176,.14);color:#e4f8f2}
+.hr-audit-nav-item.is-active{background:linear-gradient(100deg,rgba(39,185,149,.17),rgba(39,185,149,.055));border-color:rgba(71,215,176,.3);color:#79e2c4}
+.hr-audit-nav-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;flex:0 0 20px;color:#7e9aab;font-size:15px}
+.hr-audit-nav-item.is-active .hr-audit-nav-icon{color:#55d8b4}
+.hr-audit-nav-label{flex:1;min-width:0;line-height:1.35}
+.hr-audit-nav-count{color:#8da0b3;font:10px 'DM Mono',monospace}
+.hr-audit-nav-soon{color:#708092;font:8px 'DM Mono',monospace;letter-spacing:.4px}
+.hr-audit-sidebar-note{margin:14px 5px 2px;padding-top:11px;border-top:1px solid rgba(148,163,184,.12);color:#718094;font-size:10px;line-height:1.5}
+.hr-audit-main{flex:1;min-width:0}
+.hr-audit-main-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 3px 12px}
+.hr-audit-main-heading h2{margin:4px 0 0;color:#e8eef6;font-size:19px;font-weight:650}
+.hr-audit-main-total{padding:6px 9px;border:1px solid rgba(71,215,176,.18);border-radius:5px;color:#77d9bd;background:rgba(39,185,149,.06);font:10px 'DM Mono',monospace;white-space:nowrap}
+.hr-audit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;padding:32px 20px;border:1px dashed rgba(120,145,166,.24);border-radius:8px;background:rgba(9,14,22,.45);text-align:center}
+.hr-audit-empty-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid rgba(71,215,176,.2);border-radius:14px;background:rgba(39,185,149,.08);color:#65dabb;font-size:24px}
+.hr-audit-empty h3{margin:16px 0 6px;color:#e2eaf3;font-size:16px}
+.hr-audit-empty p{max-width:420px;margin:0;color:#8b9bad;font-size:12px;line-height:1.6}
+.hr-audit-empty span{margin-top:16px;color:#66788b;font:9px 'DM Mono',monospace;letter-spacing:1px}
+.hr-audit-sidebar.is-collapsed .hr-audit-nav-item{justify-content:center;padding:7px 4px}
+.hr-audit-sidebar.is-collapsed .hr-audit-nav-group{margin-top:8px}
+@media(max-width:760px){.hr-audit-layout{flex-direction:column}.hr-audit-sidebar,.hr-audit-sidebar.is-collapsed{width:100%;flex:0 0 auto}.hr-audit-sidebar.is-collapsed{width:100%}.hr-audit-sidebar-head{padding-bottom:8px}.hr-audit-nav-group{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:8px}.hr-audit-nav-group-title{grid-column:1/-1}.hr-audit-nav-item{min-height:38px}.hr-audit-sidebar.is-collapsed .hr-audit-nav-item{justify-content:flex-start;padding:7px 8px}.hr-audit-main-heading h2{font-size:17px}}
+
