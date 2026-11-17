@@ -111,8 +111,8 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
       color: 0x3498DB,
       fields: [
         { name: 'Имя Фамилия + Статик', value: data.fullName.slice(0, 1024), inline: false },
-        { name: 'С какого на какой ранг', value: data.rankRange.slice(0, 1024), inline: true },
-        { name: 'Ссылка на кадровый аудит', value: data.reportLink, inline: false },
+        { name: ' Диапазон рангов', value: data.rankRange.slice(0, 1024), inline: false },
+        { name: ' Ссылка на отчет', value: data.reportLink, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
@@ -162,13 +162,13 @@ return {number, 1}
     username: 'Suspect Forms',
     content: `<@&1514608894679191597> <@${applicantId}>`,
     embeds: [{
-      title: `Запрос на повышение №${promotion.number}`,
-      color: 0x3498DB,
+      title: ` Запрос на повышение №${promotion.number}`,
+      color: 0x4CAF50,
       description: `[Открыть запрос для одобрения или отклонения](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${promotion.id})`,
       fields: [
         { name: 'Имя Фамилия + Статик', value: promotion.data.fullName.slice(0, 1024), inline: false },
-        { name: 'С какого на какой ранг', value: promotion.data.rankRange.slice(0, 1024), inline: true },
-        { name: 'Доказательство — кадровый аудит', value: promotion.data.reportLink, inline: false },
+        { name: ' Диапазон рангов', value: promotion.data.rankRange.slice(0, 1024), inline: false },
+        { name: ' Ссылка на отчет', value: promotion.data.reportLink, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
@@ -232,7 +232,21 @@ return {number, 1}
     deliveryMessageId: messageId, deliveredAt, discordPayload: null,
     history: [...historyOf(latest), { action: 'delivered', at: deliveredAt, userId: 'system' }]
   };
-  await kv.set(`lspd:hr-audit:item:${promotion.id}`, delivered);
+  try {
+    await kv.set(`lspd:hr-audit:item:${promotion.id}`, delivered);
+  } catch (saveError) {
+    const persisted = await kv.get(`lspd:hr-audit:item:${promotion.id}`).catch(() => null);
+    if (!(persisted?.deliveryPending === false && persisted?.deliveryMessageId === messageId)) {
+      await kv.set(`lspd:hr-audit:item:${promotion.id}`, {
+        ...(persisted || promotion),
+        deliveryPending: true,
+        deliveryUnconfirmed: true,
+        history: [...historyOf(persisted || promotion), { action: 'delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+      }).catch(() => {});
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_delivery_state_unconfirmed', message: 'Discord принял запрос на повышение, но сохранение ID сообщения не подтверждено; повтор остановлен во избежание дубликата', auditId: item.id, auditType: 'promotion', details: String(saveError?.message || saveError).slice(0, 1000) });
+      return { success: false, reason: 'promotion_delivery_unconfirmed' };
+    }
+  }
   const parent = await kv.get(itemKey);
   await kv.set(itemKey, {
     ...parent,
@@ -280,8 +294,8 @@ async function sendDecision(item, reviewer, decision, reason) {
     const fieldValue = value => (typeof value === 'string' ? value.trim() : '').slice(0, 1024) || 'Не указано';
     const fields = [
       { name: 'Имя Фамилия + Статик', value: fieldValue(data.fullName), inline: false },
-      { name: 'С какого на какой ранг', value: fieldValue(data.rankRange), inline: true },
-      { name: 'Доказательство — кадровый аудит', value: fieldValue(data.reportLink), inline: false },
+      { name: ' Диапазон рангов', value: fieldValue(data.rankRange), inline: false },
+      { name: ' Ссылка на отчет', value: fieldValue(data.reportLink), inline: false },
       { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
       { name: 'Discord ID', value: fieldValue(applicantId), inline: true },
       { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
