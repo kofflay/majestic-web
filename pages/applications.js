@@ -27,8 +27,8 @@ export default function ApplicationsPage() {
   return (
     <PageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Центр обращений</h1>
-        <p style={{ color: '#9ca3af', fontSize: '15px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников LSPD.</p>
+        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Центр обращений</h1>
+        <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников LSPD.</p>
       </div>
 
       {/* Терминальный контейнер */}
@@ -42,14 +42,14 @@ export default function ApplicationsPage() {
         
         {/* Шапка терминала */}
         <div style={{ 
-          padding: '16px 24px', 
+          padding: '18px 28px', 
           borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
           background: 'rgba(0, 0, 0, 0.3)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           color: 'var(--blue)',
-          fontSize: '12px',
+          fontSize: '14px',
           letterSpacing: '1px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -69,7 +69,7 @@ export default function ApplicationsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '20px 24px',
+                padding: '22px 28px',
                 borderBottom: index !== publicForms.length - 1 ? '1px solid rgba(148, 163, 184, 0.05)' : 'none',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -109,16 +109,16 @@ export default function ApplicationsPage() {
                 </span>
                 
                 {/* Код формы */}
-                <div style={{ color: 'var(--blue)', fontSize: '13px', fontWeight: 'bold', minWidth: '40px' }}>
+                <div style={{ color: 'var(--blue)', fontSize: '14px', fontWeight: 'bold', minWidth: '40px' }}>
                   [{form.code}]
                 </div>
 
                 {/* Название и описание */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ color: 'white', fontSize: '15px', fontWeight: 'bold', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', fontFamily: "'Space Grotesk', sans-serif" }}>
                     {form.title}
                   </span>
-                  <span style={{ color: '#7f8a9a', fontSize: '12px' }}>
+                  <span style={{ color: '#7f8a9a', fontSize: '14px' }}>
                     {form.description}
                   </span>
                 </div>
@@ -128,7 +128,7 @@ export default function ApplicationsPage() {
               <div 
                 className="terminal-status"
                 style={{ 
-                  fontSize: '11px', 
+                  fontSize: '13px', 
                   color: '#6b7280',
                   border: '1px solid rgba(148, 163, 184, 0.2)',
                   padding: '4px 8px',
@@ -152,7 +152,7 @@ export default function ApplicationsPage() {
           gap: '12px',
           marginBottom: '12px',
           fontFamily: "'DM Mono', monospace",
-          fontSize: '11px',
+          fontSize: '13px',
           letterSpacing: '1px'
         }}>
           <span id="additional-requests-title" style={{ color: '#9aa6b7' }}>ДОПОЛНИТЕЛЬНЫЕ ОБРАЩЕНИЯ</span>
@@ -224,12 +224,12 @@ export default function ApplicationsPage() {
 
         .complaint-entry__title {
           color: #fff;
-          font: 700 15px 'Space Grotesk', sans-serif;
+          font: 700 17px 'Space Grotesk', sans-serif;
         }
 
         .complaint-entry__description {
           color: #9b8990;
-          font: 12px 'DM Mono', monospace;
+          font: 14px 'DM Mono', monospace;
           line-height: 1.5;
         }
 
@@ -237,7 +237,7 @@ export default function ApplicationsPage() {
           flex: 0 0 auto;
           margin-left: auto;
           color: #f17883;
-          font: 11px 'DM Mono', monospace;
+          font: 13px 'DM Mono', monospace;
           white-space: nowrap;
           transition: color .18s ease;
         }
