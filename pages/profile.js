@@ -172,10 +172,13 @@ export default function Profile() {
   const openHistoryDetails = async (item) => {
     setSelectedHistory(item);
     setHistoryDetails(null);
-    if (!item.auditNumber) return;
+    if (!item.auditNumber && !item.referenceId) return;
     setHistoryDetailsLoading(true);
     try {
-      const response = await fetch(`/api/my-submission?id=${encodeURIComponent(item.auditNumber)}`);
+      const lookup = item.auditNumber
+        ? `id=${encodeURIComponent(item.auditNumber)}`
+        : `ref=${encodeURIComponent(item.referenceId)}`;
+      const response = await fetch(`/api/my-submission?${lookup}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить обращение.');
       setHistoryDetails(data.item);
@@ -489,7 +492,7 @@ export default function Profile() {
               <div className="profile-request-modal__meta"><span>{selectedHistory.date ? new Date(selectedHistory.date).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Дата неизвестна'}</span><strong className={selectedHistory.status === 'not_sent' ? 'is-failed' : 'is-sent'}>{selectedHistory.status === 'not_sent' ? 'НЕ ОТПРАВЛЕНО' : 'ОТПРАВЛЕНО'}</strong></div>
               {historyDetailsLoading ? <div className="profile-request-modal__loading"><span className="profile-history__loader" />Загрузка обращения...</div> : historyDetails ? (
                 <>
-                  <div className="profile-request-modal__audit"><span>КАДРОВЫЙ АУДИТ · №{historyDetails.number}</span><strong className={`is-${historyDetails.status}`}>{historyDetails.statusLabel}</strong></div>
+                  <div className="profile-request-modal__audit"><span>{historyDetails.isHrAudit ? `КАДРОВЫЙ АУДИТ · №${historyDetails.number}` : 'ДАННЫЕ ОТПРАВЛЕННОГО ОБРАЩЕНИЯ'}</span><strong className={`is-${historyDetails.status}`}>{historyDetails.statusLabel}</strong></div>
                   <div className="profile-request-modal__fields">
                     {Object.entries(historyDetails.data || {}).map(([key, value]) => (
                       <div className="profile-request-modal__field" key={key}><span>{historyDetails.fieldLabels?.[key] || key}</span><p>{String(value ?? '—')}</p></div>
@@ -497,7 +500,7 @@ export default function Profile() {
                   </div>
                   {historyDetails.reason && <div className="profile-request-modal__reason"><strong>Причина отказа</strong><p>{historyDetails.reason}</p></div>}
                 </>
-              ) : selectedHistory.auditNumber ? <p className="profile-request-modal__hint">Подробности этого обращения сейчас недоступны. Обновите страницу и попробуйте ещё раз.</p> : <p className="profile-request-modal__hint">Для этого старого обращения подробные данные пока не связаны с историей. В истории сохранены дата и результат отправки.</p>}
+              ) : (selectedHistory.auditNumber || selectedHistory.referenceId) ? <p className="profile-request-modal__hint">Подробности этого обращения сейчас недоступны. Возможно, запись уже вышла за пределы хранимой истории.</p> : <p className="profile-request-modal__hint">Для этого старого обращения подробные данные пока не связаны с историей. В истории сохранены дата и результат отправки.</p>}
               <button type="button" className="profile-button profile-button--secondary profile-request-modal__close" onClick={() => setSelectedHistory(null)}>ЗАКРЫТЬ</button>
             </section>
           </div>
