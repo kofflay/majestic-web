@@ -89,7 +89,7 @@ export default function HubPage() {
   return (
     <PageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Для сотрудников</h1>
+        <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Внутренние отчёты</h1>
         <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Внутренние служебные документы и формы.</p>
       </div>
 
