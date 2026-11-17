@@ -17,7 +17,6 @@ const panel = {
 const label = { color: '#7f8a9a', fontSize: 11, letterSpacing: 1, fontFamily: "'DM Mono', monospace", marginBottom: 6 };
 const value = { color: '#f3f4f6', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
 const filterInputStyle = { width: '100%', boxSizing: 'border-box', padding: '9px 8px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 4, color: '#fff', fontSize: 12, fontFamily: 'inherit', colorScheme: 'dark' };
-const chipStyle = { background: 'rgba(96,165,250,.1)', border: '1px solid rgba(96,165,250,.3)', color: '#bfdbfe', borderRadius: 4, padding: '5px 8px', cursor: 'pointer', fontSize: 11 };
 function FilterGroup({ title, options, selected, onToggle }) {
   return <div style={{ minWidth: 0 }}>
     <div style={label}>{title}</div>
@@ -121,7 +120,6 @@ export default function HrAuditPage() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
@@ -295,33 +293,12 @@ export default function HrAuditPage() {
               <div><div className="hr-audit-main-eyebrow">ТЕКУЩИЙ РАЗДЕЛ</div><h2>{activeCategoryLabel}</h2></div>
               <div className="hr-audit-main-total">{activeCategory === 'all' ? items.length : items.filter(item => item.type === activeCategory).length} ЗАЯВЛЕНИЙ</div>
             </div>
-        <div style={{ ...panel, padding: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-              <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID…" style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px 11px 38px', background: '#080c12', border: '1px solid rgba(148,163,184,.25)', borderRadius: 5, color: '#fff', fontSize: 14, fontFamily: 'inherit' }} />
-              <span aria-hidden="true" style={{ position: 'absolute', left: 13, top: 10, color: '#7f8a9a' }}>⌕</span>
-            </div>
-            <button type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)} style={{ ...button('green'), background: filtersOpen ? 'rgba(76,175,80,.16)' : 'transparent', color: '#e5e7eb', borderColor: filtersOpen ? 'rgba(76,175,80,.55)' : 'rgba(148,163,184,.3)', whiteSpace: 'nowrap' }}>
-              ФИЛЬТРЫ{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
-            </button>
+        <div className="hr-audit-search-panel">
+          <div className="hr-audit-search-field">
+            <input aria-label="Поиск по заявкам" value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по номеру, имени, Discord ID…" />
+            <span aria-hidden="true">⌕</span>
           </div>
-          {activeFilterCount > 0 && <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
-            {selectedDepartments.map(value => <button key={value} onClick={() => toggleValue(setSelectedDepartments, selectedDepartments, value)} style={chipStyle}>{displayFieldValue('department', value)} ×</button>)}
-            {selectedStatuses.map(value => <button key={value} onClick={() => toggleValue(setSelectedStatuses, selectedStatuses, value)} style={chipStyle}>{STATUS_LABELS[value] || value} ×</button>)}
-            {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={chipStyle}>Дата: {dateFrom || '…'} — {dateTo || '…'} ×</button>}
-            <button onClick={resetFilters} style={{ ...chipStyle, color: '#ff9aa4' }}>Сбросить всё</button>
-          </div>}
-          {filtersOpen && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', alignItems: 'start', gap: 18, marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(148,163,184,.15)' }}>
-            <div>
-              <div style={label}>ДАТА ПОДАЧИ</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-                <input aria-label="Дата от" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...filterInputStyle, minWidth: 0, minHeight: 40, padding: '8px 9px', fontSize: 12 }}/>
-                <input aria-label="Дата до" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle}/>
-              </div>
-            </div>
-            <FilterGroup title="ОТДЕЛ" options={departmentOptions.map(value => ({ value, label: displayFieldValue('department', value) }))} selected={selectedDepartments} onToggle={value => toggleValue(setSelectedDepartments, selectedDepartments, value)} />
-            <FilterGroup title="СТАТУС" options={Object.entries(STATUS_LABELS).filter(([value]) => value !== 'all').map(([value, label]) => ({ value, label }))} selected={selectedStatuses} onToggle={value => toggleValue(setSelectedStatuses, selectedStatuses, value)} />
-          </div>}
+          <div className="hr-audit-search-hint">Поиск применяется сразу</div>
         </div>
 
         <div className="hr-audit-list-toolbar">
@@ -398,6 +375,19 @@ export default function HrAuditPage() {
           </section>;
         })}
           </div>
+          <aside className="hr-audit-filters" aria-label="Фильтры заявлений">
+            <div className="hr-audit-filters-head"><span>ФИЛЬТРЫ</span>{activeFilterCount > 0 && <b>{activeFilterCount}</b>}</div>
+            <div className="hr-audit-filter-section">
+              <div style={label}>ДАТА ПОДАЧИ</div>
+              <div className="hr-audit-date-fields">
+                <input aria-label="Дата от" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={filterInputStyle}/>
+                <input aria-label="Дата до" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle}/>
+              </div>
+            </div>
+            <div className="hr-audit-filter-section"><FilterGroup title="ОТДЕЛ" options={departmentOptions.map(value => ({ value, label: displayFieldValue('department', value) }))} selected={selectedDepartments} onToggle={value => toggleValue(setSelectedDepartments, selectedDepartments, value)} /></div>
+            <div className="hr-audit-filter-section"><FilterGroup title="СТАТУС" options={Object.entries(STATUS_LABELS).filter(([value]) => value !== 'all').map(([value, label]) => ({ value, label }))} selected={selectedStatuses} onToggle={value => toggleValue(setSelectedStatuses, selectedStatuses, value)} /></div>
+            <button type="button" className="hr-audit-reset-filters" onClick={resetFilters} disabled={activeFilterCount === 0}>СБРОСИТЬ ФИЛЬТРЫ</button>
+          </aside>
         </div>
     </PageLayout>
   );
