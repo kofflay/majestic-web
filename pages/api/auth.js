@@ -109,17 +109,17 @@ export default async function handler(req, res) {
 
   // OAuth callback is accepted only for a login started in this browser.
   if (!statesMatch(state, expectedState)) {
-    return redirectWithClearedCookies(req, res, '/?error=oauth_state');
+    return redirectWithClearedCookies(req, res, '/start?error=oauth_state');
   }
 
   const redirectTo = safeReturnTo(req.cookies.oauth_return_to);
 
   if (error) {
-    return redirectWithClearedCookies(req, res, '/?error=access_denied');
+    return redirectWithClearedCookies(req, res, '/start?error=access_denied');
   }
 
   if (typeof code !== 'string' || !code) {
-    return redirectWithClearedCookies(req, res, '/?error=no_code');
+    return redirectWithClearedCookies(req, res, '/start?error=no_code');
   }
 
   const callbackKey = getOAuthCallbackKey(code);
@@ -147,9 +147,9 @@ export default async function handler(req, res) {
         return redirectWithClearedCookies(req, res, redirectTo);
       }
       if (existingStatus === 'failed') {
-        return redirectWithClearedCookies(req, res, '/?error=auth_failed');
+        return redirectWithClearedCookies(req, res, '/start?error=auth_failed');
       }
-      return redirectWithClearedCookies(req, res, '/?error=oauth_in_progress');
+      return redirectWithClearedCookies(req, res, '/start?error=oauth_in_progress');
     }
 
     callbackLockAcquired = true;
@@ -164,15 +164,18 @@ export default async function handler(req, res) {
       return redirectWithClearedCookies(
         req,
         res,
-        `/?error=new_account&days=${accountCheck.ageDays}&min=5`
+        `/start?error=new_account&days=${accountCheck.ageDays}&min=5`
       );
     }
 
     // 1. Получаем список всех серверов пользователя.
     let userGuildIds = null;
+    const guildsController = new AbortController();
+    const guildsTimeout = setTimeout(() => guildsController.abort(), 8000);
     try {
       const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        signal: guildsController.signal
       });
       if (guildsRes.ok) {
         const guilds = await guildsRes.json();
@@ -185,9 +188,11 @@ export default async function handler(req, res) {
       }
     } catch (e) {
       console.error('[АВТОРИЗАЦИЯ] Ошибка получения серверов:', {
-        category: 'guild_list_request_failed',
+        category: e?.name === 'AbortError' ? 'guild_list_timeout' : 'guild_list_request_failed',
         name: e?.name || 'Error',
       });
+    } finally {
+      clearTimeout(guildsTimeout);
     }
 
     // If Discord's guild-list endpoint fails temporarily, retain the last known list.
@@ -281,6 +286,6 @@ export default async function handler(req, res) {
     }
 
     logOAuthFailure(req, authError);
-    return redirectWithClearedCookies(req, res, '/?error=auth_failed');
+    return redirectWithClearedCookies(req, res, '/start?error=auth_failed');
   }
 }
