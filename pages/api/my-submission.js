@@ -9,8 +9,61 @@ const FIELD_LABELS = {
   isInstructor: 'Назначение инструктором',
   workLinks: 'Ссылки на проделанную работу',
   rankRange: 'Диапазон рангов',
-  workLink: 'Ссылка на проделанную работу'
+  workLink: 'Ссылка на проделанную работу',
+  rank: 'Текущий ранг',
+  currentDepartment: 'Текущий отдел',
+  targetDepartment: 'Запрашиваемый отдел',
+  reason: 'Причина',
+  comment: 'Комментарий',
+  description: 'Описание',
+  age: 'Возраст',
+  experience: 'Опыт',
+  lawKnowledge: 'Знание законов',
+  passport: 'Паспорт',
+  militaryId: 'Военный билет',
+  medical: 'Медицинская карта',
+  screenshot: 'Скриншот',
+  rankAtDismissal: 'Ранг на момент увольнения',
+  rankProof: 'Подтверждение ранга',
+  approvalProof: 'Подтверждение одобрения',
+  wasWarned: 'Было ли увольнение после Ban/Warn',
+  stateFractionsProof: 'Одобрение State Fractions',
+  weapon: 'Запрашиваемое вооружение',
+  participants: 'Участники',
+  complainantName: 'Имя заявителя',
+  targetName: 'Имя сотрудника',
+  incidentDate: 'Дата происшествия',
+  evidence: 'Доказательства',
+  startDate: 'Дата начала',
+  endDate: 'Дата окончания',
+  reportLink: 'Ссылка на отчёт',
+  leaveType: 'Тип отпуска'
 };
+
+const TYPE_LABELS = {
+  report: 'Отчёт о повышении',
+  highrank: 'Отчёт на повышение хай-состава',
+  transfer: 'Заявление на перевод',
+  resignation: 'Заявление на увольнение',
+  reinstatement: 'Заявление на восстановление',
+  'transfer-to-lspd': 'Перевод в LSPD',
+  hiring: 'Заявление на трудоустройство',
+  'weapon-request': 'Запрос на вооружение',
+  premium: 'Заявка на премию',
+  complaint: 'Жалоба',
+  leave: 'Заявление на отпуск',
+  promotion: 'Запрос на повышение'
+};
+
+function safeData(source) {
+  const result = {};
+  for (const [key, value] of Object.entries(source || {})) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      result[key] = String(value);
+    }
+  }
+  return result;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -24,7 +77,7 @@ export default async function handler(req, res) {
   if (!id && !/^[a-z0-9-]{8,80}$/i.test(referenceId)) return res.status(400).json({ error: 'Некорректная ссылка на обращение' });
 
   try {
-    let item = null;
+    let item;
     let isHrAudit = false;
     if (id) {
       item = await kv.get(`lspd:hr-audit:item:${id}`);
@@ -33,39 +86,46 @@ export default async function handler(req, res) {
       }
       isHrAudit = true;
     } else {
-      const entries = await kv.lrange('lspd:submissions:all', 0, 199);
-      for (const raw of Array.isArray(entries) ? entries : []) {
-        let candidate = raw;
-        if (typeof raw === 'string') {
-          try { candidate = JSON.parse(raw); } catch { continue; }
-        }
-        if (String(candidate?.id || '') === referenceId && String(candidate?.userId || '') === String(user.id)) {
-          item = candidate;
-          break;
-        }
+      item = await kv.get(`lspd:submission:detail:${user.id}:${referenceId}`);
+      if (!item || String(item.userId || '') !== String(user.id) || String(item.id || '') !== referenceId) {
+        return res.status(404).json({ error: 'Подробности обращения не найдены' });
       }
-      if (!item) return res.status(404).json({ error: 'Подробности обращения не найдены' });
     }
 
-    const statusLabels = { pending: 'На рассмотрении', accepted: 'Одобрено', rejected: 'Отклонено' };
-    const data = {};
-    for (const [key, value] of Object.entries(item.data || {})) {
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') data[key] = String(value);
-    }
+    const statusLabels = {
+      pending: item.deliveryPending === true ? 'Ожидает отправки в Discord' : 'На рассмотрении',
+      accepted: 'Одобрено',
+      rejected: 'Отклонено'
+    };
+    const timeline = isHrAudit
+      ? (Array.isArray(item.history) ? item.history : [])
+          .filter(entry => ['submitted', 'delivered', 'accepted', 'rejected'].includes(entry?.action))
+          .map(entry => ({
+            action: entry.action,
+            at: entry.at || null,
+            label: entry.action === 'submitted' ? 'Обращение подано'
+              : entry.action === 'delivered' ? 'Доставлено в Discord'
+              : entry.action === 'accepted' ? 'Обращение одобрено'
+              : 'Обращение отклонено'
+          }))
+      : [{ action: 'delivered', at: item.date || null, label: 'Отправлено в Discord' }];
 
     return res.status(200).json({
       item: {
         number: isHrAudit ? Number(item.number) : null,
         isHrAudit,
         type: item.type,
+        typeLabel: TYPE_LABELS[item.type] || item.title || 'Обращение',
         title: item.title || '',
         status: isHrAudit ? item.status : 'sent',
         statusLabel: isHrAudit ? (statusLabels[item.status] || 'Статус неизвестен') : 'Отправлено в Discord',
-        data,
+        deliveryPending: isHrAudit && item.deliveryPending === true,
+        data: safeData(item.data),
         fieldLabels: FIELD_LABELS,
         reason: isHrAudit && item.status === 'rejected' ? String(item.reason || '') : '',
         submittedAt: isHrAudit ? item.submittedAt || null : item.date || null,
-        resolvedAt: isHrAudit ? item.resolvedAt || null : null
+        resolvedAt: isHrAudit ? item.resolvedAt || null : null,
+        timeline
       }
     });
   } catch (error) {
