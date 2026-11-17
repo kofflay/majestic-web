@@ -458,8 +458,8 @@ export default function Profile() {
               </div>
             ) : (
               history.slice(0, 10).map((item, index) => {
-                const sent = item.status === 'sent';
-                const pending = item.status === 'delivery_pending';
+                const stage = item.status === 'accepted' ? 'accepted' : item.status === 'rejected' ? 'rejected' : 'pending';
+                const stageLabel = stage === 'accepted' ? 'ОДОБРЕНО' : stage === 'rejected' ? 'ОТКЛОНЕНО' : 'В ОБРАБОТКЕ';
                 const date = item.date && !Number.isNaN(new Date(item.date).getTime())
                   ? new Date(item.date).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })
                   : 'Дата неизвестна';
@@ -472,16 +472,16 @@ export default function Profile() {
                     onClick={() => openHistoryDetails(item)}
                     aria-label={`Открыть обращение: ${item.title || 'Обращение'}`}
                   >
-                    <div className={sent ? 'profile-history-row__marker is-sent' : pending ? 'profile-history-row__marker is-pending' : 'profile-history-row__marker is-failed'}>
-                      {sent ? '✓' : pending ? '…' : '!'}
+                    <div className={`profile-history-row__marker is-${stage}`}>
+                      {stage === 'accepted' ? '✓' : stage === 'rejected' ? '×' : '…'}
                     </div>
                     <div className="profile-history-row__content">
                       <strong>{item.title || 'Обращение'}</strong>
                       <span>{date}</span>
                     </div>
-                    <span className={sent ? 'profile-status is-sent' : pending ? 'profile-status is-pending' : 'profile-status is-failed'}>
+                    <span className={`profile-status is-${stage}`}>
                       <i />
-                      {sent ? 'ОТПРАВЛЕНО' : pending ? 'ОЖИДАЕТ ОТПРАВКИ' : 'НЕ ОТПРАВЛЕНО'}
+                      {stageLabel}
                     </span>
                     <span className="profile-history-row__open">ОТКРЫТЬ ↗</span>
                   </button>
@@ -507,9 +507,12 @@ export default function Profile() {
                       <h2 id="profile-request-title">{historyDetails.title || historyDetails.typeLabel || selectedHistory.title || 'Обращение'}</h2>
                       <span className="profile-request-modal__date">Подано: {historyDetails.submittedAt ? new Date(historyDetails.submittedAt).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' }) : 'дата неизвестна'}</span>
                     </div>
-                    <div className={`profile-request-modal__status is-${historyDetails.status}`}>
-                      <span className="profile-request-modal__status-dot" />
-                      {historyDetails.statusLabel || 'Статус неизвестен'}
+                    <div className="profile-request-modal__actions">
+                      {historyDetails.discordUrl && <a className="profile-request-discord-link" href={historyDetails.discordUrl} target="_blank" rel="noopener noreferrer">ОТКРЫТЬ В DISCORD ↗</a>}
+                      <div className={`profile-request-modal__status is-${historyDetails.status}`}>
+                        <span className="profile-request-modal__status-dot" />
+                        {historyDetails.statusLabel || 'Статус неизвестен'}
+                      </div>
                     </div>
                   </header>
 
