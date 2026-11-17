@@ -1462,3 +1462,39 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
 .profile-request-result{margin:16px 16px 0}
 .profile-request-modal__close{width:calc(100% - 32px);margin:16px 16px 22px;min-height:46px}
 }
+
+/* HR audit filter checkboxes */
+.hr-audit-filter-checkbox {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  margin: 1px 0 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(125, 150, 170, .58) !important;
+  border-radius: 4px !important;
+  background: #0b1119 !important;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.hr-audit-filter-checkbox:hover {
+  border-color: #47d7b0 !important;
+  box-shadow: 0 0 0 2px rgba(71, 215, 176, .10);
+}
+.hr-audit-filter-checkbox:checked {
+  border-color: #47d7b0 !important;
+  background-color: #28b995 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.2 8.2 3.1 3.1 6.5-6.6' fill='none' stroke='%23061110' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E") !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 12px 12px !important;
+}
+.hr-audit-filter-checkbox:focus-visible {
+  outline: 2px solid rgba(71, 215, 176, .65);
+  outline-offset: 2px;
+}
+
