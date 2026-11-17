@@ -224,10 +224,14 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
         return { success: true, messageId };
       }
       if (res.status === 429) {
-        await new Promise(resolve => setTimeout(
-          resolve,
-          (parseInt(res.headers.get('Retry-After')) || 5) * 1000
-        ));
+        if (i >= retries - 1) {
+          return { success: false, error: 'Discord временно ограничил отправку' };
+        }
+        const retryAfter = Number.parseFloat(res.headers.get('Retry-After'));
+        const delaySeconds = Number.isFinite(retryAfter)
+          ? Math.min(Math.max(retryAfter, 1), 10)
+          : 5;
+        await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
         continue;
       }
       console.error('Submission webhook failed:', { status: res.status });
@@ -443,9 +447,38 @@ return {number, 1}
         discordPayload.embeds = [embed];
 
         const storedBeforeSend = await kv.get(itemKey);
-        if (!storedBeforeSend || storedBeforeSend.type !== 'report') {
+        if (
+          !storedBeforeSend
+          || storedBeforeSend.type !== 'report'
+          || String(storedBeforeSend.id) !== String(hrAuditNumber)
+        ) {
           throw new Error('Persisted HR audit record is missing or invalid');
         }
+
+        // A reviewer retry may win the short race between the atomic record creation
+        // and this initial sender acquiring its lock. Never send the same item twice.
+        if (storedBeforeSend.deliveryPending !== true) {
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            duplicate: true,
+            alreadyDelivered: storedBeforeSend.deliveryPending === false
+          });
+        }
+
+        const previousDeliveryAttempt = Number(storedBeforeSend.deliveryAttempts) > 0
+          || (Array.isArray(storedBeforeSend.history) && storedBeforeSend.history.some(entry =>
+            ['delivery_attempted', 'delivery_pending', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
+              .includes(entry?.action)
+          ));
+        if (previousDeliveryAttempt) {
+          return res.status(200).json({
+            success: true,
+            number: hrAuditNumber,
+            warning: `Для заявки №${hrAuditNumber} отправка уже предпринималась. Чтобы не создать дубликат, автоматическую повторную отправку остановил; проверьте канал отдела и используйте ручной повтор из кадрового аудита только после проверки.`
+          });
+        }
+
         const attemptAt = new Date().toISOString();
         const attempted = {
           ...storedBeforeSend,
