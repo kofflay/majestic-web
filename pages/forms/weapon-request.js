@@ -87,7 +87,7 @@ export default function WeaponRequestForm() {
           <label style={lbl}>Отдел * {profile.department && <span style={{ color:'#4CAF50', fontSize:'11px', fontWeight:600 }}>(из профиля)</span>}</label>
           <select required value={formData.department} onChange={e => setFormData({...formData,department:e.target.value,weapon:''})} disabled={!!profile.department} style={{...s, appearance:'none', cursor:profile.department?'not-allowed':'pointer', opacity:profile.department?0.5:1}}>
             <option value="">-- Выберите отдел --</option>
-            {DEPARTMENTS.map(dept => <option key={dept.id} value={dept.id}>{dept.emoji} {dept.name}</option>)}
+            {DEPARTMENTS.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
           </select>
         </div>
         <div style={{ marginBottom:'20px' }}>
