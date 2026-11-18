@@ -7,15 +7,15 @@ import { DEPARTMENTS } from '../../lib/departments';
 const RANKS = Array.from({ length: 15 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
 
 const WEAPONS = [
-  { value: 'drone', label: '🚁 Дрон', requiresDept: ['k9', 'db'] },
-  { value: 'defik', label: '🛡️ Дефибриллятор', requiresDept: null },
-  { value: 'combat-mg', label: '🔫 Combat MG', requiresDept: null },
-  { value: 'combat-mg-mk2', label: '🔫 Combat MG Mk2', requiresDept: null },
-  { value: 'marksman-rifle-mk2', label: '🎯 Marksman Rifle Mk2', requiresDept: null },
-  { value: 'sniper-rifle', label: '🎯 Sniper Rifle', requiresDept: null },
-  { value: 'heavy-sniper', label: '🎯 Heavy Sniper', requiresDept: null },
-  { value: 'heavy-sniper-mk2', label: '🎯 Heavy Sniper Mk2', requiresDept: null },
-  { value: 'precision-rifle', label: '🎯 Precision Rifle', requiresDept: null }
+  { value: 'drone', label: 'Дрон', requiresDept: ['k9', 'db'] },
+  { value: 'defik', label: 'Дефибриллятор', requiresDept: null },
+  { value: 'combat-mg', label: 'Combat MG', requiresDept: null },
+  { value: 'combat-mg-mk2', label: 'Combat MG Mk2', requiresDept: null },
+  { value: 'marksman-rifle-mk2', label: 'Marksman Rifle Mk2', requiresDept: null },
+  { value: 'sniper-rifle', label: 'Sniper Rifle', requiresDept: null },
+  { value: 'heavy-sniper', label: 'Heavy Sniper', requiresDept: null },
+  { value: 'heavy-sniper-mk2', label: 'Heavy Sniper Mk2', requiresDept: null },
+  { value: 'precision-rifle', label: 'Precision Rifle', requiresDept: null }
 ];
 
 export default function WeaponRequestForm() {
@@ -60,7 +60,7 @@ export default function WeaponRequestForm() {
         body: JSON.stringify({
           type: 'weapon-request', fullName: formData.fullName,
           department: formData.department, rank: formData.rank,
-          weapon: selectedWeapon?.label || formData.weapon
+          weapon: formData.weapon
         })
       });
       if (res.ok) { window.toast.success('Запрос отправлен!'); router.push('/dashboard'); }
