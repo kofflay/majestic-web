@@ -64,8 +64,8 @@ export default async function handler(req, res) {
     }));
 
     res.status(200).json({
-      total: parseInt(total),
-      today: parseInt(todayCount),
+      total: Number.parseInt(total, 10) || 0,
+      today: Number.parseInt(todayCount, 10) || 0,
       history: enrichedHistory,
       chart,
       maxCount
