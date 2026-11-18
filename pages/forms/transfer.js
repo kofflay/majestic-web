@@ -108,7 +108,7 @@ export default function TransferForm() {
           <label style={lbl}>Текущий отдел * {profile.department && <span style={{ color:'#4CAF50', fontSize:'11px', fontWeight:600 }}>(из профиля)</span>}</label>
           <select required value={formData.currentDepartment} onChange={e => setFormData({...formData,currentDepartment:e.target.value})} disabled={!!profile.department} style={{...s, appearance:'none', cursor:profile.department?'not-allowed':'pointer', opacity:profile.department?0.5:1}}>
             <option value="">-- Выберите отдел --</option>
-            {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.name}</option>)}
+            {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         <div style={{ marginBottom:'20px' }}>
@@ -120,7 +120,7 @@ export default function TransferForm() {
             swatShooting:'',swatRollback:''
           })} style={{...s, appearance:'none', cursor:'pointer'}}>
             <option value="">-- Выберите отдел --</option>
-            {TRANSFER_DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.name}</option>)}
+            {TRANSFER_DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         {isSameDepartment && <div style={{ background:'rgba(244,67,54,0.15)', border:'1px solid #F44336', borderRadius:'10px', padding:'14px 18px', marginBottom:'20px', color:'#EF9A9A', fontSize:'14px' }}>❌ Нельзя перевестись в тот же отдел!</div>}
