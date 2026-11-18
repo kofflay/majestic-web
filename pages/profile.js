@@ -375,7 +375,6 @@ export default function Profile() {
                         onClick={() => saveDepartment(department.id)}
                         disabled={savingDepartment}
                       >
-                        <span>{department.emoji}</span>
                         <strong>{department.name}</strong>
                       </button>
                     ))}
@@ -393,7 +392,7 @@ export default function Profile() {
                 <div className="profile-field__value">
                   <strong className={currentDept ? '' : 'is-empty'}>
                     {currentDept ? (
-                      <><span className="profile-department-emoji">{currentDept.emoji}</span>{currentDept.name}</>
+                      currentDept.name
                     ) : 'Не выбрано'}
                   </strong>
                   <div className="profile-field__actions">
