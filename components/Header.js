@@ -157,7 +157,39 @@ export default function Header({ user }) {
               </button>
             ))}
 
-         </nav>
+            {isAdmin && (
+              <button
+                className={`site-nav__mobile-only ${router.pathname.startsWith('/admin') ? 'is-active' : ''}`}
+                onClick={() => navigate('/admin')}
+                aria-current={router.pathname.startsWith('/admin') ? 'page' : undefined}
+              >
+                Админка
+              </button>
+            )}
+            {hasHrAuditAccess(user) && (
+              <button
+                className={`site-nav__mobile-only ${router.pathname === '/audit' ? 'is-active' : ''}`}
+                onClick={() => navigate('/audit')}
+                aria-current={router.pathname === '/audit' ? 'page' : undefined}
+              >
+                Обработка отчётов
+              </button>
+            )}
+            {user && (
+              <button
+                className={`site-nav__mobile-only ${router.pathname === '/profile' ? 'is-active' : ''}`}
+                onClick={() => navigate('/profile')}
+                aria-current={router.pathname === '/profile' ? 'page' : undefined}
+              >
+                Профиль
+              </button>
+            )}
+            {user && (
+              <button className="site-nav__mobile-only site-nav__logout" onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? 'Выход...' : 'Выйти'}
+              </button>
+            )}
+          </nav>
 
           <div className="site-header__actions">
             {isAdmin && (
@@ -329,6 +361,10 @@ export default function Header({ user }) {
           padding: 0;
           border: 0;
           background: transparent;
+        }
+
+        .site-nav__mobile-only {
+          display: none !important;
         }
 
         .site-nav button {
@@ -606,7 +642,7 @@ export default function Header({ user }) {
         }
 
         @media (max-width: 1120px) {
-          .site-header__inner {
+          .site-header .site-header__inner {
             width: min(100% - 40px, 900px);
             min-height: 74px;
             grid-template-columns: minmax(0, 1fr) auto;
@@ -623,6 +659,21 @@ export default function Header({ user }) {
             grid-column: 2;
             grid-row: 1;
             gap: 12px;
+          }
+
+          .site-nav__mobile-only {
+            display: inline-flex !important;
+          }
+
+          .site-header__actions .admin-nav-btn,
+          .site-header__actions .hr-audit-nav-btn,
+          .site-header__actions .profile-link,
+          .site-header__actions .header-logout {
+            display: none;
+          }
+
+          .site-nav__logout {
+            color: #e6a0a0 !important;
           }
 
           .mobile-menu-toggle {
@@ -674,7 +725,7 @@ export default function Header({ user }) {
         }
 
         @media (max-width: 560px) {
-          .site-header__inner {
+          .site-header .site-header__inner {
             width: calc(100% - 28px);
             min-height: 68px;
             gap: 0 8px;
@@ -696,13 +747,14 @@ export default function Header({ user }) {
 
           .site-header__actions {
             gap: 7px;
+            min-width: 0;
           }
 
+          .site-header__actions .admin-nav-btn,
           .site-header__actions .hr-audit-nav-btn,
-          .site-header__actions .admin-nav-btn {
-            min-height: 32px;
-            padding: 0 8px;
-            font-size: 10px;
+          .site-header__actions .profile-link,
+          .site-header__actions .header-logout {
+            display: none;
           }
 
           .header-audit-button {
