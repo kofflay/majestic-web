@@ -91,7 +91,7 @@ export default function PremiumForm() {
           <label style={lbl}>За какой отдел премия? *</label>
           <select value={department} onChange={e => setDepartment(e.target.value)} style={{...s, appearance:'none', cursor:'pointer'}}>
             <option value="">-- Выберите отдел --</option>
-            {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.name}</option>)}
+            {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
           <button className="form-action-primary" type="button" onClick={handleNext} style={{ width:'100%', padding:'14px', background:'linear-gradient(135deg, #FFD700, #FFEB3B)', color:'#0a0a1a', border:'none', borderRadius:'10px', fontSize:'15px', fontWeight:600, cursor:'pointer', marginTop:'20px' }}>Далее</button>
         </div>
