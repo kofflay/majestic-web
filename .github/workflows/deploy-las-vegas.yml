@@ -60,23 +60,31 @@ jobs:
         working-directory: las-vegas
         run: |
           set -euo pipefail
-          test -f .next/standalone/server.js
-          test -f .next/BUILD_ID
+          set -x
+
+          echo "Working directory: $PWD"
+          echo "Next build output:"
+          ls -la .next
+          test -f .next/standalone/server.js || { echo "::error::Standalone server.js is missing"; exit 1; }
+          test -f .next/BUILD_ID || { echo "::error::Next BUILD_ID is missing"; exit 1; }
 
           release="$RUNNER_TEMP/las-vegas-release"
-          mkdir -p "$release/.next"
-          cp -a .next/standalone/. "$release/"
+          rm -rf "$release"
           mkdir -p "$release/.next/static"
-          if [ -d .next/static ]; then
+          cp -a .next/standalone/. "$release/"
+          if [ -d .next/static ] && [ -n "$(find .next/static -mindepth 1 -maxdepth 1 -print -quit)" ]; then
             cp -a .next/static/. "$release/.next/static/"
           fi
-          if [ -d public ]; then
+          if [ -d public ] && [ -n "$(find public -mindepth 1 -maxdepth 1 -print -quit)" ]; then
             mkdir -p "$release/public"
             cp -a public/. "$release/public/"
           fi
 
+          echo "Release contents:"
+          ls -la "$release"
           tar -czf "$RUNNER_TEMP/las-vegas-$GITHUB_SHA.tar.gz" -C "$release" .
           test -s "$RUNNER_TEMP/las-vegas-$GITHUB_SHA.tar.gz"
+          ls -lh "$RUNNER_TEMP/las-vegas-$GITHUB_SHA.tar.gz"
 
       - name: Upload Las Vegas release artifact
         uses: actions/upload-artifact@v4
