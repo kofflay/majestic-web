@@ -1,0 +1,197 @@
+name: Deploy production on main
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: memphis-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Test, build and deploy Memphis LSPD
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Back up the previous main revision
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_MAIN_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$PREVIOUS_MAIN_SHA" || "$PREVIOUS_MAIN_SHA" =~ ^0{40}$ ]]; then
+            echo "No previous main revision exists; skipping the initial backup."
+            exit 0
+          fi
+
+          backup_branch="backup/main-before-$GITHUB_SHA"
+          endpoint="repos/$GITHUB_REPOSITORY/git/ref/heads/$backup_branch"
+
+          if existing_sha="$(gh api "$endpoint" --jq '.object.sha' 2>/dev/null)"; then
+            if [[ "$existing_sha" != "$PREVIOUS_MAIN_SHA" ]]; then
+              echo "::error::Backup branch $backup_branch already points to unexpected commit $existing_sha."
+              exit 1
+            fi
+            echo "Backup branch $backup_branch already preserves $PREVIOUS_MAIN_SHA."
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/heads/$backup_branch" \
+              -f "sha=$PREVIOUS_MAIN_SHA" >/dev/null
+            echo "Created $backup_branch at $PREVIOUS_MAIN_SHA before building or deploying $GITHUB_SHA."
+          fi
+
+      - name: Validate deployment scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/memphis-deploy
+          bash -n scripts/install-memphis-deploy.sh
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run unit tests
+        run: node --test tests/*.test.mjs
+
+      - name: Build standalone Next.js production output
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Assemble standalone release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .next/standalone/server.js
+          test -f .next/BUILD_ID
+          rm -rf "$RUNNER_TEMP/memphis-release"
+          mkdir -p "$RUNNER_TEMP/memphis-release/.next"
+          cp -a .next/standalone/. "$RUNNER_TEMP/memphis-release/"
+          mkdir -p "$RUNNER_TEMP/memphis-release/.next/static"
+          cp -a .next/static/. "$RUNNER_TEMP/memphis-release/.next/static/"
+          if [ -d public ]; then
+            mkdir -p "$RUNNER_TEMP/memphis-release/public"
+            cp -a public/. "$RUNNER_TEMP/memphis-release/public/"
+          fi
+          tar -czf "$RUNNER_TEMP/$GITHUB_SHA.tar.gz" -C "$RUNNER_TEMP/memphis-release" .
+          ls -lh "$RUNNER_TEMP/$GITHUB_SHA.tar.gz"
+
+      - name: Check whether this commit is still the main branch tip
+        id: main-tip
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ "$latest_main" != "$GITHUB_SHA" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping superseded commit $GITHUB_SHA; main is now $latest_main."
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload and deploy release through restricted SSH
+        if: steps.main-tip.outputs.deploy == 'true'
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_BASE_URL: https://suspect-famq.ru
+        run: |
+          set -euo pipefail
+          umask 077
+
+          : "${DEPLOY_HOST:?GitHub Secret DEPLOY_HOST is missing or empty}"
+          : "${DEPLOY_USER:?GitHub Secret DEPLOY_USER is missing or empty}"
+          : "${DEPLOY_SSH_KEY:?GitHub Secret DEPLOY_SSH_KEY is missing or empty}"
+          : "${DEPLOY_KNOWN_HOSTS:?GitHub Secret DEPLOY_KNOWN_HOSTS is missing or empty}"
+
+          KEY_FILE="$RUNNER_TEMP/memphis-deploy-key"
+          HOSTS_FILE="$RUNNER_TEMP/memphis-known-hosts"
+          ARCHIVE="$RUNNER_TEMP/$GITHUB_SHA.tar.gz"
+          trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
+
+          printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
+          chmod 600 "$KEY_FILE" "$HOSTS_FILE"
+          test -s "$ARCHIVE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+
+          SSH_OPTS=(
+            -i "$KEY_FILE"
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOSTS_FILE"
+            -o ConnectTimeout=10
+          )
+
+          # This preflight fails safely until the one-time root helper is installed.
+          ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+            sudo -n /usr/local/sbin/memphis-deploy --check
+
+          scp "${SSH_OPTS[@]}" "$ARCHIVE" \
+            "$DEPLOY_USER@$DEPLOY_HOST:/var/lib/memphis-deploy/incoming/$GITHUB_SHA.tar.gz"
+
+          # Start the new release on the idle slot and switch Nginx only after
+          # the candidate passes its local health check. The old process stays up.
+          ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+            sudo -n /usr/local/sbin/memphis-deploy "$GITHUB_SHA"
+
+          if ! curl --fail --silent --show-error --location \
+              --retry 8 --retry-delay 2 --retry-all-errors --max-time 25 \
+              "$DEPLOY_BASE_URL/start" -o /dev/null; then
+            echo "::error::Public /start health check failed on the candidate; requesting automatic rollback."
+            ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+              sudo -n /usr/local/sbin/memphis-deploy --rollback || \
+              echo "::error::Automatic rollback command also failed; inspect the VPS service immediately."
+            exit 1
+          fi
+
+          # Finalize the active release only after the public route has passed.
+          if ! ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+              sudo -n /usr/local/sbin/memphis-deploy --commit "$GITHUB_SHA"; then
+            echo "::error::Could not commit the candidate release; requesting automatic rollback."
+            ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+              sudo -n /usr/local/sbin/memphis-deploy --rollback || \
+              echo "::error::Automatic rollback command also failed; inspect the VPS service immediately."
+            exit 1
+          fi
+
+          if ! curl --fail --silent --show-error --location \
+              --retry 4 --retry-delay 2 --retry-all-errors --max-time 20 \
+              "$DEPLOY_BASE_URL/start" -o /dev/null; then
+            echo "::error::Public /start health check failed after commit; requesting rollback."
+            ssh "${SSH_OPTS[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+              sudo -n /usr/local/sbin/memphis-deploy --rollback || \
+              echo "::error::Automatic rollback command also failed; inspect the VPS service immediately."
+            exit 1
+          fi
+
+          echo "Production deployment of $GITHUB_SHA passed candidate, local Nginx and public /start health checks."

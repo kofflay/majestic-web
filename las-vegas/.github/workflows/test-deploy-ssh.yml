@@ -1,0 +1,58 @@
+name: Test deployment SSH connection
+
+on:
+  push:
+    branches:
+      - ops/atomic-deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: memphis-deploy-ssh-test
+  cancel-in-progress: false
+
+jobs:
+  ssh-test:
+    name: Verify restricted VPS deployment access
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate GitHub Secrets and connect to VPS
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          : "${DEPLOY_HOST:?GitHub Secret DEPLOY_HOST is missing or empty}"
+          : "${DEPLOY_USER:?GitHub Secret DEPLOY_USER is missing or empty}"
+          : "${DEPLOY_SSH_KEY:?GitHub Secret DEPLOY_SSH_KEY is missing or empty}"
+          : "${DEPLOY_KNOWN_HOSTS:?GitHub Secret DEPLOY_KNOWN_HOSTS is missing or empty}"
+
+          KEY_FILE="$RUNNER_TEMP/memphis-deploy-key"
+          HOSTS_FILE="$RUNNER_TEMP/memphis-known-hosts"
+          trap 'rm -f "$KEY_FILE" "$HOSTS_FILE"' EXIT
+
+          printf '%s' "$DEPLOY_SSH_KEY" | base64 --decode > "$KEY_FILE"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > "$HOSTS_FILE"
+          chmod 600 "$KEY_FILE" "$HOSTS_FILE"
+
+          test -s "$KEY_FILE"
+          test -s "$HOSTS_FILE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+
+          ssh \
+            -i "$KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOSTS_FILE" \
+            -o ConnectTimeout=10 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            'set -eu; id; hostname; test -w /var/lib/memphis-deploy/incoming; printf "incoming: writable\\n"'
