@@ -58,7 +58,7 @@ export default function TransferForm() {
       setLoading(false);
       router.replace('/');
     });
-    fetch('/api/profile').then(r => r.json()).then(d => {
+    fetch('/api/las-vegas/profile').then(r => r.json()).then(d => {
       const nextProfile = d?.profile || {};
       setProfile(nextProfile);
       setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName || '', currentDepartment: prev.currentDepartment || nextProfile.department || '' }));
