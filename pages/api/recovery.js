@@ -2,6 +2,7 @@ import { verifyToken } from '../../lib/discord';
 import { kv } from '../../lib/redis.js';
 import { recordSubmissionHistory } from '../../lib/submission-history';
 import { checkFormRateLimit, isBoundedText, isHttpsUrl, areHttpsUrls } from '../../lib/form-security';
+import { canSubmitDuringGate } from '../../lib/submission-gate';
 
 const WEBHOOK_URL = process.env.WEBHOOK_RECOVERY;
 const ROLE_PING = '1514608894679191592';
@@ -28,6 +29,15 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (!Array.isArray(user.roles) || !user.roles.includes(STAFF_ROLE_ID)) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника LSPD' });
+  }
+
+  try {
+    if (!(await canSubmitDuringGate(user.id))) {
+      return rejectRecovery(res, user, 423, 'Приём новых заявок временно приостановлен. Попробуйте позже.');
+    }
+  } catch (error) {
+    console.error('Recovery submission gate lookup failed:', error);
+    return res.status(503).json({ error: 'Не удалось проверить доступность приёма заявок. Попробуйте позже.' });
   }
   let rateAllowed;
   try {
