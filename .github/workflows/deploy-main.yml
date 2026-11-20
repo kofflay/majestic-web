@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "las-vegas/**"
+      - ".github/workflows/deploy-las-vegas.yml"
   pull_request:
     branches:
       - main
