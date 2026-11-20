@@ -1,13 +1,7 @@
 const SUPER_ADMIN_ID = '200102286473691139';
 
-export const HR_AUDIT_ROLE_IDS = [
-  '1541095679160615012',
-  '1514608894679191597'
-];
+export const HR_AUDIT_ROLE_IDS = [];
 
 export function hasHrAuditAccess(user) {
-  if (!user?.id) return false;
-  if (String(user.id) === SUPER_ADMIN_ID) return true;
-  const roles = Array.isArray(user.roles) ? user.roles.map(String) : [];
-  return HR_AUDIT_ROLE_IDS.some(roleId => roles.includes(roleId));
+  return Boolean(user?.id && String(user.id) === SUPER_ADMIN_ID);
 }
