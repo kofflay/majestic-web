@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 const EXPERIENCE_OPTIONS = ['Нет опыта', 'Был в LSCSD', 'Был в FIB', 'Был в SANG', 'Другое'];
@@ -53,7 +53,7 @@ export default function HiringForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Трудоустройство" icon="📝" accent="#4CAF50">
+    <LasVegasFormShell user={user} title="Трудоустройство" icon="📝" accent="#4CAF50">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -98,6 +98,6 @@ export default function HiringForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить заявку'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
