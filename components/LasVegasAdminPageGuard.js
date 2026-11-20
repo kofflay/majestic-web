@@ -29,13 +29,13 @@ export default function AdminPageGuard({ children, superAdminOnly = false }) {
 
         const permitted = superAdminOnly ? access?.isSuperAdmin : access?.isAdmin;
         if (!permitted) {
-          router.replace(access?.isAdmin ? '/admin' : '/start');
+          router.replace(access?.isAdmin ? '/las-vegas/admin' : '/las-vegas/start');
           return;
         }
 
         setAllowed(true);
       } catch (error) {
-        if (active) router.replace('/start');
+        if (active) router.replace('/las-vegas/start');
       } finally {
         if (active) setChecking(false);
       }
