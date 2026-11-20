@@ -44,8 +44,7 @@ const ADMIN_TOOLS = [
     title: 'Приём заявок',
     description: 'Глобально включить или приостановить отправку новых заявок.',
     code: 'SYS-11',
-    path: '/admin/submissions',
-    isRestricted: true
+    path: '/admin/submissions'
   },
   {
     title: 'Супер-Админка',
