@@ -51,7 +51,7 @@ export default function HubPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
       if (d.user.roles && d.user.roles.includes(REQUIRED_ROLE_ID)) {
