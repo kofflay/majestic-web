@@ -29,7 +29,7 @@ export default function Profile() {
       .then(response => response.json())
       .then(data => {
         if (!data.user) {
-          router.push('/');
+          router.push('/las-vegas/start');
           return;
         }
         setUser(data.user);
