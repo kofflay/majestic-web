@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '../../../components/FormShell';
+import LasVegasFormShell from '../../../components/LasVegasFormShell';
 import FormLoading from '../../../components/FormLoading';
 
 export default function ResignationForm() {
@@ -47,7 +47,7 @@ export default function ResignationForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Увольнение" icon="🚪" accent="#DC3545">
+    <LasVegasFormShell user={user} title="Увольнение" icon="🚪" accent="#DC3545">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -66,6 +66,6 @@ export default function ResignationForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить заявление'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
