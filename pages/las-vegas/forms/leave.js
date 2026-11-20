@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
-import { DEPARTMENTS } from '@/lib/departments';
+import { DEPARTMENTS } from '@/lib/las-vegas-departments';
 
 const LEAVE_TYPES = [
   { value: 'ooc', label: '🌍 OOC (по реальной жизни)' },
