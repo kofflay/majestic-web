@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 import { DEPARTMENTS } from '@/lib/departments';
 
@@ -64,7 +64,7 @@ export default function LeaveForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Отпуск" icon="🏖️" accent="#00BCD4">
+    <LasVegasFormShell user={user} title="Отпуск" icon="🏖️" accent="#00BCD4">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Тип отпуска *</label>
@@ -103,6 +103,6 @@ export default function LeaveForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
