@@ -14,7 +14,7 @@ const ADMIN_TOOLS = [
     title: 'Реестр пропусков',
     description: 'Добавление и управление пропусками на территорию.',
     code: 'SYS-03',
-    path: '/passes',
+    path: '/las-vegas/passes',
   },
   {
     title: 'Все заявки',
@@ -75,6 +75,8 @@ export default function AdminHub() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submissionsEnabled, setSubmissionsEnabled] = useState(true);
+  const [gateBusy, setGateBusy] = useState(false);
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
@@ -87,7 +89,27 @@ export default function AdminHub() {
       setLoading(false);
       if (!d.isAdmin) router.push('/las-vegas/start');
     });
+    fetch('/api/las-vegas/admin/submission-gate').then(r => r.ok ? r.json() : null).then(d => { if (d && typeof d.enabled === 'boolean') setSubmissionsEnabled(d.enabled); }).catch(() => {});
   }, []);
+
+  const toggleSubmissions = async () => {
+    if (!isSuperAdmin || gateBusy) return;
+    setGateBusy(true);
+    try {
+      const response = await fetch('/api/las-vegas/admin/submission-gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !submissionsEnabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось изменить настройку');
+      setSubmissionsEnabled(Boolean(data.enabled));
+    } catch (error) {
+      window.toast?.error?.(error.message || 'Не удалось изменить настройку');
+    } finally {
+      setGateBusy(false);
+    }
+  };
 
   if (loading || !user) return <div style={{ minHeight: '100vh', background: '#030303' }} />;
 
@@ -107,9 +129,21 @@ export default function AdminHub() {
           Центр Управления
         </h1>
         <p className="admin-page-heading__description">
-          Панель администратора Memphis Police Department.
+          Панель администратора Las Vegas Police Department.
         </p>
       </div>
+
+      {isSuperAdmin && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, margin: '0 0 24px', padding: 18, border: '1px solid rgba(148,163,184,.18)', background: 'rgba(11,15,22,.6)' }}>
+          <div>
+            <strong>Приём новых заявок: {submissionsEnabled ? 'включён' : 'приостановлен'}</strong>
+            <p style={{ margin: '5px 0 0', color: '#9ca3af', fontSize: 13 }}>Отдельная настройка Las Vegas</p>
+          </div>
+          <button type="button" disabled={gateBusy} onClick={toggleSubmissions} style={{ padding: '10px 14px', border: 0, borderRadius: 4, color: '#fff', background: submissionsEnabled ? '#9b3030' : '#26734b', cursor: gateBusy ? 'wait' : 'pointer' }}>
+            {gateBusy ? 'Сохранение…' : submissionsEnabled ? 'Приостановить' : 'Возобновить'}
+          </button>
+        </div>
+      )}
 
       {/* Сетка модулей */}
       <div className="admin-tools-grid">
