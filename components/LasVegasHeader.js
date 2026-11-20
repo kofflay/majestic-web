@@ -27,10 +27,16 @@ export default function LasVegasHeader({ user }) {
         <a href="/las-vegas/staff" style={{ color: '#d5dbea' }}>Состав</a>
         <a href="/las-vegas/passes" style={{ color: '#d5dbea' }}>Пропуска</a>
         {isAdmin && <a href="/las-vegas/admin" style={{ color: '#d5dbea' }}>Админка</a>}
-        <a href="/las-vegas/profile" style={{ color: '#d5dbea' }}>Профиль</a>
-        {avatar && <img src={avatar} alt="" width="30" height="30" style={{ borderRadius: '50%', objectFit: 'cover' }} />}
-        <span style={{ color: '#9ba8c7' }}>{user?.username || 'Сотрудник'}</span>
-        <button onClick={logout} style={{ color: '#fff', background: 'transparent', border: '1px solid rgba(255,255,255,.2)', borderRadius: 6, padding: '7px 10px', cursor: 'pointer' }}>Выйти</button>
+        {user ? (
+          <>
+            <a href="/las-vegas/profile" style={{ color: '#d5dbea' }}>Профиль</a>
+            {avatar && <img src={avatar} alt="" width="30" height="30" style={{ borderRadius: '50%', objectFit: 'cover' }} />}
+            <span style={{ color: '#9ba8c7' }}>{user.username || 'Сотрудник'}</span>
+            <button onClick={logout} style={{ color: '#fff', background: 'transparent', border: '1px solid rgba(255,255,255,.2)', borderRadius: 6, padding: '7px 10px', cursor: 'pointer' }}>Выйти</button>
+          </>
+        ) : (
+          <button onClick={() => { window.location.href = '/api/auth/start?returnTo=' + encodeURIComponent(router.asPath || '/las-vegas/start'); }} style={{ color: '#fff', background: '#5865f2', border: 0, borderRadius: 6, padding: '9px 14px', cursor: 'pointer', fontWeight: 700 }}>Войти через Discord ↗</button>
+        )}
       </nav>
     </header>
   );
