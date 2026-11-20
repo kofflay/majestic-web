@@ -1,5 +1,4 @@
 import { verifyToken } from '../../../lib/discord';
-import { hasAdminAccess } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 import { getSubmissionGate, SUBMISSION_GATE_KEY } from '../../../lib/submission-gate';
 import { logAdminAction } from '../../../lib/admin-audit';
@@ -7,8 +6,8 @@ import { logAdminAction } from '../../../lib/admin-audit';
 export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (!(await hasAdminAccess(user))) {
-    return res.status(403).json({ error: 'Только активный супер-администратор может управлять приёмом заявок' });
+  if (String(user.id) !== '200102286473691139') {
+    return res.status(403).json({ error: 'Нет доступа к управлению приёмом заявок' });
   }
 
   try {
