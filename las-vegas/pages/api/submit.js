@@ -271,7 +271,7 @@ export default async function handler(req, res) {
 
   const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion']);
   const userRoles = Array.isArray(user.roles) ? user.roles : [];
-  const STAFF_ROLE_ID = '1552313180041121802';
+  const STAFF_ROLE_ID = '1397291237567889582';
   const HIGH_RANK_ROLE_ID = '1514608894679191597';
   if (employeeOnlyTypes.has(type) && !userRoles.includes(STAFF_ROLE_ID)) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника полиции Las Vegas' });
