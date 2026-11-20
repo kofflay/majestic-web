@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const gate = await getSubmissionGate();
+      const gate = await getLasVegasSubmissionGate();
       return res.status(200).json(gate);
     }
 
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       if (typeof enabled !== 'boolean') {
         return res.status(400).json({ error: 'Параметр enabled должен быть true или false' });
       }
-      await kv.set(SUBMISSION_GATE_KEY, enabled);
+      await kv.set(LV_SUBMISSION_GATE_KEY, enabled);
       await logAdminAction(user, {
         action: enabled ? 'submissions.enable' : 'submissions.disable',
         description: enabled ? 'Включил приём новых заявок' : 'Выключил приём новых заявок',
