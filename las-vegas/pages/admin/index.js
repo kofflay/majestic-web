@@ -77,11 +77,11 @@ export default function AdminHub() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
-    fetch('/api/admin/check').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/admin/check').then(r => r.json()).then(d => {
       setIsAdmin(d.isAdmin);
       setIsSuperAdmin(Boolean(d.isSuperAdmin));
       setLoading(false);
