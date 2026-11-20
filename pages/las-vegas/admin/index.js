@@ -8,7 +8,7 @@ const ADMIN_TOOLS = [
     title: 'Старший состав',
     description: 'Управление высшим командованием (Шеф, Заместители).',
     code: 'SYS-01',
-    path: '/admin/staff',
+    path: '/las-vegas/staff',
   },
   {
     title: 'Реестр пропусков',
@@ -20,51 +20,51 @@ const ADMIN_TOOLS = [
     title: 'Все заявки',
     description: 'Просмотр всех отправленных форм и заявок.',
     code: 'SYS-04',
-    path: '/admin/requests',
+    path: '/las-vegas/applications',
   },
   {
     title: 'Черный список',
     description: 'Управление забаненными пользователями.',
     code: 'SYS-05',
-    path: '/admin/blacklist',
+    path: '/las-vegas/applications',
   },
   {
     title: 'Разблокировка',
     description: 'Снятие глобального лока сайта (если сработал антиспам).',
     code: 'SYS-06',
-    path: '/admin/reset',
+    path: '/las-vegas/profile',
   },
   {
     title: 'Проверка ролей',
     description: 'Поиск пользователей по ID и проверка их ролей Discord.',
     code: 'SYS-07',
-    path: '/admin/roles',
+    path: '/las-vegas/staff',
   },
   {
     title: 'Приём заявок',
     description: 'Глобально включить или приостановить отправку новых заявок.',
     code: 'SYS-11',
-    path: '/admin/submissions'
+    path: '/las-vegas/applications'
   },
   {
     title: 'Супер-Админка',
     description: 'Выдача доступа к панели управления вручную по ID.',
     code: 'SYS-08',
-    path: '/admin/super',
+    path: '/las-vegas/profile',
     isRestricted: true // Выделим её красным цветом
   },
   {
     title: 'Журнал действий',
     description: 'История административных изменений и операций.',
     code: 'SYS-09',
-    path: '/admin/logs',
+    path: '/las-vegas/history',
     isRestricted: true
   },
   {
     title: 'Системные логи',
     description: 'Технические события сайта и диагностика ошибок интеграций.',
     code: 'SYS-10',
-    path: '/admin/system-logs',
+    path: '/las-vegas/history',
     isRestricted: true
   }
 ];
