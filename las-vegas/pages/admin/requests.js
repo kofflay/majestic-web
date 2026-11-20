@@ -13,7 +13,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
@@ -21,7 +21,7 @@ export default function RequestsPage() {
   }, []);
 
   const fetchSubmissions = () => {
-    fetch('/api/admin/requests')
+    fetch('/las-vegas/api/admin/requests')
       .then(r => r.json())
       .then(d => {
         if (d.submissions) setSubmissions(d.submissions);
@@ -32,7 +32,7 @@ export default function RequestsPage() {
 
   const handleProcess = async (id) => {
     try {
-      const res = await fetch('/api/admin/requests', {
+      const res = await fetch('/las-vegas/api/admin/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action: 'process' })
