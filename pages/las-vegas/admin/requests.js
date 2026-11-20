@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
-import LasVegasAdminPageGuard from '../../../components/LasVegasAdminPageGuard';
+import LasVegasLasVegasAdminPageGuard from '../../../components/LasVegasLasVegasAdminPageGuard';
 import AdminSectionHeader from '../../../components/AdminSectionHeader';
 import { adminPanelStyle, adminPanelHeaderStyle } from '../../../components/adminStyles';
 
@@ -52,7 +52,7 @@ export default function RequestsPage() {
   if (loading || !user) return <div style={{ minHeight: '100vh', background: '#030303' }} />;
 
   return (
-    <AdminPageGuard>
+    <LasVegasAdminPageGuard>
       <LasVegasPageLayout user={user}>
       <AdminSectionHeader title="Архив заявок" description="Все отправленные формы, сохраненные в базе данных." />
 
@@ -167,6 +167,6 @@ export default function RequestsPage() {
         )}
       </div>
       </LasVegasPageLayout>
-    </AdminPageGuard>
+    </LasVegasAdminPageGuard>
   );
 }
