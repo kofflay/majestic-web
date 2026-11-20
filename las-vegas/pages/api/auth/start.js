@@ -20,9 +20,10 @@ function getSafeReturnTo(value) {
   try {
     const base = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost');
     const target = new URL(value, base);
-    if (target.origin !== base.origin) return '/start';
+    if (target.origin !== base.origin) return `${APP_PATH}/start`;
     const normalizedPath = '/' + decodeURIComponent(target.pathname).split('/').filter(Boolean).join('/');
-    if (normalizedPath === '/dashboard') return '/start';
+    if (normalizedPath === '/dashboard') return `${APP_PATH}/start`;
+    if (!normalizedPath.startsWith(APP_PATH + '/') && normalizedPath !== APP_PATH) return `${APP_PATH}${target.pathname}${target.search}${target.hash}`;
     return `${target.pathname}${target.search}${target.hash}`;
   } catch {
     return '/start';
