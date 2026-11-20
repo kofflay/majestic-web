@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 const WARN_OPTIONS = [
@@ -184,7 +184,7 @@ export default function RecoveryForm() {
   const requirement = getRequirement(formData.warn, formData.rank, formData.method);
 
   return (
-    <FormShell user={user} title="Отработка взыскания" icon="⚖️" accent="#F44336">
+    <LasVegasFormShell user={user} title="Отработка взыскания" icon="⚖️" accent="#F44336">
       <form onSubmit={handleSubmit}>
         {/* Тип варна */}
         <div style={{ marginBottom: '20px' }}>
@@ -523,6 +523,6 @@ export default function RecoveryForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить на проверку'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
