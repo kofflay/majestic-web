@@ -16,7 +16,7 @@ export default function ResignationForm() {
       if (!data.user) { router.push('/'); return; }
       setUser(data.user);
     }).catch(() => router.replace('/'));
-    fetch('/api/profile').then(res => res.json()).then(data => {
+    fetch('/api/las-vegas/profile').then(res => res.json()).then(data => {
       const nextProfile = data?.profile || { fullName: '' };
       setProfile(nextProfile);
       if (nextProfile.fullName) setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName }));
