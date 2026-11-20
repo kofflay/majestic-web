@@ -1,7 +1,7 @@
 // pages/forms/high-rank-report.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 const REQUIRED_ROLE_ID = '1514608894679191597'; // Роль, дающая доступ к хай-отчетам
@@ -57,13 +57,13 @@ export default function HighRankReportForm() {
   // Экран, если зашли по ссылке без роли
   if (!hasAccess) {
     return (
-      <FormShell user={user} title="Доступ запрещен" icon="⛔">
+      <LasVegasFormShell user={user} title="Доступ запрещен" icon="⛔">
         <div style={{ textAlign: 'center', padding: '30px' }}>
           <h2 style={{ color: '#ff2640', marginBottom: '16px', fontSize: '24px' }}>ACCESS DENIED</h2>
           <p style={{ color: '#9ca3af', marginBottom: '24px' }}>У вас нет необходимой роли для подачи отчета на повышение (Хай Ранги).</p>
           <button onClick={() => router.push('/hub')} style={{ background: '#2563EB', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Вернуться назад</button>
         </div>
-      </FormShell>
+      </LasVegasFormShell>
     );
   }
 
@@ -71,7 +71,7 @@ export default function HighRankReportForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#9ca3af', fontSize:'13px', fontWeight:'600' };
 
   return (
-    <FormShell user={user} title="Хай Ранги" icon="🌟">
+    <LasVegasFormShell user={user} title="Хай Ранги" icon="🌟">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -97,6 +97,6 @@ export default function HighRankReportForm() {
           {submitting ? 'Отправка...' : 'Отправить отчёт'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
