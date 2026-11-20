@@ -17,7 +17,10 @@ function isValidOptionalImageUrl(value) {
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {\n    const viewer = verifyToken(req.cookies.token);\n    if (!viewer) return res.status(401).json({ error: 'Unauthorized' });\n    if (!(await getLasVegasAccess(viewer)).isStaff) return res.status(403).json({ error: 'Нет доступа к Las Vegas' });
+  if (req.method === 'GET') {
+    const viewer = verifyToken(req.cookies.token);
+    if (!viewer) return res.status(401).json({ error: 'Unauthorized' });
+    if (!(await getLasVegasAccess(viewer)).isStaff) return res.status(403).json({ error: 'Нет доступа к Las Vegas' });
     try {
       const staff = await kv.get('lasvegas:staff_roster') || [];
       return res.status(200).json(Array.isArray(staff) ? staff : []);
