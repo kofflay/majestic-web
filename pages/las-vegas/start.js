@@ -6,6 +6,7 @@ export default function LasVegasStart() {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
+  const [access, setAccess] = useState(null);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -29,6 +30,7 @@ export default function LasVegasStart() {
         }
         const access = await accessResponse.json();
         if (!active) return;
+        setAccess(access);
         setStatus(access.hasAccess ? 'allowed' : 'denied');
       })
       .catch(() => {
@@ -82,7 +84,14 @@ export default function LasVegasStart() {
         <p style={{ margin: 0, color: '#b8c0cf', lineHeight: 1.7 }}>{message}</p>
         {status === 'guest' && <button onClick={login} style={buttonStyle}>Войти через Discord</button>}
         {status === 'denied' && <a href="/start" style={buttonStyle}>Перейти в Memphis</a>}
-        {status === 'allowed' && <p style={{ marginTop: '20px', color: '#9ba8c7', fontSize: '13px' }}>Раздел Las Vegas подключён. Функциональные модули будут открываться здесь.</p>}
+        {status === 'allowed' && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 24 }}>
+            <a href="/las-vegas/forms" style={buttonStyle}>Формы и заявления</a>
+            <a href="/las-vegas/staff" style={buttonStyle}>Состав сотрудников</a>
+            <a href="/las-vegas/passes" style={buttonStyle}>Реестр пропусков</a>
+            {access?.isAdmin && <a href="/las-vegas/admin" style={buttonStyle}>Администрирование</a>}
+          </div>
+        )}
         {status === 'error' && <button onClick={() => router.reload()} style={buttonStyle}>Повторить проверку</button>}
       </section>
     </main>
