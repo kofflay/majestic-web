@@ -32,7 +32,7 @@ export default function PromotionForm() {
       })
       .catch(() => router.replace('/'))
       .finally(() => setLoading(false));
-    fetch('/api/profile')
+    fetch('/api/las-vegas/profile')
       .then(res => res.json())
       .then(data => {
         const nextProfile = data?.profile || { fullName: '' };
