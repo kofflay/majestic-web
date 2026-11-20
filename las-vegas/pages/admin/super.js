@@ -13,7 +13,7 @@ export default function SuperAdminPage() {
   const [newId, setNewId] = useState('');
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
@@ -21,7 +21,7 @@ export default function SuperAdminPage() {
   }, []);
 
   const fetchAdmins = async () => {
-    const res = await fetch('/api/admin/super');
+    const res = await fetch('/las-vegas/api/admin/super');
     if (!res.ok) return;
     const data = await res.json();
     setAdmins(Array.isArray(data.admins) ? data.admins : []);
@@ -34,7 +34,7 @@ export default function SuperAdminPage() {
       window.toast.error('Введите корректный Discord ID');
       return;
     }
-    const res = await fetch('/api/admin/super', {
+    const res = await fetch('/las-vegas/api/admin/super', {
       method, headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discordId: id })
     });
@@ -50,7 +50,7 @@ export default function SuperAdminPage() {
 
   const removeAdmin = async (id) => {
     if (!confirm('Отозвать ручную выдачу админки?')) return;
-    const res = await fetch('/api/admin/super', {
+    const res = await fetch('/las-vegas/api/admin/super', {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discordId: id })
     });
@@ -60,7 +60,7 @@ export default function SuperAdminPage() {
 
   const clearDeny = async (id) => {
     if (!confirm('Снять запрет на использование админки?')) return;
-    const res = await fetch('/api/admin/super', {
+    const res = await fetch('/las-vegas/api/admin/super', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discordId: id })
     });
