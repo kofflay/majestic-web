@@ -48,13 +48,13 @@ export default function History() {
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
-      if (!d.user) { router.push('/'); return; }
+      if (!d.user) { router.push('/las-vegas/start'); return; }
       setUser(d.user);
     });
     fetch('/api/las-vegas/stats').then(r => r.json()).then(d => {
       if (d.history) setHistory(d.history);
       setLoading(false);
-    }).catch(() => router.push('/'));
+    }).catch(() => router.push('/las-vegas/start'));
   }, []);
 
   if (loading) {
