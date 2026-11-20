@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 export default function AppealForm() {
@@ -113,7 +113,7 @@ export default function AppealForm() {
   };
 
   return (
-    <FormShell user={user} title="Обжалование наказания" icon="📜" accent="#9C27B0">
+    <LasVegasFormShell user={user} title="Обжалование наказания" icon="📜" accent="#9C27B0">
       <form onSubmit={handleSubmit}>
         {/* Подсказка */}
         <div
@@ -316,6 +316,6 @@ export default function AppealForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить обжалование'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
