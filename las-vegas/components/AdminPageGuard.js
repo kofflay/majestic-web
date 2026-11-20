@@ -12,8 +12,8 @@ export default function AdminPageGuard({ children, superAdminOnly = false }) {
     const checkAccess = async () => {
       try {
         const [meResponse, accessResponse] = await Promise.all([
-          fetch('/api/me', { cache: 'no-store' }),
-          fetch('/api/admin/check', { cache: 'no-store' }),
+          fetch('/las-vegas/api/me', { cache: 'no-store' }),
+          fetch('/las-vegas/api/admin/check', { cache: 'no-store' }),
         ]);
         const [me, access] = await Promise.all([
           meResponse.json(),
