@@ -259,7 +259,7 @@ export default async function handler(req, res) {
   if (!validTypes.has(type)) return res.status(400).json({ error: 'Неизвестный тип заявления' });
 
   try {
-    if (!(await canSubmitDuringGate(user.id))) {
+    if (!(await canSubmitToLasVegas(user.id))) {
       return res.status(423).json({ error: 'Приём новых заявок временно приостановлен. Попробуйте позже.' });
     }
   } catch (error) {
