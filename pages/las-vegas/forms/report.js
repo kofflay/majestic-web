@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '../../../components/FormShell';
+import LasVegasFormShell from '../../../components/LasVegasFormShell';
 import FormLoading from '../../../components/FormLoading';
 import { DEPARTMENTS } from '../../../lib/las-vegas-departments';
 
@@ -75,7 +75,7 @@ export default function ReportForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Отчёт о повышении" icon="📋" accent="#FF9800">
+    <LasVegasFormShell user={user} title="Отчёт о повышении" icon="📋" accent="#FF9800">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -122,6 +122,6 @@ export default function ReportForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
