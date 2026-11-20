@@ -9,7 +9,7 @@ Las Vegas uses an isolated Redis namespace (`lasvegas:*`) and separate Discord w
 - Admin roles: `1182356767343120481`, `1182356767343120480`
 - Super-admin Discord user ID is inherited from the Memphis owner account: `200102286473691139`
 
-The existing OAuth app and callback are shared. The bot must be present in the Las Vegas guild and have permission to read guild members/roles for the existing role-snapshot process to populate `user:guild_roles:<discord-user-id>`.
+The existing OAuth app and callback are shared. The current OAuth scope includes `guilds.members.read`; the role snapshot process now includes the Las Vegas guild and stores its roles in `user:guild_roles:<discord-user-id>`. The user must be a member of the Las Vegas guild.
 
 ## Required webhook variables
 
