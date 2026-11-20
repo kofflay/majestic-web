@@ -67,7 +67,9 @@ jobs:
           mkdir -p "$release/.next"
           cp -a .next/standalone/. "$release/"
           mkdir -p "$release/.next/static"
-          cp -a .next/static/. "$release/.next/static/"
+          if [ -d .next/static ]; then
+            cp -a .next/static/. "$release/.next/static/"
+          fi
           if [ -d public ]; then
             mkdir -p "$release/public"
             cp -a public/. "$release/public/"
