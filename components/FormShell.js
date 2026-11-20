@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Header from './Header';
 
@@ -13,8 +14,25 @@ export default function FormShell({
   children
 }) {
   const router = useRouter();
+  const [submissionAccess, setSubmissionAccess] = useState({ loading: true, canSubmit: true, exempt: false });
   const currentFormId = router.pathname.split('/').pop();
   const backLink = customBackLink || (PUBLIC_FORMS.includes(currentFormId) ? '/applications' : '/hub');
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/submission-status')
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Status unavailable');
+        if (active) setSubmissionAccess({ loading: false, canSubmit: Boolean(data.canSubmit), exempt: Boolean(data.exempt) });
+      })
+      .catch(() => {
+        if (active) setSubmissionAccess({ loading: false, canSubmit: false, exempt: false });
+      });
+    return () => { active = false; };
+  }, []);
+
+  const submissionsBlocked = !submissionAccess.loading && !submissionAccess.canSubmit;
 
   return (
     <div className="app-shell">
@@ -40,7 +58,16 @@ export default function FormShell({
               <p>{subtitle}</p>
             </div>
           </header>
-          <div className="form-card__body">{children}</div>
+          <div className="form-card__body">
+            {submissionsBlocked && (
+              <div role="status" style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '10px', border: '1px solid rgba(255,107,107,0.35)', background: 'rgba(255,107,107,0.08)', color: '#ffb4b4', lineHeight: 1.5 }}>
+                Приём новых заявок временно приостановлен. Уже отправленные заявки продолжают обрабатываться.
+              </div>
+            )}
+            <fieldset disabled={submissionsBlocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+              {children}
+            </fieldset>
+          </div>
         </section>
       </main>
     </div>
