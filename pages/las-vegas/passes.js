@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import PageLayout from '../../components/PageLayout';
+import LasVegasPageLayout from '../../components/LasVegasPageLayout';
 import AdminSectionHeader from '../../components/AdminSectionHeader';
 import { adminPanelStyle, adminPanelHeaderStyle, adminInputStyle, adminPrimaryButtonStyle } from '../../components/adminStyles';
 import { getPassDisplayStatus } from '../../lib/pass-utils.mjs';
@@ -201,7 +201,7 @@ export default function PassesPage() {
   const updateField = (field, value) => setFormData(current => ({ ...current, [field]: value }));
 
   return (
-    <PageLayout user={user}>
+    <LasVegasPageLayout user={user}>
       <AdminSectionHeader
         title="Реестр пропусков"
         description="Учёт выданных пропусков, сроков действия и аннулированных записей."
@@ -379,6 +379,6 @@ export default function PassesPage() {
       <style jsx global>{`
         @keyframes blink { 50% { opacity: 0; } }
       `}</style>
-    </PageLayout>
+    </LasVegasPageLayout>
   );
 }
