@@ -20,7 +20,7 @@ export default function AppealForm() {
   });
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then((r) => r.json())
       .then((d) => {
         if (!d.user) {
@@ -72,7 +72,7 @@ export default function AppealForm() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/appeal', {
+      const res = await fetch('/las-vegas/api/appeal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
