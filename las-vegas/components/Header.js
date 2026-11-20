@@ -17,7 +17,7 @@ export default function Header({ user }) {
     }
 
     let active = true;
-    fetch('/api/admin/check')
+    fetch('/las-vegas/api/admin/check')
       .then(res => res.json())
       .then(data => {
         if (active) setIsAdmin(Boolean(data.isAdmin));
@@ -44,7 +44,7 @@ export default function Header({ user }) {
       if (cachedAvatar) setSavedProfileAvatar(cachedAvatar);
     } catch {}
     if (!cachedAvatar) {
-      fetch('/api/profile/avatar')
+      fetch('/las-vegas/api/profile/avatar')
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (active && data?.avatarUrl) {
@@ -105,16 +105,16 @@ export default function Header({ user }) {
     setIsMenuOpen(false);
     setIsLoggingOut(true);
     try {
-      await fetch('/api/logout', { method: 'POST' });
+      await fetch('/las-vegas/api/logout', { method: 'POST' });
     } finally {
-      router.replace('/start');
+      router.replace('/las-vegas/start');
     }
   };
 
   const handleLogin = () => {
     setIsMenuOpen(false);
     const returnTo = router.asPath || '/start';
-    window.location.href = `/api/auth/start?returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.href = `/las-vegas/api/auth/start?returnTo=${encodeURIComponent(returnTo)}`;
   };
 
   return (
