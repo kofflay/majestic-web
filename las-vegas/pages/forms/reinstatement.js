@@ -14,11 +14,11 @@ export default function ReinstatementForm() {
   const [formData, setFormData] = useState({ fullName: '', rankAtDismissal: '', rankProof: '', wasWarned: '', stateFractionsProof: '' });
 
   useEffect(() => {
-    fetch('/api/me').then(res => res.json()).then(data => {
+    fetch('/las-vegas/api/me').then(res => res.json()).then(data => {
       if (!data.user) { router.push('/'); return; }
       setUser(data.user);
     }).catch(() => router.replace('/'));
-    fetch('/api/profile').then(res => res.json()).then(data => {
+    fetch('/las-vegas/api/profile').then(res => res.json()).then(data => {
       const nextProfile = data?.profile || { fullName: '' };
       setProfile(nextProfile);
       if (nextProfile.fullName) setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName }));
@@ -39,7 +39,7 @@ export default function ReinstatementForm() {
     if (!isFormValid()) { window.toast.error('Заполните все обязательные поля!'); return; }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'reinstatement', ...formData })
       });
