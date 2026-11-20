@@ -6,6 +6,7 @@ import { checkSpam } from '../../lib/antispam';
 import { kv } from '../../lib/redis.js';
 import { acquireHrAuditLock } from '../../lib/hr-audit-locks';
 import { recordSubmissionHistory } from '../../lib/submission-history';
+import { canSubmitDuringGate } from '../../lib/submission-gate';
 import { 
   getDepartment, 
   getReportWebhook, 
@@ -255,6 +256,15 @@ export default async function handler(req, res) {
   const submissionRecordId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   const validTypes = new Set(['report', 'transfer', 'highrank', 'resignation', 'reinstatement', 'transfer-to-lspd', 'hiring', 'weapon-request', 'premium', 'complaint', 'leave', 'promotion']);
   if (!validTypes.has(type)) return res.status(400).json({ error: 'Неизвестный тип заявления' });
+
+  try {
+    if (!(await canSubmitDuringGate(user.id))) {
+      return res.status(423).json({ error: 'Приём новых заявок временно приостановлен. Попробуйте позже.' });
+    }
+  } catch (error) {
+    console.error('Submission gate lookup failed:', error);
+    return res.status(503).json({ error: 'Не удалось проверить доступность приёма заявок. Попробуйте позже.' });
+  }
 
   const validationError = validateSubmission(type, formData, leaveType);
   if (validationError) return rejectSubmission(res, user, type, formData, leaveType, 400, validationError);
