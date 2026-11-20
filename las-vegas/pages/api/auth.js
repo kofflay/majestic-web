@@ -110,17 +110,17 @@ export default async function handler(req, res) {
 
   // OAuth callback is accepted only for a login started in this browser.
   if (!statesMatch(state, expectedState)) {
-    return redirectWithClearedCookies(req, res, '/?error=oauth_state');
+    return redirectWithClearedCookies(req, res, '/?error=oauth_state`);
   }
 
   const redirectTo = safeReturnTo(req.cookies.oauth_return_to);
 
   if (error) {
-    return redirectWithClearedCookies(req, res, '/?error=access_denied');
+    return redirectWithClearedCookies(req, res, '/?error=access_denied`);
   }
 
   if (typeof code !== 'string' || !code) {
-    return redirectWithClearedCookies(req, res, '/?error=no_code');
+    return redirectWithClearedCookies(req, res, '/?error=no_code`);
   }
 
   const callbackKey = getOAuthCallbackKey(code);
@@ -148,9 +148,9 @@ export default async function handler(req, res) {
         return redirectWithClearedCookies(req, res, redirectTo);
       }
       if (existingStatus === 'failed') {
-        return redirectWithClearedCookies(req, res, '/?error=auth_failed');
+        return redirectWithClearedCookies(req, res, '/?error=auth_failed`);
       }
-      return redirectWithClearedCookies(req, res, '/?error=oauth_in_progress');
+      return redirectWithClearedCookies(req, res, '/?error=oauth_in_progress`);
     }
 
     callbackLockAcquired = true;
