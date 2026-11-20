@@ -1,9 +1,9 @@
 // pages/api/staff.js
-import { kv } from '../../../../lib/redis.js';
-import { verifyToken } from '../../../../lib/discord';
-import { hasLasVegasAdminAccess } from '../../../../lib/admins';
-import { mutateJsonArray } from '../../../../lib/kv-atomic';
-import { logAdminAction } from '../../../../lib/admin-audit';
+import { kv } from '../../../lib/redis.js';
+import { verifyToken } from '../../../lib/discord';
+import { getLasVegasAccess, hasLasVegasAdminAccess } from '../../../lib/las-vegas-access';
+import { mutateJsonArray } from '../../../lib/kv-atomic';
+import { logAdminAction } from '../../../lib/las-vegas-admin-audit';
 
 function isValidOptionalImageUrl(value) {
   if (value === undefined || value === null || value === '') return true;
@@ -17,7 +17,7 @@ function isValidOptionalImageUrl(value) {
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
+  if (req.method === 'GET') {\n    const viewer = verifyToken(req.cookies.token);\n    if (!viewer) return res.status(401).json({ error: 'Unauthorized' });\n    if (!(await getLasVegasAccess(viewer)).isStaff) return res.status(403).json({ error: 'Нет доступа к Las Vegas' });
     try {
       const staff = await kv.get('lasvegas:staff_roster') || [];
       return res.status(200).json(Array.isArray(staff) ? staff : []);
