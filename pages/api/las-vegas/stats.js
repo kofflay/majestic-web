@@ -1,5 +1,5 @@
-import { kv } from '../../../../lib/redis.js';
-import { verifyToken } from '../../../../lib/discord';
+import { kv } from '../../../lib/redis.js';
+import { verifyToken } from '../../../lib/discord';\nimport { getLasVegasAccess } from '../../../lib/las-vegas-access';
 
 export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
