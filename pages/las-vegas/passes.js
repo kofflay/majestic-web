@@ -88,10 +88,10 @@ export default function PassesPage() {
       .then(response => response.json())
       .then(data => {
         if (cancelled) return;
-        if (!data.user) { router.push('/'); return; }
+        if (!data.user) { router.push('/las-vegas/start'); return; }
         setUser(data.user);
       })
-      .catch(() => { if (!cancelled) router.push('/'); });
+      .catch(() => { if (!cancelled) router.push('/las-vegas/start'); });
 
     fetch('/api/las-vegas/admin/check', { cache: 'no-store' })
       .then(response => response.json())
