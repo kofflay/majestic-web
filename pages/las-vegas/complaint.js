@@ -24,13 +24,13 @@ export default function ComplaintForm() {
       .then(res => res.json())
       .then(data => {
         if (!data.user) {
-          router.replace('/?redirect=/complaint');
+          router.replace('/las-vegas/start');
           return;
         }
         if (!cancelled) setUser(data.user);
       })
       .catch(() => {
-        if (!cancelled) router.replace('/?redirect=/complaint');
+        if (!cancelled) router.replace('/las-vegas/start');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
