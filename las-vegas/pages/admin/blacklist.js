@@ -15,14 +15,14 @@ export default function BlacklistPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
-    fetch('/api/admin/check').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/admin/check').then(r => r.json()).then(d => {
       setIsAdmin(d.isAdmin);
       if (d.isAdmin) {
-        fetch('/api/admin/blacklist')
+        fetch('/las-vegas/api/admin/blacklist')
           .then(r => r.json())
           .then(data => {
             if (data.blacklist) setBlacklist(data.blacklist);
@@ -36,7 +36,7 @@ export default function BlacklistPage() {
   }, []);
 
   const unban = async (userId) => {
-    const res = await fetch('/api/admin/blacklist', {
+    const res = await fetch('/las-vegas/api/admin/blacklist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'unban', userId })
@@ -54,7 +54,7 @@ export default function BlacklistPage() {
       window.toast.error('Введите Discord ID');
       return;
     }
-    const res = await fetch('/api/admin/reset-spam', {
+    const res = await fetch('/las-vegas/api/admin/reset-spam', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: resetId })
