@@ -76,7 +76,7 @@ export default function PassesPage() {
   const [today, setToday] = useState(todayUtc);
 
   const fetchPasses = async () => {
-    const response = await fetch('/api/passes', { cache: 'no-store' });
+    const response = await fetch('/las-vegas/api/passes', { cache: 'no-store' });
     if (!response.ok) throw new Error('Не удалось загрузить реестр пропусков');
     const data = await response.json();
     setPasses(Array.isArray(data) ? data : []);
@@ -84,7 +84,7 @@ export default function PassesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/me', { cache: 'no-store' })
+    fetch('/las-vegas/api/me', { cache: 'no-store' })
       .then(response => response.json())
       .then(data => {
         if (cancelled) return;
@@ -93,7 +93,7 @@ export default function PassesPage() {
       })
       .catch(() => { if (!cancelled) router.push('/'); });
 
-    fetch('/api/admin/check', { cache: 'no-store' })
+    fetch('/las-vegas/api/admin/check', { cache: 'no-store' })
       .then(response => response.json())
       .then(data => { if (!cancelled) setIsAdmin(Boolean(data.isAdmin)); })
       .catch(() => { if (!cancelled) setIsAdmin(false); });
@@ -122,7 +122,7 @@ export default function PassesPage() {
       : formData;
 
     try {
-      const response = await fetch('/api/passes', {
+      const response = await fetch('/las-vegas/api/passes', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -153,7 +153,7 @@ export default function PassesPage() {
   const handleRevoke = async (pass) => {
     if (!confirm(`Аннулировать пропуск №${pass.passNumber} для ${pass.name}? Это действие нельзя отменить.`)) return;
     try {
-      const response = await fetch('/api/passes', {
+      const response = await fetch('/las-vegas/api/passes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: pass.id, action: 'revoke' })
