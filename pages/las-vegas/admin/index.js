@@ -4,69 +4,10 @@ import { useRouter } from 'next/router';
 import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
 
 const ADMIN_TOOLS = [
-  {
-    title: 'Старший состав',
-    description: 'Управление высшим командованием (Шеф, Заместители).',
-    code: 'SYS-01',
-    path: '/las-vegas/staff',
-  },
-  {
-    title: 'Реестр пропусков',
-    description: 'Добавление и управление пропусками на территорию.',
-    code: 'SYS-03',
-    path: '/las-vegas/passes',
-  },
-  {
-    title: 'Все заявки',
-    description: 'Просмотр всех отправленных форм и заявок.',
-    code: 'SYS-04',
-    path: '/las-vegas/admin/requests',
-  },
-  {
-    title: 'Черный список',
-    description: 'Управление забаненными пользователями.',
-    code: 'SYS-05',
-    path: '/las-vegas/admin/requests',
-  },
-  {
-    title: 'Разблокировка',
-    description: 'Снятие глобального лока сайта (если сработал антиспам).',
-    code: 'SYS-06',
-    path: '/las-vegas/profile',
-  },
-  {
-    title: 'Проверка ролей',
-    description: 'Поиск пользователей по ID и проверка их ролей Discord.',
-    code: 'SYS-07',
-    path: '/las-vegas/staff',
-  },
-  {
-    title: 'Приём заявок',
-    description: 'Глобально включить или приостановить отправку новых заявок.',
-    code: 'SYS-11',
-    path: '/las-vegas/admin/requests'
-  },
-  {
-    title: 'Супер-Админка',
-    description: 'Выдача доступа к панели управления вручную по ID.',
-    code: 'SYS-08',
-    path: '/las-vegas/profile',
-    isRestricted: true // Выделим её красным цветом
-  },
-  {
-    title: 'Журнал действий',
-    description: 'История административных изменений и операций.',
-    code: 'SYS-09',
-    path: '/las-vegas/history',
-    isRestricted: true
-  },
-  {
-    title: 'Системные логи',
-    description: 'Технические события сайта и диагностика ошибок интеграций.',
-    code: 'SYS-10',
-    path: '/las-vegas/history',
-    isRestricted: true
-  }
+  { title: 'Состав сотрудников', description: 'Просмотр и редактирование реестра сотрудников Las Vegas.', code: 'LV-01', path: '/las-vegas/staff' },
+  { title: 'Реестр пропусков', description: 'Добавление и управление пропусками Las Vegas.', code: 'LV-02', path: '/las-vegas/passes' },
+  { title: 'Заявки', description: 'Просмотр и обработка отправленных заявок Las Vegas.', code: 'LV-03', path: '/las-vegas/admin/requests' },
+  { title: 'История и статистика', description: 'Статистика заявок и история активности Las Vegas.', code: 'LV-04', path: '/las-vegas/history' },
 ];
 
 export default function AdminHub() {
