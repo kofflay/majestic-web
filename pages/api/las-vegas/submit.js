@@ -273,7 +273,6 @@ export default async function handler(req, res) {
   const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion']);
   const lvAccess = await getLasVegasAccess(user);
   const userRoles = Array.isArray(lvAccess.roles) ? lvAccess.roles : [];
-  const STAFF_ROLE_ID = '1397291237567889582';
   const HIGH_RANK_ROLE_ID = process.env.LV_HIGH_RANK_ROLE_ID || '';
   if (employeeOnlyTypes.has(type) && !lvAccess.isStaff) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника LSPD' });
@@ -336,18 +335,18 @@ export default async function handler(req, res) {
     webhookUrl = getTransferWebhook(targetDepartment);
     if (!webhookUrl) return rejectSubmission(res, user, type, formData, leaveType, 500, 'Вебхук не настроен');
     roleMentions = getRoleMentions(targetDepartment);
-  } else if (type === 'highrank') { webhookUrl = webhooks.highrank; roleMentions = '<@&1514608894700159142> <@&1514690313233371226>'; }
-  else if (type === 'resignation') { webhookUrl = webhooks.resignation; roleMentions = '<@&1514608894679191597>'; }
-  else if (type === 'reinstatement') { webhookUrl = webhooks.reinstatement; roleMentions = '<@&1514690313233371226> <@&1514608894679191598>'; }
-  else if (type === 'transfer-to-lspd') { webhookUrl = webhooks['transfer-to-lspd']; roleMentions = '<@&1514690313233371226> <@&1514608894700159142>'; }
-  else if (type === 'hiring') { webhookUrl = webhooks.hiring; roleMentions = '<@&1514608894666735724> <@&1514608894679191598> <@&1541129110623879249>'; }
+  } else if (type === 'highrank') { webhookUrl = webhooks.highrank; roleMentions = [process.env.LV_ROLE_PING_HIGH_RANK, process.env.LV_ROLE_PING_ADMIN].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
+  else if (type === 'resignation') { webhookUrl = webhooks.resignation; roleMentions = process.env.LV_ROLE_PING_ADMIN ? `<@&${process.env.LV_ROLE_PING_ADMIN}>` : ''; }
+  else if (type === 'reinstatement') { webhookUrl = webhooks.reinstatement; roleMentions = [process.env.LV_ROLE_PING_ADMIN, process.env.LV_ROLE_PING_STAFF].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
+  else if (type === 'transfer-to-lspd') { webhookUrl = webhooks['transfer-to-lspd']; roleMentions = [process.env.LV_ROLE_PING_ADMIN, process.env.LV_ROLE_PING_HIGH_RANK].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
+  else if (type === 'hiring') { webhookUrl = webhooks.hiring; roleMentions = [process.env.LV_ROLE_PING_HIRING, process.env.LV_ROLE_PING_STAFF].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
   else if (type === 'weapon-request') { webhookUrl = webhooks['weapon-request']; roleMentions = '<@&1514690313233371226> <@&1514608894700159142>'; }
   else if (type === 'premium') { webhookUrl = webhooks.premium; roleMentions = ''; }
-  else if (type === 'complaint') { webhookUrl = webhooks.complaintPrivate; roleMentions = '<@&1514608894679191592>'; }
+  else if (type === 'complaint') { webhookUrl = webhooks.complaintPrivate; roleMentions = process.env.LV_ROLE_PING_COMPLAINT ? `<@&${process.env.LV_ROLE_PING_COMPLAINT}>` : ''; }
   else if (type === 'leave') {
     webhookUrl = webhooks.leave;
     roleMentions = getRoleMentions(department);
-    threadId = leaveType === 'ooc' ? '1541113530743390288' : '1541113565505781891';
+    threadId = leaveType === 'ooc' ? process.env.LV_LEAVE_THREAD_OOC : process.env.LV_LEAVE_THREAD_IC;
   } else { webhookUrl = webhooks.promotion; roleMentions = '<@&1514608894679191597>'; }
   if (!webhookUrl) return rejectSubmission(res, user, type, formData, leaveType, 500, 'Вебхук не настроен');
 
