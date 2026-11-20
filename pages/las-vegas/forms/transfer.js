@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import FormShell from '../../../components/FormShell';
 import FormLoading from '../../../components/FormLoading';
-import { DEPARTMENTS, TRANSFER_DEPARTMENTS } from '../../../lib/departments';
+import { DEPARTMENTS, TRANSFER_DEPARTMENTS } from '../../../lib/las-vegas-departments';
 
 const RANKS = Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
 const RATING_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
