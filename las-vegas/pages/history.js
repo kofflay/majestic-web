@@ -47,11 +47,11 @@ export default function History() {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
-    fetch('/api/stats').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/stats').then(r => r.json()).then(d => {
       if (d.history) setHistory(d.history);
       setLoading(false);
     }).catch(() => router.push('/'));
