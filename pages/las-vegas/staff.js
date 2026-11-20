@@ -1,6 +1,6 @@
 // pages/staff.js
 import { useState, useEffect } from 'react';
-import Header from '../../components/Header';
+import LasVegasHeader from '../../components/LasVegasHeader';
 import StaffCard from '../../components/StaffCard';
 
 export default function StaffPage() {
@@ -19,7 +19,7 @@ export default function StaffPage() {
   if (loading) {
     return (
       <div className="site-page-shell staff-page">
-        <Header user={null} />
+        <LasVegasHeader user={null} />
         <main className="staff-page__loading">
           <span className="form-loading__spinner" />
           <span>ЗАГРУЗКА СОСТАВА</span>
@@ -30,7 +30,7 @@ export default function StaffPage() {
 
   return (
     <div className="site-page-shell staff-page">
-      <Header user={null} />
+      <LasVegasHeader user={null} />
       <main className="staff-page__content">
         <div className="staff-heading">
           <span className="staff-heading__eyebrow">MEMPHIS POLICE DEPARTMENT / LEADERSHIP</span>
