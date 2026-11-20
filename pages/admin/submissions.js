@@ -28,6 +28,7 @@ export default function SubmissionGatePage() {
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
+      if (String(d.user.id) !== '200102286473691139') { router.replace('/admin'); return; }
       setUser(d.user);
     }).catch(() => router.replace('/'));
     loadStatus();
