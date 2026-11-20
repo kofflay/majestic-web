@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Header from '../../components/Header';
+import LasVegasHeader from '../../components/LasVegasHeader';
 
 const TYPE_META = {
   promotion: { icon: '📈', color: '#4CAF50', label: 'Повышение' },
@@ -66,7 +66,7 @@ export default function History() {
 
   return (
     <div className="site-page-shell history-page">
-      <Header user={user} />
+      <LasVegasHeader user={user} />
       <main className="history-content">
         <div className="history-heading">
           <div>
