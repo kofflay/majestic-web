@@ -41,6 +41,13 @@ const ADMIN_TOOLS = [
     path: '/admin/roles',
   },
   {
+    title: 'Приём заявок',
+    description: 'Глобально включить или приостановить отправку новых заявок.',
+    code: 'SYS-11',
+    path: '/admin/submissions',
+    isRestricted: true
+  },
+  {
     title: 'Супер-Админка',
     description: 'Выдача доступа к панели управления вручную по ID.',
     code: 'SYS-08',
