@@ -3,7 +3,7 @@ import { getLasVegasAccess } from '../../../lib/las-vegas-access';
 import { kv } from '../../../lib/redis.js';
 import { recordSubmissionHistory } from '../../../lib/las-vegas-submission-history';
 import { checkFormRateLimit, isBoundedText, isHttpsUrl } from '../../../lib/las-vegas-form-security';
-import { canSubmitDuringGate } from '../../../lib/las-vegas-submission-gate';
+import { canSubmitToLasVegas } from '../../../lib/las-vegas-submission-gate';
 
 const WEBHOOK_URL = process.env.LV_WEBHOOK_RECOVERY;
 const ROLE_PING = process.env.LV_ROLE_PING || '';
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!(await canSubmitDuringGate(user.id))) {
+    if (!(await canSubmitToLasVegas(user.id))) {
       return rejectAppeal(res, user, 423, 'Приём новых заявок временно приостановлен. Попробуйте позже.');
     }
   } catch (error) {
