@@ -18,7 +18,7 @@ export default function LeaveForm() {
   const [formData, setFormData] = useState({ leaveType: '', fullName: '', department: '', reason: '', startDate: '', endDate: '' });
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
       setLoading(false);
@@ -26,7 +26,7 @@ export default function LeaveForm() {
       setLoading(false);
       router.replace('/');
     });
-    fetch('/api/profile').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/profile').then(r => r.json()).then(d => {
       const nextProfile = d?.profile || {};
       setProfile(nextProfile);
       setFormData(prev => ({
@@ -47,7 +47,7 @@ export default function LeaveForm() {
     if (!isValid()) { window.toast.error('Заполните все поля!'); return; }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'leave', ...formData })
       });
