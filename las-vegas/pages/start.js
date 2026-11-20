@@ -28,13 +28,13 @@ export default function Home() {
     if (!router.isReady) return undefined;
     let cancelled = false;
 
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled) return;
         setUser(data?.user || null);
         if (data?.user) {
-          fetch('/api/check-criminal', { method: 'POST' }).catch(() => {});
+          fetch('/las-vegas/api/check-criminal', { method: 'POST' }).catch(() => {});
         }
       })
       .catch(() => {
@@ -46,7 +46,7 @@ export default function Home() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/staff', { signal: controller.signal })
+    fetch('/las-vegas/api/staff', { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : []))
       .then((data) => setStaff(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -68,7 +68,7 @@ export default function Home() {
             {/* Убираем старые статичные свечения, так как теперь есть LivingBackground */}
             
             <div className="landing-hero__content">
-              <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> MEMPHIS</div>
+              <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> LAS VEGAS</div>
               <h1>Закон.<br /><span>Порядок.</span><br />Los Santos.</h1>
               <p>Los Santos Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
@@ -89,8 +89,8 @@ export default function Home() {
           </section>
 
           <section className="landing-cards">
-            <a href="/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
-            <a href="/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
+            <a href="/las-vegas/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
+            <a href="/las-vegas/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
           </section>
 
           <section className="landing-command" aria-labelledby="landing-command-title">
@@ -106,10 +106,10 @@ export default function Home() {
           </section>
         </main>
         <footer className="landing-footer">
-          <span>LSPD SYSTEM / MEMPHIS</span>
+          <span>LSPD SYSTEM / LAS VEGAS</span>
           <span className="landing-footer__credit">
             ЧАСТЬ ПРОЕКТА{' '}
-            <a href="https://discord.gg/suspectfmq" target="_blank" rel="noopener noreferrer">
+            <a href="https://discord.com" target="_blank" rel="noopener noreferrer">
               <strong>SUSPECT FAMQ</strong>
             </a>
           </span>
