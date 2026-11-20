@@ -1,6 +1,6 @@
 // pages/api/admin/check.js
 import { verifyToken } from '../../../../lib/discord';
-import { hasLasVegasAdminAccess, isSuperAdmin } from '../../../../lib/admins';
+import { hasLasVegasAdminAccess, getLasVegasAccess } from '../../../../lib/las-vegas-access';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
