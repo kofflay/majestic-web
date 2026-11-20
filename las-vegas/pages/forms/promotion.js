@@ -24,7 +24,7 @@ export default function PromotionForm() {
   });
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then(res => res.json())
       .then(data => {
         if (!data.user) { router.push('/'); return; }
@@ -32,7 +32,7 @@ export default function PromotionForm() {
       })
       .catch(() => router.replace('/'))
       .finally(() => setLoading(false));
-    fetch('/api/profile')
+    fetch('/las-vegas/api/profile')
       .then(res => res.json())
       .then(data => {
         const nextProfile = data?.profile || { fullName: '' };
@@ -51,7 +51,7 @@ export default function PromotionForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
