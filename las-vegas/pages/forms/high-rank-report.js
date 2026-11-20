@@ -19,7 +19,7 @@ export default function HighRankReportForm() {
   const [formData, setFormData] = useState({ fullName: '', rankRange: '', workLink: '' });
 
   useEffect(() => {
-    fetch('/api/me').then(res => res.json()).then(data => {
+    fetch('/las-vegas/api/me').then(res => res.json()).then(data => {
       if (!data.user) { router.replace('/'); return; }
       setUser(data.user);
       if (data.user.roles && data.user.roles.includes(REQUIRED_ROLE_ID)) {
@@ -27,7 +27,7 @@ export default function HighRankReportForm() {
       }
     }).catch(() => router.replace('/'));
     
-    fetch('/api/profile').then(res => res.json()).then(data => {
+    fetch('/las-vegas/api/profile').then(res => res.json()).then(data => {
       const nextProfile = data?.profile || { fullName: '' };
       setProfile(nextProfile);
       if (nextProfile.fullName) setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName }));
@@ -41,7 +41,7 @@ export default function HighRankReportForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'highrank', ...formData })
       });
