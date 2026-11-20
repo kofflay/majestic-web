@@ -89,7 +89,7 @@ export default function RecoveryForm() {
   const [mpList, setMpList] = useState([{ type: '', proof: '' }]);
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then((r) => r.json())
       .then((d) => {
         if (!d.user) {
@@ -138,7 +138,7 @@ export default function RecoveryForm() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/recovery', {
+      const res = await fetch('/las-vegas/api/recovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
