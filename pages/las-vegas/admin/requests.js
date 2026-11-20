@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
-import LasVegasLasVegasAdminPageGuard from '../../../components/LasVegasLasVegasAdminPageGuard';
+import LasVegasAdminPageGuard from '../../../components/LasVegasAdminPageGuard';
 import AdminSectionHeader from '../../../components/AdminSectionHeader';
 import { adminPanelStyle, adminPanelHeaderStyle } from '../../../components/adminStyles';
 
