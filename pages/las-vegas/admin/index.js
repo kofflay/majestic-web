@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
 
 const ADMIN_TOOLS = [
-  { title: 'Состав сотрудников', description: 'Просмотр и редактирование реестра сотрудников Las Vegas.', code: 'LV-01', path: '/las-vegas/staff' },
+  { title: 'Состав сотрудников', description: 'Просмотр списка сотрудников Las Vegas.', code: 'LV-01', path: '/las-vegas/staff' },
+  { title: 'Управление составом', description: 'Добавление и редактирование записей сотрудников.', code: 'LV-05', path: '/las-vegas/admin/staff' },
   { title: 'Реестр пропусков', description: 'Добавление и управление пропусками Las Vegas.', code: 'LV-02', path: '/las-vegas/passes' },
   { title: 'Заявки', description: 'Просмотр и обработка отправленных заявок Las Vegas.', code: 'LV-03', path: '/las-vegas/admin/requests' },
   { title: 'История и статистика', description: 'Статистика заявок и история активности Las Vegas.', code: 'LV-04', path: '/las-vegas/history' },
