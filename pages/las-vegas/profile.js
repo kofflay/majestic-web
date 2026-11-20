@@ -1,8 +1,8 @@
 // pages/profile.js
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { DEPARTMENTS } from '../../lib/departments';
-import PageLayout from '../../components/PageLayout';
+import { DEPARTMENTS } from '../../lib/las-vegas-departments';
+import LasVegasPageLayout from '../../components/LasVegasPageLayout';
 
 export default function Profile() {
   const router = useRouter();
@@ -218,7 +218,7 @@ export default function Profile() {
   );
 
   return (
-    <PageLayout user={user}>
+    <LasVegasPageLayout user={user}>
       <main className="profile-page">
         <header className="profile-heading">
           <div className="profile-heading__eyebrow">
@@ -575,6 +575,6 @@ export default function Profile() {
           </div>
         )}
       </main>
-    </PageLayout>
+    </LasVegasPageLayout>
   );
 }
