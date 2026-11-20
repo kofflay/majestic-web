@@ -6,6 +6,7 @@ const APP_PATH = '/las-vegas';
 const STATE_TTL_SECONDS = 10 * 60;
 
 function getSafeReturnTo(value) {
+  const fallback = `${APP_PATH}/start`;
   if (
     typeof value !== 'string' ||
     value.length > 2048 ||
@@ -13,20 +14,20 @@ function getSafeReturnTo(value) {
     value.startsWith('//') ||
     value.includes('\\') ||
     /[\u0000-\u001f\u007f]/.test(value)
-  ) {
-    return `${APP_PATH}/start`;
-  }
+  ) return fallback;
 
   try {
     const base = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost');
     const target = new URL(value, base);
-    if (target.origin !== base.origin) return `${APP_PATH}/start`;
-    const normalizedPath = '/' + decodeURIComponent(target.pathname).split('/').filter(Boolean).join('/');
-    if (normalizedPath === '/dashboard') return `${APP_PATH}/start`;
-    if (!normalizedPath.startsWith(APP_PATH + '/') && normalizedPath !== APP_PATH) return `${APP_PATH}${target.pathname}${target.search}${target.hash}`;
-    return `${target.pathname}${target.search}${target.hash}`;
+    if (target.origin !== base.origin) return fallback;
+    const decodedPath = decodeURIComponent(target.pathname);
+    if (decodedPath.includes('\\') || /[\u0000-\u001f\u007f]/.test(decodedPath)) return fallback;
+    const normalizedPath = '/' + decodedPath.split('/').filter(Boolean).join('/');
+    if (normalizedPath === '/dashboard' || normalizedPath === APP_PATH) return fallback;
+    const appPath = normalizedPath.startsWith(APP_PATH + '/') ? normalizedPath : `${APP_PATH}${normalizedPath}`;
+    return `${appPath}${target.search}${target.hash}`;
   } catch {
-    return '/start';
+    return fallback;
   }
 }
 
