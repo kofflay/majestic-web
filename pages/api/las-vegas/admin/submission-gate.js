@@ -1,4 +1,5 @@
 import { verifyToken } from '../../../../lib/discord';
+import { getLasVegasAccess } from '../../../../lib/las-vegas-access';
 import { kv } from '../../../../lib/redis.js';
 import { getLasVegasSubmissionGate, LV_SUBMISSION_GATE_KEY } from '../../../../lib/las-vegas-submission-gate';
 import { logAdminAction } from '../../../../lib/las-vegas-admin-audit';
@@ -6,7 +7,7 @@ import { logAdminAction } from '../../../../lib/las-vegas-admin-audit';
 export default async function handler(req, res) {
   const user = verifyToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (!(await import('../../../../lib/las-vegas-access')).getLasVegasAccess(user).then(access => access.isSuperAdmin)) {
+  if (!(await getLasVegasAccess(user)).isSuperAdmin) {
     return res.status(403).json({ error: 'Нет доступа к управлению приёмом заявок' });
   }
 
