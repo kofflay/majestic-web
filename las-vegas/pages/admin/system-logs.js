@@ -30,7 +30,7 @@ export default function SystemLogsPage() {
   const loadLogs = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch('/api/admin/system-logs', { cache: 'no-store' });
+      const response = await fetch('/las-vegas/api/admin/system-logs', { cache: 'no-store' });
       if (response.status === 401 || response.status === 403) {
         router.replace('/admin');
         return;
@@ -47,7 +47,7 @@ export default function SystemLogsPage() {
   }, [router]);
 
   useEffect(() => {
-    fetch('/api/me', { cache: 'no-store' }).then(response => response.json()).then(data => {
+    fetch('/las-vegas/api/me', { cache: 'no-store' }).then(response => response.json()).then(data => {
       if (!data.user) { router.replace('/start'); return; }
       setUser(data.user);
     }).catch(() => router.replace('/start'));
