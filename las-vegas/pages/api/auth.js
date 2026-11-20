@@ -5,8 +5,9 @@ import { fetchUserGuildRoles } from '../../lib/security';
 import { kv } from '../../lib/redis.js';
 import { getDiscordAvatarUrl } from '../../lib/avatar';
 
-const GUILD_ID = '1514608894666735717'; // Твой сервер LSPD
-const OAUTH_COOKIE_PATH = '/api/auth';
+const GUILD_ID = '1182356767234068481'; // Las Vegas Discord server
+const OAUTH_COOKIE_PATH = '/las-vegas/api/auth';
+const APP_PATH = '/las-vegas';
 const CALLBACK_LOCK_TTL_SECONDS = 10 * 60;
 
 function safeReturnTo(encodedValue) {
@@ -15,7 +16,7 @@ function safeReturnTo(encodedValue) {
     encodedValue.length > 4096 ||
     !/^[A-Za-z0-9_-]+$/.test(encodedValue)
   ) {
-    return '/start';
+    return `${APP_PATH}/start`;
   }
 
   const decodedValue = Buffer.from(encodedValue, 'base64url').toString('utf8');
@@ -34,7 +35,7 @@ function safeReturnTo(encodedValue) {
   }
 
   try {
-    const base = new URL('https://memphis-lspd.vercel.app');
+    const base = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost');
     const target = new URL(decodedValue, base);
     if (target.origin !== base.origin) return '/start';
     const normalizedPath = '/' + decodeURIComponent(target.pathname).split('/').filter(Boolean).join('/');
@@ -164,7 +165,7 @@ export default async function handler(req, res) {
       return redirectWithClearedCookies(
         req,
         res,
-        `/?error=new_account&days=${accountCheck.ageDays}&min=5`
+        `${APP_PATH}/?error=new_account&days=${accountCheck.ageDays}&min=5`
       );
     }
 
@@ -265,7 +266,7 @@ export default async function handler(req, res) {
     const secureFlag = secure ? '; Secure' : '';
     res.setHeader('Set-Cookie', [
       ...clearOAuthCookies(req),
-      `token=${jwtToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secureFlag}`,
+      `token=${jwtToken}; Path=${APP_PATH}; HttpOnly; SameSite=Lax; Max-Age=86400${secureFlag}`,
     ]);
     return res.redirect(redirectTo);
 
