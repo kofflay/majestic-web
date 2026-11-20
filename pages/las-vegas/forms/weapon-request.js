@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '../../../components/FormShell';
+import LasVegasFormShell from '../../../components/LasVegasFormShell';
 import FormLoading from '../../../components/FormLoading';
 import { DEPARTMENTS } from '../../../lib/las-vegas-departments';
 
@@ -76,7 +76,7 @@ export default function WeaponRequestForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Спец вооружение" icon="🔫" accent="#FF5722">
+    <LasVegasFormShell user={user} title="Спец вооружение" icon="🔫" accent="#FF5722">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -118,6 +118,6 @@ export default function WeaponRequestForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить запрос'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
