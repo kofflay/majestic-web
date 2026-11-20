@@ -274,7 +274,7 @@ export default async function handler(req, res) {
   const STAFF_ROLE_ID = '1552313180041121802';
   const HIGH_RANK_ROLE_ID = '1514608894679191597';
   if (employeeOnlyTypes.has(type) && !userRoles.includes(STAFF_ROLE_ID)) {
-    return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника LSPD' });
+    return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника полиции Las Vegas' });
   }
   if (type === 'highrank' && !userRoles.includes(HIGH_RANK_ROLE_ID)) {
     return res.status(403).json({ error: 'Для подачи отчёта требуется роль старшего состава' });
@@ -463,7 +463,7 @@ return {number, 1}
       }
 
       try {
-        const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${hrAuditNumber}`;
+        const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${hrAuditNumber}`;
         embed = {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
@@ -687,9 +687,9 @@ function getFormTitle(type, department, targetDepartment, leaveType) {
   if (type === 'transfer') { const d = getDepartment(targetDepartment); return ` Запрос на перевод в ${d ? d.name : 'Отдел'}`; }
   if (type === 'highrank') return ' Отчёт на повышение (Хай Ранги)';
   if (type === 'resignation') return ' Заявление на увольнение';
-  if (type === 'reinstatement') return ' Восстановление в LSPD';
-  if (type === 'transfer-to-lspd') return ' Перевод в LSPD';
-  if (type === 'hiring') return ' Трудоустройство в LSPD';
+  if (type === 'reinstatement') return ' Восстановление в полиции Las Vegas';
+  if (type === 'transfer-to-lspd') return ' Перевод в полицию Las Vegas';
+  if (type === 'hiring') return ' Трудоустройство в полицию Las Vegas';
   if (type === 'weapon-request') return ' Запрос на спец вооружение';
   if (type === 'premium') return ' Премия';
   if (type === 'complaint') return ' ЖАЛОБА НА СОТРУДНИКА';
