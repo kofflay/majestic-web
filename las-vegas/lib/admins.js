@@ -1,20 +1,12 @@
 import { kv } from './redis.js';
 
-export const ADMINS = [
-  '200102286473691139',
-  '578179605203255297',
-  '1420048443123957862',
-];
-
+export const ADMINS = [];
 export const ADMIN_ROLE_IDS = [
-  '1514608894700159142',
-  '1514608894700159145',
-  '1514608894700159143',
-  '1550848894789885962',
-  '1514665211980939314',
+  '1182356767343120481',
+  '1182356767343120480',
 ];
-
 export const SUPER_ADMIN_ID = '200102286473691139';
+export const STAFF_ROLE_IDS = ['1397291237567889582'];
 const DENIED_ADMINS_KEY = 'lspd:admin_denied_ids';
 
 export function isAdmin(userId) {
@@ -30,7 +22,8 @@ export async function hasAdminAccess(user) {
   const userId = String(user?.id || '');
   if (!userId) return false;
 
-  // Явный запрет супер-администратора всегда важнее ролей и любых списков.
+  if (isSuperAdmin(userId)) return true;
+
   try {
     const denied = await kv.sismember(DENIED_ADMINS_KEY, userId);
     if (denied) return false;
@@ -39,10 +32,9 @@ export async function hasAdminAccess(user) {
     return false;
   }
 
-  if (isSuperAdmin(userId) || isAdmin(userId)) return true;
-
-  const roles = Array.isArray(user.roles) ? user.roles : [];
-  if (roles.some(roleId => ADMIN_ROLE_IDS.includes(String(roleId)))) return true;
+  if (isAdmin(userId)) return true;
+  const roles = Array.isArray(user.roles) ? user.roles.map(String) : [];
+  if (roles.some(roleId => ADMIN_ROLE_IDS.includes(roleId))) return true;
 
   try {
     const manualAdmins = await kv.get('lspd:manual_admins');
