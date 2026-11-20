@@ -164,7 +164,7 @@ return {number, 1}
     embeds: [{
       title: ` Запрос на повышение №${promotion.number}`,
       color: 0x4CAF50,
-      description: `[Открыть запрос для одобрения или отклонения](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${promotion.id})`,
+      description: `[Открыть запрос для одобрения или отклонения](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${promotion.id})`,
       fields: [
         { name: 'Имя Фамилия + Статик', value: promotion.data.fullName.slice(0, 1024), inline: false },
         { name: ' Диапазон рангов', value: promotion.data.rankRange.slice(0, 1024), inline: false },
@@ -314,7 +314,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       ...(previousEmbed.author ? { author: previousEmbed.author } : {}),
       title: `Запрос на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
       color: accepted ? 0x4CAF50 : 0xDC3545,
-      description: `[Открыть запрос в кадровом реестре](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${item.id})`,
+      description: `[Открыть запрос в кадровом реестре](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${item.id})`,
       fields,
       footer: { text: 'Suspect Forms • Запрос на повышение' },
       timestamp: item.resolvedAt || new Date().toISOString()
@@ -399,7 +399,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       }
 
       const originalEmbed = Array.isArray(sourceMessage.embeds) ? sourceMessage.embeds[0] || {} : {};
-      const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
+      const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/profile?audit=${encodeURIComponent(item.id)})`;
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? { author: { name: originalEmbed.author.name, ...(originalEmbed.author.url ? { url: originalEmbed.author.url } : {}), ...(originalEmbed.author.icon_url ? { icon_url: originalEmbed.author.icon_url } : {}) } } : {}),
@@ -554,7 +554,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       reason: promotionResult.reason || null
     };
   }
-  const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
+  const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/profile?audit=${encodeURIComponent(item.id)})`;
 
   // Для отчётов на повышение хай-состава обновляем исходную карточку,
   // отправленную тем же вебхуком. Остальные типы заявок сохраняют прежний POST-процесс.
