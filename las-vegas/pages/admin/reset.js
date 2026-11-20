@@ -12,7 +12,7 @@ export default function ResetPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
@@ -21,7 +21,7 @@ export default function ResetPage() {
   const handleUnlock = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/reset-global-lock', { method: 'POST' });
+      const res = await fetch('/las-vegas/api/admin/reset-global-lock', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
         window.toast.success(data.message || 'Сайт разблокирован!');
