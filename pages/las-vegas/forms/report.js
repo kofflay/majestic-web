@@ -1,0 +1,127 @@
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import FormShell from '../../../components/FormShell';
+import FormLoading from '../../../components/FormLoading';
+import { DEPARTMENTS } from '../../../lib/departments';
+
+const RANKS = Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
+
+export default function ReportForm() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionId, setSubmissionId] = useState('');
+  const [profile, setProfile] = useState({ fullName: '', department: '' });
+  const [formData, setFormData] = useState({ fullName: '', department: '', currentRank: '', targetRank: '', isInstructor: '', workLinks: '' });
+
+  const targetRankNum = parseInt(formData.targetRank);
+  const showInstructorField = targetRankNum === 10;
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (!d.user) { router.push('/'); return; }
+      setUser(d.user);
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.replace('/');
+    });
+    fetch('/api/profile').then(r => r.json()).then(d => {
+      const nextProfile = d?.profile || {};
+      setProfile(nextProfile);
+      setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName || '', department: prev.department || nextProfile.department || '' }));
+    }).catch(() => window.toast?.error('Не удалось загрузить профиль. Заполните данные вручную.'));
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (showInstructorField && formData.isInstructor !== 'yes') {
+      window.toast.info('Для повышения на 10 ранг необходимо быть назначенным на инструктора');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      let requestId = submissionId;
+      if (!requestId) {
+        try { requestId = window.sessionStorage.getItem('hr-audit-report-submission-id') || ''; } catch {}
+      }
+      if (!requestId) {
+        requestId = window.crypto?.randomUUID?.() || `hr-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+      setSubmissionId(requestId);
+      try { window.sessionStorage.setItem('hr-audit-report-submission-id', requestId); } catch {}
+
+      const res = await fetch('/api/las-vegas/submit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'report', submissionId: requestId, ...formData, isInstructor: formData.isInstructor || 'no' })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        try { window.sessionStorage.removeItem('hr-audit-report-submission-id'); } catch {}
+        setSubmissionId('');
+        if (data.warning) window.toast.info(data.warning);
+        else window.toast.success(data.number ? `Отчёт №${data.number} отправлен!` : 'Отчёт отправлен!');
+        router.push('/dashboard');
+      } else { throw new Error(data.error || 'Ошибка отправки'); }
+    } catch (error) { window.toast.error(error.message); }
+    finally { setSubmitting(false); }
+  };
+
+  if (loading) return <FormLoading />;
+  if (!user) return null;
+
+  const s = { width:'100%', padding:'12px 15px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'8px', color:'white', fontSize:'15px', boxSizing:'border-box' };
+  const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
+
+  return (
+    <FormShell user={user} title="Отчёт о повышении" icon="📋" accent="#FF9800">
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Имя Фамилия + Статик *</label>
+          <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData,fullName:e.target.value})} placeholder="Sanya Suspect 270726" style={s} />
+          {profile.fullName && <p className="form-field-hint">Загружено из профиля — поле можно изменить.</p>}
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Выберите отдел * {profile.department && <span style={{ color:'#4CAF50', fontSize:'11px', fontWeight:600 }}>(из профиля)</span>}</label>
+          <select required value={formData.department} onChange={e => setFormData({...formData,department:e.target.value})} disabled={!!profile.department} style={{...s, appearance:'none', cursor:profile.department?'not-allowed':'pointer', opacity:profile.department?0.5:1}}>
+            <option value="">-- Выберите отдел --</option>
+            {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Ваш текущий ранг *</label>
+          <select required value={formData.currentRank} onChange={e => setFormData({...formData,currentRank:e.target.value})} style={{...s, appearance:'none', cursor:'pointer'}}>
+            <option value="">-- Выберите ранг --</option>
+            {RANKS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>На какой ранг повышаетесь *</label>
+          <select required value={formData.targetRank} onChange={e => setFormData({...formData,targetRank:e.target.value,isInstructor:''})} style={{...s, appearance:'none', cursor:'pointer'}}>
+            <option value="">-- Выберите ранг --</option>
+            {RANKS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+        {showInstructorField && (
+          <div style={{ background:'rgba(255,152,0,0.08)', border:'1px solid rgba(255,152,0,0.25)', borderRadius:'12px', padding:'18px', marginBottom:'20px' }}>
+            <label style={lbl}>Назначены ли вы на инструктора? *</label>
+            <select required value={formData.isInstructor} onChange={e => setFormData({...formData,isInstructor:e.target.value})} style={{...s, appearance:'none', cursor:'pointer'}}>
+              <option value="">-- Выберите ответ --</option>
+              <option value="yes">✅ Да</option>
+              <option value="no">❌ Нет</option>
+            </select>
+            <div style={{ marginTop:'8px', fontSize:'13px', color:'#FFB74D' }}>⚠️ Для повышения на 10 ранг необходимо быть инструктором</div>
+          </div>
+        )}
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Ссылки на проделанную работу *</label>
+          <textarea required value={formData.workLinks} onChange={e => setFormData({...formData,workLinks:e.target.value})} placeholder="Вставьте ссылки на ваши отчёты..." rows="4" style={{...s, resize:'vertical', minHeight:'100px'}} />
+        </div>
+        <button type="submit" disabled={submitting || (showInstructorField && formData.isInstructor !== 'yes')} style={{ width:'100%', padding:'14px', background:'linear-gradient(135deg, #FF9800, #FFB74D)', color:'white', border:'none', borderRadius:'10px', fontSize:'15px', fontWeight:600, cursor:submitting?'not-allowed':'pointer', opacity:submitting?0.5:1, marginTop:'10px', boxShadow:'0 4px 12px rgba(255,152,0,0.25)' }}>
+          {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
+        </button>
+      </form>
+    </FormShell>
+  );
+}
