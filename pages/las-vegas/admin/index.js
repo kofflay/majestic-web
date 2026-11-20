@@ -78,7 +78,7 @@ export default function AdminHub() {
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
-      if (!d.user) { router.push('/'); return; }
+      if (!d.user) { router.push('/las-vegas/start'); return; }
       setUser(d.user);
     });
     fetch('/api/las-vegas/admin/check').then(r => r.json()).then(d => {
