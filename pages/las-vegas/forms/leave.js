@@ -26,7 +26,7 @@ export default function LeaveForm() {
       setLoading(false);
       router.replace('/');
     });
-    fetch('/api/profile').then(r => r.json()).then(d => {
+    fetch('/api/las-vegas/profile').then(r => r.json()).then(d => {
       const nextProfile = d?.profile || {};
       setProfile(nextProfile);
       setFormData(prev => ({
