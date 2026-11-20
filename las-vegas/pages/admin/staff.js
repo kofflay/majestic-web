@@ -15,7 +15,7 @@ export default function AdminStaffPage() {
   const [formData, setFormData] = useState({ name: '', rank: 'Chief of Police', discord: '', avatar: '' });
 
   useEffect(() => {
-    fetch('/api/me', { cache: 'no-store' })
+    fetch('/las-vegas/api/me', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         if (!data.user) {
@@ -29,7 +29,7 @@ export default function AdminStaffPage() {
   }, []);
 
   const fetchStaff = async () => {
-    const res = await fetch('/api/staff');
+    const res = await fetch('/las-vegas/api/staff');
     if (res.ok) {
       const data = await res.json();
       setStaff(data);
@@ -39,7 +39,7 @@ export default function AdminStaffPage() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/staff', {
+    const res = await fetch('/las-vegas/api/staff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
@@ -54,7 +54,7 @@ export default function AdminStaffPage() {
 
   const handleDelete = async (id) => {
     if (!confirm('Удалить этого человека?')) return;
-    const res = await fetch('/api/staff', {
+    const res = await fetch('/las-vegas/api/staff', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
