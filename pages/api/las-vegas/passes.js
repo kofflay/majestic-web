@@ -1,9 +1,9 @@
-import { kv } from '../../../../lib/redis.js';
-import { verifyToken } from '../../../../lib/discord';
-import { hasLasVegasAdminAccess } from '../../../../lib/admins';
-import { mutateJsonArray, patchJsonArrayItem } from '../../../../lib/kv-atomic';
-import { logAdminAction } from '../../../../lib/admin-audit';
-import { getPassStatus, normalizePass, validatePass } from '../../../../lib/pass-utils.mjs';
+import { kv } from '../../../lib/redis.js';
+import { verifyToken } from '../../../lib/discord';
+import { getLasVegasAccess, hasLasVegasAdminAccess } from '../../../lib/las-vegas-access';
+import { mutateJsonArray, patchJsonArrayItem } from '../../../lib/kv-atomic';
+import { logAdminAction } from '../../../lib/las-vegas-admin-audit';
+import { getPassStatus, normalizePass, validatePass } from '../../../lib/pass-utils.mjs';
 
 const PASSES_KEY = 'lasvegas:passes';
 
