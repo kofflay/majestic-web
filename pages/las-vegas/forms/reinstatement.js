@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '../../../components/FormShell';
+import LasVegasFormShell from '../../../components/LasVegasFormShell';
 import FormLoading from '../../../components/FormLoading';
 
 const RANKS = Array.from({ length: 15 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
@@ -56,7 +56,7 @@ export default function ReinstatementForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Восстановление" icon="🔄" accent="#9C27B0">
+    <LasVegasFormShell user={user} title="Восстановление" icon="🔄" accent="#9C27B0">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -96,6 +96,6 @@ export default function ReinstatementForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить заявку'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
