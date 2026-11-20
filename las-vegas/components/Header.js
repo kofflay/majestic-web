@@ -37,7 +37,7 @@ export default function Header({ user }) {
       return undefined;
     }
     let active = true;
-    const storageKey = `memphis-lspd:profile-avatar:${user.id}`;
+    const storageKey = `las-vegas:profile-avatar:${user.id}`;
     let cachedAvatar = '';
     try {
       cachedAvatar = window.sessionStorage.getItem(storageKey) || '';
