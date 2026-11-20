@@ -21,7 +21,7 @@ export default function RoleCheckerPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
     });
@@ -31,7 +31,7 @@ export default function RoleCheckerPage() {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-    const res = await fetch(`/api/admin/roles?discordId=${searchId}`);
+    const res = await fetch(`/las-vegas/api/admin/roles?discordId=${searchId}`);
     const data = await res.json();
     setResult({ status: res.status, data });
     setLoading(false);
