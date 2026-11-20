@@ -16,7 +16,7 @@ export default function PremiumForm() {
   const [currentParticipant, setCurrentParticipant] = useState({ name: '', rank: '', static: '', weeks: '' });
 
   useEffect(() => {
-    fetch('/api/me').then(res => res.json()).then(data => {
+    fetch('/las-vegas/api/me').then(res => res.json()).then(data => {
       if (!data.user) { router.push('/'); return; }
       setUser(data.user);
       setLoading(false);
@@ -24,7 +24,7 @@ export default function PremiumForm() {
       setLoading(false);
       router.replace('/');
     });
-    fetch('/api/profile').then(res => res.json()).then(data => setProfile(data?.profile || { fullName: '' }))
+    fetch('/las-vegas/api/profile').then(res => res.json()).then(data => setProfile(data?.profile || { fullName: '' }))
       .catch(() => window.toast?.error('Не удалось загрузить профиль.'));
   }, []);
 
@@ -56,7 +56,7 @@ export default function PremiumForm() {
     setSubmitting(true);
     try {
       const participantsText = participants.map(p => `${p.name} | ${p.rank} | ${p.static} | ${p.weeks}`).join('\n');
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'premium', fullName: profile.fullName || user.username, department, participants: participantsText })
       });
