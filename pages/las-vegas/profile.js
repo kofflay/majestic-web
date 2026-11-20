@@ -35,7 +35,7 @@ export default function Profile() {
         setUser(data.user);
         setLoading(false);
       })
-      .catch(() => router.replace('/'));
+      .catch(() => router.replace('/las-vegas/start'));
 
     fetch('/api/las-vegas/profile')
       .then(response => response.json())
