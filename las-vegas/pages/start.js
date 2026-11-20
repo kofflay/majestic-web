@@ -69,14 +69,14 @@ export default function Home() {
             
             <div className="landing-hero__content">
               <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> LAS VEGAS</div>
-              <h1>Закон.<br /><span>Порядок.</span><br />Los Santos.</h1>
-              <p>Los Santos Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
+              <h1>Закон.<br /><span>Порядок.</span><br />Las Vegas.</h1>
+              <p>Las Vegas Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
             </div>
             <div className="landing-orbit" aria-hidden="true"><strong>24</strong><small>HOURS</small></div>
-            <div className="landing-meta landing-meta--left">LSPD / 010</div>
+            <div className="landing-meta landing-meta--left">LAS VEGAS / 010</div>
             <div className="landing-meta landing-meta--center">EST. 2026</div>
-            <div className="landing-meta landing-meta--right">LOS SANTOS, CA</div>
+            <div className="landing-meta landing-meta--right">LAS VEGAS, NV</div>
           </section>
 
           <section className="landing-mission">
@@ -90,14 +90,14 @@ export default function Home() {
 
           <section className="landing-cards">
             <a href="/las-vegas/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
-            <a href="/las-vegas/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
+            <a href="/las-vegas/staff"><span>02</span><strong>Состав полиции</strong><small>Команда и руководство</small><b>↗</b></a>
           </section>
 
           <section className="landing-command" aria-labelledby="landing-command-title">
             <div className="landing-command__eyebrow">TOP SECRET // CLEARANCE REQUIRED</div>
             <div className="landing-section-label"><span>03</span> РУКОВОДСТВО</div>
             <h2 id="landing-command-title">Командование департамента</h2>
-            <p>Высшее руководство Los Santos Police Department</p>
+            <p>Высшее руководство Las Vegas Police Department</p>
             <div className="landing-command__grid">
               {staff.map((member) => (
                 <StaffCard key={member.id} member={member} isAdminView={false} />
@@ -106,7 +106,7 @@ export default function Home() {
           </section>
         </main>
         <footer className="landing-footer">
-          <span>LSPD SYSTEM / LAS VEGAS</span>
+          <span>LAS VEGAS ROLEPLAY SYSTEM</span>
           <span className="landing-footer__credit">
             ЧАСТЬ ПРОЕКТА{' '}
             <a href="https://discord.com" target="_blank" rel="noopener noreferrer">
