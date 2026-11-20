@@ -16,7 +16,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
-      if (!d.user) { router.push('/'); return; }
+      if (!d.user) { router.push('/las-vegas/start'); return; }
       setUser(d.user);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -162,7 +162,7 @@ export default function ApplicationsPage() {
         <button
           type="button"
           className="complaint-entry"
-          onClick={() => router.push('/complaint')}
+          onClick={() => router.push('/las-vegas/complaint')}
           aria-label="Подать жалобу на сотрудника"
         >
           <span className="complaint-entry__icon" aria-hidden="true">!</span>
