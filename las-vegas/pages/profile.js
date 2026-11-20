@@ -25,7 +25,7 @@ export default function Profile() {
   const avatarInputRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then(response => response.json())
       .then(data => {
         if (!data.user) {
@@ -37,7 +37,7 @@ export default function Profile() {
       })
       .catch(() => router.replace('/'));
 
-    fetch('/api/profile')
+    fetch('/las-vegas/api/profile')
       .then(response => response.json())
       .then(data => {
         const nextProfile = data?.profile || { fullName: '', department: '' };
@@ -46,14 +46,14 @@ export default function Profile() {
       })
       .catch(() => window.toast?.error('Не удалось загрузить данные профиля.'));
 
-    fetch('/api/profile/avatar')
+    fetch('/las-vegas/api/profile/avatar')
       .then(response => response.json())
       .then(data => {
         if (data?.avatarUrl) setAvatarUrl(data.avatarUrl);
       })
       .catch(() => window.toast?.error('Не удалось загрузить фото профиля.'));
 
-    fetch('/api/stats')
+    fetch('/las-vegas/api/stats')
       .then(response => response.json())
       .then(data => {
         setHistory(Array.isArray(data?.history) ? data.history : []);
@@ -71,7 +71,7 @@ export default function Profile() {
 
     setSavingName(true);
     try {
-      const response = await fetch('/api/profile', {
+      const response = await fetch('/las-vegas/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fullName: value })
@@ -92,7 +92,7 @@ export default function Profile() {
   const saveDepartment = async (departmentId) => {
     setSavingDepartment(true);
     try {
-      const response = await fetch('/api/profile', {
+      const response = await fetch('/las-vegas/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ department: departmentId })
@@ -152,7 +152,7 @@ export default function Profile() {
         throw new Error('Выберите другое фото: его не удалось сжать до допустимого размера.');
       }
 
-      const response = await fetch('/api/profile/avatar', {
+      const response = await fetch('/las-vegas/api/profile/avatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar })
@@ -175,7 +175,7 @@ export default function Profile() {
     if (!item.auditNumber) return;
     setHistoryDetailsLoading(true);
     try {
-      const response = await fetch(`/api/my-submission?id=${encodeURIComponent(item.auditNumber)}`);
+      const response = await fetch(`/las-vegas/api/my-submission?id=${encodeURIComponent(item.auditNumber)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить обращение.');
       setHistoryDetails(data.item);
