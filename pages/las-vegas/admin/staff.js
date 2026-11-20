@@ -19,12 +19,12 @@ export default function AdminStaffPage() {
       .then(r => r.json())
       .then(data => {
         if (!data.user) {
-          router.replace('/');
+          router.replace('/las-vegas/start');
           return;
         }
         setUser(data.user);
       })
-      .catch(() => router.replace('/'));
+      .catch(() => router.replace('/las-vegas/start'));
     fetchStaff();
   }, []);
 
