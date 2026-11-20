@@ -107,7 +107,7 @@ export default function AdminHub() {
           Центр Управления
         </h1>
         <p className="admin-page-heading__description">
-          Панель администратора Memphis Police Department.
+          Панель администратора Las Vegas Police Department.
         </p>
       </div>
 
