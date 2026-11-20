@@ -20,7 +20,7 @@ export default function ComplaintForm() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/me')
+    fetch('/las-vegas/api/me')
       .then(res => res.json())
       .then(data => {
         if (!data.user) {
@@ -36,7 +36,7 @@ export default function ComplaintForm() {
         if (!cancelled) setLoading(false);
       });
 
-    fetch('/api/profile')
+    fetch('/las-vegas/api/profile')
       .then(res => res.json())
       .then(data => {
         if (cancelled) return;
@@ -73,7 +73,7 @@ export default function ComplaintForm() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'complaint', ...formData })
