@@ -55,7 +55,7 @@ export default function SubmissionGatePage() {
   if (!user) return null;
 
   return (
-    <AdminPageGuard superAdminOnly>
+    <AdminPageGuard>
       <PageLayout user={user}>
         <AdminSectionHeader
           title="Приём заявок"
