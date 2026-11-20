@@ -8,7 +8,7 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/staff')
+    fetch('/las-vegas/api/staff')
       .then(res => res.json())
       .then(data => {
         setStaff(data);
