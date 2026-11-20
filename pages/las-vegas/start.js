@@ -1,99 +1,98 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import StaffCard from '../../components/StaffCard';
+import LasVegasHeader from '../../components/LasVegasHeader';
+import LivingBackground from '../../components/LivingBackground';
 
 export default function LasVegasStart() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('loading');
+  const [staff, setStaff] = useState([]);
   const [error, setError] = useState('');
-  const [access, setAccess] = useState(null);
 
   useEffect(() => {
     if (!router.isReady) return;
-    let active = true;
+    const queryError = router.query.error;
+    if (queryError === 'new_account') {
+      setError(`Ваш Discord аккаунт создан ${router.query.days || '0'} дней назад. Требуется минимум ${router.query.min || '5'} дней.`);
+    } else if (queryError === 'access_denied') {
+      setError('Вы отклонили авторизацию.');
+    } else if (queryError) {
+      setError('Ошибка авторизации. Попробуйте снова.');
+    }
+  }, [router.isReady, router.query.error, router.query.days, router.query.min]);
 
+  useEffect(() => {
+    let active = true;
     fetch('/api/me')
       .then(response => response.ok ? response.json() : null)
       .then(async data => {
         if (!active) return;
         const currentUser = data?.user || null;
         setUser(currentUser);
-        if (!currentUser) {
-          setStatus('guest');
-          return;
-        }
-
+        if (!currentUser) return;
         const accessResponse = await fetch('/api/las-vegas/access');
-        if (!accessResponse.ok) {
-          if (active) setStatus('error');
-          return;
-        }
+        if (!accessResponse.ok) return;
         const access = await accessResponse.json();
-        if (!active) return;
-        setAccess(access);
-        setStatus(access.hasAccess ? 'allowed' : 'denied');
+        if (!active || !access?.hasAccess) return;
+        const staffResponse = await fetch('/api/las-vegas/staff');
+        if (!staffResponse.ok) return;
+        const staffData = await staffResponse.json();
+        if (active) setStaff(Array.isArray(staffData) ? staffData : []);
       })
-      .catch(() => {
-        if (active) setStatus('error');
-      });
-
+      .catch(() => {});
     return () => { active = false; };
-  }, [router.isReady]);
-
-  const login = () => {
-    window.location.href = '/api/auth/start?returnTo=' + encodeURIComponent('/las-vegas/start');
-  };
-
-  const panelStyle = {
-    width: 'min(560px, calc(100% - 32px))',
-    margin: '12vh auto',
-    padding: '36px',
-    border: '1px solid rgba(255,255,255,.12)',
-    borderRadius: '18px',
-    background: 'rgba(15,18,24,.88)',
-    boxShadow: '0 24px 80px rgba(0,0,0,.35)',
-    color: '#f5f7fa',
-    textAlign: 'center',
-  };
-
-  const buttonStyle = {
-    display: 'inline-block',
-    marginTop: '22px',
-    padding: '13px 22px',
-    borderRadius: '8px',
-    border: 0,
-    background: '#5865f2',
-    color: '#fff',
-    fontWeight: 700,
-    textDecoration: 'none',
-    cursor: 'pointer',
-  };
-
-  let heading = 'Las Vegas Police Department';
-  let message = 'Проверяем авторизацию и доступ к серверу…';
-  if (status === 'guest') message = 'Войдите через Discord, чтобы проверить доступ к подразделению Las Vegas.';
-  if (status === 'allowed') message = `Доступ подтверждён. Добро пожаловать, ${user?.username || 'сотрудник'}.`;
-  if (status === 'denied') message = 'У вашего Discord-аккаунта нет роли сотрудника или администратора Las Vegas.';
-  if (status === 'error') message = 'Не удалось проверить доступ. Обновите страницу или попробуйте позже.';
+  }, []);
 
   return (
-    <main style={{ minHeight: '100vh', padding: '1px 0', background: 'radial-gradient(circle at 50% 0%, #20283b 0%, #080a0f 55%, #030405 100%)' }}>
-      <section style={panelStyle}>
-        <div style={{ color: '#9ba8c7', fontSize: '11px', letterSpacing: '3px', marginBottom: '14px' }}>MAJESTIC ROLE PLAY · NEVADA</div>
-        <h1 style={{ margin: '0 0 14px', fontSize: 'clamp(26px, 5vw, 36px)' }}>{heading}</h1>
-        <p style={{ margin: 0, color: '#b8c0cf', lineHeight: 1.7 }}>{message}</p>
-        {status === 'guest' && <button onClick={login} style={buttonStyle}>Войти через Discord</button>}
-        {status === 'denied' && <a href="/start" style={buttonStyle}>Перейти в Memphis</a>}
-        {status === 'allowed' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 24 }}>
-            <a href="/las-vegas/forms" style={buttonStyle}>Формы и заявления</a>
-            <a href="/las-vegas/staff" style={buttonStyle}>Состав сотрудников</a>
-            <a href="/las-vegas/passes" style={buttonStyle}>Реестр пропусков</a>
-            {access?.isAdmin && <a href="/las-vegas/admin" style={buttonStyle}>Администрирование</a>}
-          </div>
-        )}
-        {status === 'error' && <button onClick={() => router.reload()} style={buttonStyle}>Повторить проверку</button>}
-      </section>
-    </main>
+    <div className="site-page-shell landing-page" style={{ position: 'relative' }}>
+      <LivingBackground />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <LasVegasHeader user={user} />
+        <main>
+          <section className="landing-hero">
+            <div className="landing-hero__content">
+              <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> LAS VEGAS</div>
+              <h1>Закон.<br /><span>Порядок.</span><br />Las Vegas.</h1>
+              <p>Las Vegas Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
+              {error && <div className="landing-error" role="alert">{error}</div>}
+            </div>
+            <div className="landing-orbit" aria-hidden="true"><strong>24</strong><small>HOURS</small></div>
+            <div className="landing-meta landing-meta--left">LVPD / 001</div>
+            <div className="landing-meta landing-meta--center">EST. 2026</div>
+            <div className="landing-meta landing-meta--right">LAS VEGAS, NV</div>
+          </section>
+          <section className="landing-mission">
+            <div className="landing-section-label"><span>01</span> НАША МИССИЯ</div>
+            <div>
+              <h2>Служить и защищать —<br /><em>это наш выбор.</em></h2>
+              <p>Мы создаём безопасный город, в котором каждый житель может чувствовать себя защищённым. Наша сила — в дисциплине, профессионализме и уважении к закону.</p>
+            </div>
+            <div className="landing-quote">“</div>
+          </section>
+          <section className="landing-cards">
+            <a href="/las-vegas/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
+            <a href="/las-vegas/staff"><span>02</span><strong>Состав LVPD</strong><small>Команда и руководство</small><b>↗</b></a>
+            <a href="/las-vegas/forms"><span>03</span><strong>Формы</strong><small>Документы и обращения</small><b>↗</b></a>
+          </section>
+          {staff.length > 0 && (
+            <section className="landing-command" aria-labelledby="lv-command-title">
+              <div className="landing-command__eyebrow">OFFICIAL // LVPD</div>
+              <div className="landing-section-label"><span>04</span> РУКОВОДСТВО</div>
+              <h2 id="lv-command-title">Командование департамента</h2>
+              <p>Высшее руководство Las Vegas Police Department</p>
+              <div className="landing-command__grid">
+                {staff.map(member => <StaffCard key={member.id} member={member} isAdminView={false} />)}
+              </div>
+            </section>
+          )}
+        </main>
+        <footer className="landing-footer">
+          <span>LVPD SYSTEM / LAS VEGAS</span>
+          <span>MAJESTIC ROLE PLAY</span>
+          <span>SECURE ACCESS · 2026</span>
+        </footer>
+      </div>
+    </div>
   );
 }
