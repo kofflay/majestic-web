@@ -1,5 +1,5 @@
 import { verifyToken } from '../../lib/discord';
-import { canSubmitDuringGate, getSubmissionGate, SUBMISSION_GATE_EXEMPT_ID } from '../../lib/submission-gate';
+import { getSubmissionGate, SUBMISSION_GATE_EXEMPT_ID } from '../../lib/submission-gate';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
