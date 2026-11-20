@@ -132,7 +132,7 @@ export default function HrAuditPage() {
   const load = async () => {
     setError('');
     try {
-      const response = await fetch('/api/admin/hr-audit');
+      const response = await fetch('/las-vegas/api/admin/hr-audit');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить заявки');
       setItems(data.items || []);
@@ -141,7 +141,7 @@ export default function HrAuditPage() {
   };
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => setUser(d.user || null)).catch(() => {});
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => setUser(d.user || null)).catch(() => {});
     load();
   }, []);
 
@@ -162,7 +162,7 @@ export default function HrAuditPage() {
     if (!window.confirm(decision === 'accepted' ? `Одобрить заявку №${item.number}?` : `Отклонить заявку №${item.number}?`)) return;
     setBusy(item.id); setError('');
     try {
-      const response = await fetch('/api/admin/hr-audit', {
+      const response = await fetch('/las-vegas/api/admin/hr-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, decision, reason })
@@ -179,7 +179,7 @@ export default function HrAuditPage() {
   const retryDelivery = async item => {
     setBusy(item.id); setError('');
     try {
-      const response = await fetch('/api/admin/hr-audit', {
+      const response = await fetch('/las-vegas/api/admin/hr-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, action: 'retry-delivery' })
@@ -195,7 +195,7 @@ export default function HrAuditPage() {
   const retryNotification = async item => {
     setBusy(item.id); setError('');
     try {
-      const response = await fetch('/api/admin/hr-audit', {
+      const response = await fetch('/las-vegas/api/admin/hr-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, action: 'retry-notification' })
