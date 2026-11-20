@@ -20,13 +20,13 @@ const ADMIN_TOOLS = [
     title: 'Все заявки',
     description: 'Просмотр всех отправленных форм и заявок.',
     code: 'SYS-04',
-    path: '/las-vegas/applications',
+    path: '/las-vegas/admin/requests',
   },
   {
     title: 'Черный список',
     description: 'Управление забаненными пользователями.',
     code: 'SYS-05',
-    path: '/las-vegas/applications',
+    path: '/las-vegas/admin/requests',
   },
   {
     title: 'Разблокировка',
@@ -44,7 +44,7 @@ const ADMIN_TOOLS = [
     title: 'Приём заявок',
     description: 'Глобально включить или приостановить отправку новых заявок.',
     code: 'SYS-11',
-    path: '/las-vegas/applications'
+    path: '/las-vegas/admin/requests'
   },
   {
     title: 'Супер-Админка',
