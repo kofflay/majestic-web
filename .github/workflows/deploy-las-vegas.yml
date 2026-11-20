@@ -65,8 +65,12 @@ jobs:
           echo "Working directory: $PWD"
           echo "Next build output:"
           ls -la .next
-          test -f .next/standalone/server.js || { echo "::error::Standalone server.js is missing"; exit 1; }
           test -f .next/BUILD_ID || { echo "::error::Next BUILD_ID is missing"; exit 1; }
+          if [ ! -f .next/standalone/server.js ]; then
+            echo "::error::Standalone server.js is missing. Contents of .next:"
+            find .next -maxdepth 4 -type f -name server.js -o -name BUILD_ID
+            exit 1
+          fi
 
           release="$RUNNER_TEMP/las-vegas-release"
           rm -rf "$release"
