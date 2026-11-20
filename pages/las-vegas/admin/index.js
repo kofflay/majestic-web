@@ -1,7 +1,7 @@
 // pages/admin/index.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import PageLayout from '../../../components/PageLayout';
+import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
 
 const ADMIN_TOOLS = [
   {
@@ -92,7 +92,7 @@ export default function AdminHub() {
   if (loading || !user) return <div style={{ minHeight: '100vh', background: '#030303' }} />;
 
   return (
-    <PageLayout user={user}>
+    <LasVegasPageLayout user={user}>
       
       {/* Заголовок терминала */}
       <div className="admin-page-heading">
@@ -215,6 +215,6 @@ export default function AdminHub() {
       <style jsx global>{`
         @keyframes blink { 50% { opacity: 0; } }
       `}</style>
-    </PageLayout>
+    </LasVegasPageLayout>
   );
 }
