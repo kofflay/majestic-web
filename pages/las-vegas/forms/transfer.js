@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '../../../components/FormShell';
+import LasVegasFormShell from '../../../components/LasVegasFormShell';
 import FormLoading from '../../../components/FormLoading';
 import { DEPARTMENTS, TRANSFER_DEPARTMENTS } from '../../../lib/las-vegas-departments';
 
@@ -90,7 +90,7 @@ export default function TransferForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Перевод в отдел" icon="🔄" accent="#2196F3">
+    <LasVegasFormShell user={user} title="Перевод в отдел" icon="🔄" accent="#2196F3">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>
@@ -197,6 +197,6 @@ export default function TransferForm() {
           {submitting ? '⏳ Отправка...' : '📤 Отправить'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
