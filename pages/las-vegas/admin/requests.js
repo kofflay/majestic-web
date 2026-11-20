@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LasVegasPageLayout from '../../../components/LasVegasPageLayout';
-import LasVegasAdminPageGuard from '../../../components/AdminPageGuard';
+import LasVegasAdminPageGuard from '../../../components/LasVegasAdminPageGuard';
 import AdminSectionHeader from '../../../components/AdminSectionHeader';
 import { adminPanelStyle, adminPanelHeaderStyle } from '../../../components/adminStyles';
 
@@ -14,7 +14,7 @@ export default function RequestsPage() {
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
-      if (!d.user) { router.push('/'); return; }
+      if (!d.user) { router.push('/las-vegas/start'); return; }
       setUser(d.user);
     });
     fetchSubmissions();
