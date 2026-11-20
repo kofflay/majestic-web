@@ -124,11 +124,11 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="LSPD — на главную"
+            aria-label="Las Vegas — на главную"
           >
             <span className="brand__mark" aria-hidden="true">◈</span>
             <span className="brand__text">
-              <strong>LOS SANTOS</strong>
+              <strong>LAS VEGAS</strong>
               <small>POLICE DEPARTMENT</small>
             </span>
           </button>
