@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 export default function ComplaintForm() {
@@ -36,7 +36,7 @@ export default function ComplaintForm() {
         if (!cancelled) setLoading(false);
       });
 
-    fetch('/api/profile')
+    fetch('/api/las-vegas/profile')
       .then(res => res.json())
       .then(data => {
         if (cancelled) return;
@@ -83,7 +83,7 @@ export default function ComplaintForm() {
 
       window.toast.success('Жалоба принята и направлена на рассмотрение.');
       if (result.warning) window.toast.info(result.warning);
-      router.push('/applications');
+      router.push('/las-vegas/applications');
     } catch (error) {
       window.toast.error(error.message || 'Ошибка отправки жалобы');
     } finally {
@@ -95,7 +95,7 @@ export default function ComplaintForm() {
   if (!user) return null;
 
   return (
-    <FormShell
+    <LasVegasFormShell
       user={user}
       title="Жалоба на сотрудника"
       icon="🚨"
@@ -148,6 +148,6 @@ export default function ComplaintForm() {
           {submitting ? '⏳ Отправка...' : '🚨 Отправить жалобу'}
         </button>
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
