@@ -1,7 +1,7 @@
 // pages/forms/promotion.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import FormShell from '@/components/FormShell';
+import LasVegasFormShell from '@/components/LasVegasFormShell';
 import FormLoading from '@/components/FormLoading';
 
 const RANK_OPTIONS = [
@@ -82,7 +82,7 @@ export default function PromotionForm() {
   if (!user) return null;
 
   return (
-    <FormShell user={user} title="Запрос на повышение" icon="📈">
+    <LasVegasFormShell user={user} title="Запрос на повышение" icon="📈">
       <form onSubmit={handleSubmit}>
         
         {/* Имя Фамилия */}
@@ -157,6 +157,6 @@ export default function PromotionForm() {
         </button>
         
       </form>
-    </FormShell>
+    </LasVegasFormShell>
   );
 }
