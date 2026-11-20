@@ -14,7 +14,7 @@ export default function SubmissionGatePage() {
 
   const loadStatus = async () => {
     try {
-      const response = await fetch('/api/admin/submission-gate');
+      const response = await fetch('/las-vegas/api/admin/submission-gate');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить состояние');
       setEnabled(Boolean(data.enabled));
@@ -26,7 +26,7 @@ export default function SubmissionGatePage() {
   };
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       if (String(d.user.id) !== '200102286473691139') { router.replace('/admin'); return; }
       setUser(d.user);
@@ -37,7 +37,7 @@ export default function SubmissionGatePage() {
   const toggle = async (nextEnabled) => {
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/submission-gate', {
+      const response = await fetch('/las-vegas/api/admin/submission-gate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: nextEnabled }),
