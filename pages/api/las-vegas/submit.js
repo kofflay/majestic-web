@@ -340,14 +340,14 @@ export default async function handler(req, res) {
   else if (type === 'reinstatement') { webhookUrl = webhooks.reinstatement; roleMentions = [process.env.LV_ROLE_PING_ADMIN, process.env.LV_ROLE_PING_STAFF].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
   else if (type === 'transfer-to-lspd') { webhookUrl = webhooks['transfer-to-lspd']; roleMentions = [process.env.LV_ROLE_PING_ADMIN, process.env.LV_ROLE_PING_HIGH_RANK].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
   else if (type === 'hiring') { webhookUrl = webhooks.hiring; roleMentions = [process.env.LV_ROLE_PING_HIRING, process.env.LV_ROLE_PING_STAFF].filter(Boolean).map(id => `<@&${id}>`).join(' '); }
-  else if (type === 'weapon-request') { webhookUrl = webhooks['weapon-request']; roleMentions = '<@&1514690313233371226> <@&1514608894700159142>'; }
+  else if (type === 'weapon-request') { webhookUrl = webhooks['weapon-request']; roleMentions = ''; }
   else if (type === 'premium') { webhookUrl = webhooks.premium; roleMentions = ''; }
   else if (type === 'complaint') { webhookUrl = webhooks.complaintPrivate; roleMentions = process.env.LV_ROLE_PING_COMPLAINT ? `<@&${process.env.LV_ROLE_PING_COMPLAINT}>` : ''; }
   else if (type === 'leave') {
     webhookUrl = webhooks.leave;
     roleMentions = getRoleMentions(department);
     threadId = leaveType === 'ooc' ? process.env.LV_LEAVE_THREAD_OOC : process.env.LV_LEAVE_THREAD_IC;
-  } else { webhookUrl = webhooks.promotion; roleMentions = '<@&1514608894679191597>'; }
+  } else { webhookUrl = webhooks.promotion; roleMentions = ''; }
   if (!webhookUrl) return rejectSubmission(res, user, type, formData, leaveType, 500, 'Вебхук не настроен');
 
   if (!isWhitelisted) {
