@@ -1,7 +1,7 @@
 // pages/applications.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import PageLayout from '../../components/PageLayout';
+import LasVegasPageLayout from '../../components/LasVegasPageLayout';
 
 const publicForms = [
   { id: 'hiring', title: 'Трудоустройство', description: 'Подать заявку на вступление в LSPD', code: 'A-01' },
@@ -25,7 +25,7 @@ export default function ApplicationsPage() {
   if (!user) return null;
 
   return (
-    <PageLayout user={user}>
+    <LasVegasPageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Заявления</h1>
         <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников LSPD.</p>
@@ -267,6 +267,6 @@ export default function ApplicationsPage() {
           50% { opacity: 0; }
         }
       `}</style>
-    </PageLayout>
+    </LasVegasPageLayout>
   );
 }
