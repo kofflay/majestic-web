@@ -28,7 +28,7 @@ export default function AdminAuditLogsPage() {
   const loadLogs = useCallback(async (nextOffset = 0) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/audit-logs?limit=50&offset=${nextOffset}`, { cache: 'no-store' });
+      const response = await fetch(`/las-vegas/api/admin/audit-logs?limit=50&offset=${nextOffset}`, { cache: 'no-store' });
       if (response.status === 401 || response.status === 403) {
         router.replace('/admin');
         return;
@@ -46,7 +46,7 @@ export default function AdminAuditLogsPage() {
   }, [router]);
 
   useEffect(() => {
-    fetch('/api/me', { cache: 'no-store' }).then(r => r.json()).then(data => {
+    fetch('/las-vegas/api/me', { cache: 'no-store' }).then(r => r.json()).then(data => {
       if (!data.user) { router.replace('/'); return; }
       setUser(data.user);
     }).catch(() => router.replace('/'));
