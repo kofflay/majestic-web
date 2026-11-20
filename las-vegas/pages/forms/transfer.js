@@ -50,7 +50,7 @@ export default function TransferForm() {
   };
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
       setLoading(false);
@@ -58,7 +58,7 @@ export default function TransferForm() {
       setLoading(false);
       router.replace('/');
     });
-    fetch('/api/profile').then(r => r.json()).then(d => {
+    fetch('/las-vegas/api/profile').then(r => r.json()).then(d => {
       const nextProfile = d?.profile || {};
       setProfile(nextProfile);
       setFormData(prev => ({ ...prev, fullName: prev.fullName || nextProfile.fullName || '', currentDepartment: prev.currentDepartment || nextProfile.department || '' }));
@@ -73,7 +73,7 @@ export default function TransferForm() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/submit', {
+      const res = await fetch('/las-vegas/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'transfer', ...formData })
       });
