@@ -6,7 +6,7 @@ import { canSubmitDuringGate } from '../../lib/submission-gate';
 
 const WEBHOOK_URL = process.env.WEBHOOK_RECOVERY;
 const ROLE_PING = '1514608894679191592';
-const STAFF_ROLE_ID = '1552313180041121802';
+const STAFF_ROLE_ID = '1397291237567889582';
 
 async function rejectAppeal(res, user, statusCode, message) {
   await recordSubmissionHistory(user.id, { type: 'appeal', title: 'Обжалование наказания', status: 'not_sent' });
