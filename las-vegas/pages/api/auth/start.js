@@ -1,7 +1,8 @@
 // pages/api/auth/start.js
 import { randomBytes } from 'crypto';
 
-const OAUTH_COOKIE_PATH = '/api/auth';
+const OAUTH_COOKIE_PATH = '/las-vegas/api/auth';
+const APP_PATH = '/las-vegas';
 const STATE_TTL_SECONDS = 10 * 60;
 
 function getSafeReturnTo(value) {
@@ -13,11 +14,11 @@ function getSafeReturnTo(value) {
     value.includes('\\') ||
     /[\u0000-\u001f\u007f]/.test(value)
   ) {
-    return '/start';
+    return `${APP_PATH}/start`;
   }
 
   try {
-    const base = new URL('https://memphis-lspd.vercel.app');
+    const base = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost');
     const target = new URL(value, base);
     if (target.origin !== base.origin) return '/start';
     const normalizedPath = '/' + decodeURIComponent(target.pathname).split('/').filter(Boolean).join('/');
@@ -41,7 +42,7 @@ export default function handler(req, res) {
   const redirectUri = process.env.DISCORD_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return res.redirect('/?error=auth_config');
+    return res.redirect(`${APP_PATH}/?error=auth_config`);
   }
 
   const returnTo = getSafeReturnTo(req.query.returnTo);
@@ -55,10 +56,10 @@ export default function handler(req, res) {
       const requestHost = String(req.headers.host || '').toLowerCase();
       if (requestHost && requestHost !== callbackHost) {
         const params = new URLSearchParams({ returnTo });
-        return res.redirect(`https://${callbackHost}/api/auth/start?${params.toString()}`);
+        return res.redirect(`https://${callbackHost}${APP_PATH}/api/auth/start?${params.toString()}`);
       }
     } catch {
-      return res.redirect('/?error=auth_config');
+      return res.redirect(`${APP_PATH}/?error=auth_config`);
     }
   }
   const state = randomBytes(32).toString('hex');
