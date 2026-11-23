@@ -1082,6 +1082,43 @@ export default async function handler(req, res) {
     }
   }
 
+  if (action === 'retry-personnel-audit') {
+    let lock;
+    try {
+      lock = await acquireHrAuditLock('personnel-audit', id);
+      if (!lock) return res.status(409).json({ error: 'Публикация кадровой карточки уже выполняется. Обновите страницу позже.' });
+      const item = await kv.get(itemKey);
+      if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
+        return res.status(404).json({ error: 'Заявка не найдена' });
+      }
+      if (item.status !== 'accepted') {
+        return res.status(409).json({ error: 'Повторная публикация доступна только для одобренной заявки.' });
+      }
+      if (item.auditMessageId || item.auditDeliveryUnconfirmed) {
+        return res.status(409).json({ error: 'Карточка уже опубликована или результат доставки не подтверждён. Проверьте кадровый канал вручную.' });
+      }
+      if (item.auditDeliveryState !== 'failed') {
+        return res.status(409).json({ error: 'Нет подтверждённой ошибки доставки для безопасного повтора.' });
+      }
+      if (!item.reviewer || !DISCORD_ID_PATTERN.test(String(item.reviewer.id || ''))) {
+        return res.status(409).json({ error: 'В записи отсутствует проверяющий; повторная публикация невозможна.' });
+      }
+      const result = await publishPersonnelAudit(item, item.reviewer, 'accepted');
+      const updated = await kv.get(itemKey).catch(() => item);
+      if (!result.success) {
+        return res.status(502).json({ error: result.reason === 'audit_delivery_unconfirmed'
+          ? 'Discord не подтвердил результат. Проверьте кадровый канал вручную; повтор заблокирован во избежание дубликата.'
+          : 'Discord снова отклонил карточку. Подробности сохранены в системном журнале.', item: updated });
+      }
+      return res.status(200).json({ success: true, item: updated });
+    } catch (error) {
+      console.error('Personnel audit retry failed:', error);
+      return res.status(500).json({ error: 'Не удалось повторить публикацию кадровой карточки.' });
+    } finally {
+      await lock?.release();
+    }
+  }
+
   if (action === 'retry-delivery') {
     let lock;
     try {
