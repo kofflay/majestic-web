@@ -3,7 +3,7 @@ export default function GlobalLoader() {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'radial-gradient(ellipse at 50% 0%, #111827 0%, #030303 70%)',
+      background: 'radial-gradient(ellipse at 50% 0%, #17140f 0%, #080a0e 70%)',
       zIndex: 99999, overflow: 'hidden', display: 'flex', flexDirection: 'column'
     }}>
       <style jsx global>{`
@@ -12,7 +12,7 @@ export default function GlobalLoader() {
           100% { background-position: -200% 0; }
         }
         .sk-block {
-          background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(63,131,248,0.15) 50%, rgba(255,255,255,0.03) 75%);
+          background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(197,163,106,0.15) 50%, rgba(255,255,255,0.03) 75%);
           background-size: 200% 100%;
           animation: shimmer 1.5s ease-in-out infinite;
           border-radius: 4px;
@@ -20,7 +20,7 @@ export default function GlobalLoader() {
       `}</style>
 
       {/* Шапка */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '96px', borderBottom: '1px solid rgba(148, 163, 184, 0.08)', padding: '0 20px', maxWidth: '1180px', width: '100%', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '96px', borderBottom: '1px solid rgba(197, 163, 106, 0.12)', padding: '0 20px', maxWidth: '1180px', width: '100%', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div className="sk-block" style={{ width: '40px', height: '40px', borderRadius: '10px' }} />
           <div>
@@ -42,7 +42,7 @@ export default function GlobalLoader() {
         <div className="sk-block" style={{ width: '300px', height: '36px', marginBottom: '12px' }} />
         <div className="sk-block" style={{ width: '450px', height: '16px', marginBottom: '40px' }} />
         
-        <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', padding: '24px' }}>
+        <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', padding: '24px' }}>
           <div className="sk-block" style={{ width: '100%', height: '60px', marginBottom: '16px' }} />
           <div className="sk-block" style={{ width: '100%', height: '60px', marginBottom: '16px' }} />
           <div className="sk-block" style={{ width: '100%', height: '60px' }} />
