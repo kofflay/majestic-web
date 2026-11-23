@@ -33,9 +33,9 @@ export default function StaffPage() {
       <Header user={null} />
       <main className="staff-page__content">
         <div className="staff-heading">
-          <span className="staff-heading__eyebrow">LAS VEGAS POLICE DEPARTMENT / LEADERSHIP</span>
+          <span className="staff-heading__eyebrow">FEDERAL BUREAU OF INVESTIGATION / LEADERSHIP</span>
           <h1>Руководство</h1>
-          <p>Высшее командование полиции Las Vegas.</p>
+          <p>Руководящий состав Федерального бюро расследований.</p>
         </div>
         <div className="staff-grid">
           {staff.length > 0 ? (
