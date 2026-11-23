@@ -21,6 +21,9 @@ valid_sha() { [[ "$1" =~ ^[a-f0-9]{40}$ ]]; }
 
 require_ready_host() {
   [[ -x /usr/bin/node ]] || fail "/usr/bin/node is missing"
+  local node_major
+  node_major="$(/usr/bin/node -p 'process.versions.node.split(".")[0]')"
+  [[ "$node_major" == "24" ]] || fail "Node.js 24 is required; found major version $node_major"
   id "$APP_USER" >/dev/null 2>&1 || fail "dedicated app user $APP_USER is missing"
   getent group "$APP_GROUP" >/dev/null || fail "dedicated app group $APP_GROUP is missing"
   getent group "$DEPLOY_GROUP" >/dev/null || fail "deployment group $DEPLOY_GROUP is missing"
