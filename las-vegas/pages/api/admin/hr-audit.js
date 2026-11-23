@@ -183,7 +183,6 @@ return {number, 1}
       footer: { text: 'Suspect Forms • Запрос на повышение' },
       timestamp: promotion.submittedAt
     }],
-    allowed_mentions: { roles: ['1514608894679191597'], users: [applicantId] }
   };
   const attemptAt = new Date().toISOString();
   promotion = {
@@ -319,7 +318,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
   const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
   const payload = {
     username: 'Suspect Forms',
-    content: '<@' + reviewerId + '> рассмотрел кадровую заявку сотрудника ' + ( /^\d{17,20}$/.test(applicantId) ? '<@' + applicantId + '>' : '' ),
+    content: 'Кадровую заявку рассмотрел: ' + String(reviewer?.username || reviewerId) + '. Сотрудник: ' + ( /^\d{17,20}$/.test(applicantId) ? applicantId : 'Discord ID не указан' ),
     embeds: [{
       title: (titles[item.type] || item.title || 'КАДРОВОЕ ДЕЙСТВИЕ') + ' — ОДОБРЕНО',
       color: 0x4CAF50,
@@ -328,7 +327,6 @@ async function publishPersonnelAudit(item, reviewer, decision) {
       timestamp: item.resolvedAt || new Date().toISOString(),
       footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
     }],
-    allowed_mentions: { parse: [], users: [applicantId, reviewerId].filter(value => /^\d{17,20}$/.test(value)), roles: [] }
   };
   const attemptedAt = new Date().toISOString();
   const attempted = {
@@ -438,9 +436,8 @@ async function sendDecision(item, reviewer, decision, reason) {
       const response = await fetch(messageUrl.toString(), {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}.`,
+          content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}. Проверяющий: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${applicantId}.`,
           embeds: [embed],
-          allowed_mentions: { parse: [], users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)), roles: [] }
         }),
         signal: AbortSignal.timeout(15000)
       });
@@ -655,7 +652,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'Suspect Forms',
-          content: `<@${reviewerId}> повышает <@${applicantId}>`,
+          content: `Повышение сотрудника. Проверяющий: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${applicantId}.`,
           embeds: [auditEmbed]
         }),
         signal: AbortSignal.timeout(15000)
@@ -876,10 +873,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
     ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
   ];
-  const content = [
-    DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : null,
-    `<@${reviewerId}>`
-  ].filter(Boolean).join(' ');
+  const content = `Кадровое решение рассмотрел: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'не указан'}.`;
 
   let response;
   try {
@@ -897,11 +891,6 @@ async function sendDecision(item, reviewer, decision, reason) {
           timestamp: new Date().toISOString(),
           footer: { text: 'Suspect Forms • HR Audit' }
         }],
-        allowed_mentions: {
-          parse: [],
-          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)),
-          roles: []
-        }
       }),
       signal: AbortSignal.timeout(15000)
     });
