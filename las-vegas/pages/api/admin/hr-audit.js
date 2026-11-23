@@ -968,6 +968,7 @@ export default async function handler(req, res) {
         const at = new Date().toISOString();
         const updated = {
           ...attempted,
+          deliveryUnconfirmed: true,
           history: [...historyOf(attempted), {
             action: 'delivery_retry_unconfirmed',
             at,
@@ -986,6 +987,7 @@ export default async function handler(req, res) {
         const at = new Date().toISOString();
         const updated = {
           ...attempted,
+          deliveryUnconfirmed: false,
           history: [...historyOf(attempted), {
             action: 'delivery_retry_failed',
             at,
@@ -999,12 +1001,24 @@ export default async function handler(req, res) {
       let message = null;
       try { message = await response.json(); } catch {}
       const deliveredAt = new Date().toISOString();
+      const messageId = typeof message?.id === 'string' ? message.id : '';
+      if (!/^\d{17,20}$/.test(messageId)) {
+        const uncertain = {
+          ...attempted,
+          deliveryPending: true,
+          deliveryUnconfirmed: true,
+          history: [...historyOf(attempted), { action: 'delivery_retry_unconfirmed', at: deliveredAt, userId: String(user.id) }]
+        };
+        await kv.set(itemKey, uncertain);
+        return res.status(502).json({ error: 'Discord принял запрос, но не вернул ID сообщения. Проверьте канал вручную; повторная отправка заблокирована во избежание дубликата.' });
+      }
       const updated = {
         ...attempted,
         deliveryPending: false,
+        deliveryUnconfirmed: false,
         discordPayload: null,
         deliveredAt,
-        deliveryMessageId: typeof message?.id === 'string' ? message.id : null,
+        deliveryMessageId: messageId,
         history: [...historyOf(attempted), {
           action: 'delivered',
           at: deliveredAt,
