@@ -2123,3 +2123,121 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
   background: #dfc58f !important;
   box-shadow: 0 15px 35px rgba(197,163,106,.2) !important;
 }
+
+
+/* FIB unified finish — admin console, HR audit, profile and brighter atmosphere */
+.site-page-shell {
+  background:
+    radial-gradient(ellipse at 18% 4%, rgba(197,163,106,.16), transparent 46rem),
+    radial-gradient(ellipse at 92% 78%, rgba(166,75,82,.09), transparent 42rem),
+    linear-gradient(180deg, #171716 0%, #121314 58%, #0e1011 100%) !important;
+}
+.fib-atmosphere {
+  background-image:
+    linear-gradient(rgba(215,183,122,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(215,183,122,.045) 1px, transparent 1px) !important;
+}
+.fib-atmosphere__glow { opacity: .62 !important; }
+.fib-atmosphere__glow--gold { background: radial-gradient(circle, rgba(215,183,122,.3), transparent 68%) !important; }
+.fib-atmosphere__glow--red { background: radial-gradient(circle, rgba(166,75,82,.18), transparent 70%) !important; }
+
+/* Admin console */
+.admin-page-heading__title { color: #f3f0e9 !important; }
+.admin-page-heading__description { color: #b9b09f !important; }
+.admin-access-tag { border-color: rgba(197,163,106,.35) !important; background: rgba(197,163,106,.08) !important; color: #dfc58f !important; }
+.admin-tool-card {
+  background: linear-gradient(145deg, rgba(29,29,27,.96), rgba(17,18,18,.96)) !important;
+  border: 1px solid rgba(197,163,106,.24) !important;
+  box-shadow: 0 12px 34px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.025);
+}
+.admin-tool-card:hover {
+  background: linear-gradient(145deg, rgba(42,37,28,.97), rgba(20,20,19,.97)) !important;
+  border-color: rgba(215,183,122,.62) !important;
+}
+.admin-tool-card > div:first-child { color: #d2b77f !important; }
+.admin-tool-card > div:last-child { border-top-color: rgba(197,163,106,.2) !important; }
+.admin-tool-card .arrow { color: #dfc58f !important; }
+.admin-tool-card.is-restricted .arrow { color: #c77b80 !important; }
+
+/* HR audit — remove the old teal/blue theme from every audit surface */
+.hr-audit-sidebar,
+.hr-audit-filters,
+.hr-audit-search-panel {
+  background: linear-gradient(150deg, rgba(27,28,27,.96), rgba(17,19,19,.96)) !important;
+  border-color: rgba(197,163,106,.23) !important;
+}
+.hr-audit-sidebar-caption,.hr-audit-nav-group-title,.hr-audit-main-eyebrow,
+.hr-audit-filters-head,.hr-audit-sort-control { color: #b9aa8b !important; }
+.hr-audit-nav-item { color: #d0c8b9 !important; }
+.hr-audit-nav-item:hover {
+  background: rgba(197,163,106,.08) !important;
+  border-color: rgba(197,163,106,.2) !important;
+  color: #f3e6c9 !important;
+}
+.hr-audit-nav-item.is-active {
+  background: linear-gradient(100deg, rgba(197,163,106,.2), rgba(197,163,106,.07)) !important;
+  border-color: rgba(197,163,106,.38) !important;
+  color: #e4c990 !important;
+}
+.hr-audit-nav-icon,.hr-audit-nav-item.is-active .hr-audit-nav-icon { color: #d0b47a !important; }
+.hr-audit-collapse,.hr-audit-sort-control select {
+  border-color: rgba(197,163,106,.28) !important;
+  background: #191a19 !important;
+  color: #e7ddca !important;
+}
+.hr-audit-collapse:hover { border-color: rgba(215,183,122,.65) !important; color: #dfc58f !important; }
+.hr-audit-main-heading h2 { color: #f3f0e9 !important; }
+.hr-audit-main-total,.hr-audit-filters-head b {
+  border-color: rgba(197,163,106,.32) !important;
+  background: rgba(197,163,106,.1) !important;
+  color: #dfc58f !important;
+}
+.hr-audit-empty,.hr-audit-card {
+  background: linear-gradient(145deg, rgba(29,29,27,.96), rgba(17,18,18,.96)) !important;
+  border-color: rgba(197,163,106,.2) !important;
+}
+.hr-audit-empty-icon { border-color: rgba(197,163,106,.28) !important; background: rgba(197,163,106,.1) !important; color: #dfc58f !important; }
+.hr-audit-card-summary:hover,.hr-audit-card-summary:focus-visible { background: rgba(197,163,106,.07) !important; }
+.hr-audit-card-summary:focus-visible { box-shadow: inset 0 0 0 2px rgba(197,163,106,.45) !important; }
+.hr-audit-card-chevron { border-color: rgba(197,163,106,.22) !important; color: #c9b88f !important; }
+.hr-audit-card-chevron.is-open { color: #dfc58f !important; }
+.hr-audit-card-details { border-top-color: rgba(197,163,106,.2) !important; }
+.hr-audit-search-field input,.hr-audit-filters input[type="date"],
+.hr-audit-card-details textarea {
+  background: #191a19 !important;
+  border-color: rgba(197,163,106,.26) !important;
+  color: #f3f0e9 !important;
+}
+.hr-audit-search-field input:focus,.hr-audit-filters input[type="date"]:focus,
+.hr-audit-card-details textarea:focus {
+  border-color: rgba(215,183,122,.7) !important;
+  box-shadow: 0 0 0 3px rgba(197,163,106,.1) !important;
+}
+.hr-audit-search-field span { color: #c5a36a !important; }
+.hr-audit-filter-section { border-color: rgba(197,163,106,.16) !important; }
+.hr-audit-filters [style*="max-height: 168px"] { background: rgba(12,13,13,.5) !important; border-color: rgba(197,163,106,.18) !important; }
+.hr-audit-filters label { color: #d2c9b8 !important; }
+.hr-audit-reset-filters { border-color: rgba(197,163,106,.28) !important; color: #cbbb9a !important; }
+.hr-audit-reset-filters:not(:disabled):hover { border-color: rgba(166,75,82,.55) !important; color: #e3a2a5 !important; background: rgba(166,75,82,.1) !important; }
+.hr-audit-history-entry:not(:last-child)::before { background: rgba(197,163,106,.26) !important; }
+.hr-audit-history-entry::after { border-color: #c5a36a !important; background: #191a19 !important; box-shadow: 0 0 0 3px rgba(197,163,106,.08) !important; }
+
+/* Profile modal and history accents: one coherent gold accent, semantic status colors retained */
+.profile-request-modal,.profile-request-modal__topline {
+  background: #171918 !important;
+  border-color: rgba(197,163,106,.24) !important;
+}
+.profile-request-modal__topline { background: rgba(23,25,24,.97) !important; }
+.profile-request-modal__back,.profile-request-modal__eyebrow { color: #dfc58f !important; }
+.profile-request-modal__header { background: linear-gradient(110deg, rgba(197,163,106,.12), transparent 70%) !important; border-color: rgba(197,163,106,.2) !important; }
+.profile-request-section,.profile-request-modal__field { border-color: rgba(197,163,106,.16) !important; }
+.profile-request-section__heading { color: #c9b88f !important; }
+.profile-request-timeline__item:not(:last-child)::after { background: rgba(197,163,106,.26) !important; }
+.profile-request-timeline__marker { border-color: rgba(197,163,106,.4) !important; background: #20201c !important; color: #dfc58f !important; }
+.profile-request-timeline__item.is-current .profile-request-timeline__marker { border-color: #dfc58f !important; color: #dfc58f !important; }
+.profile-request-modal__field a { color: #dfc58f !important; }
+.profile-request-discord-link { border-color: rgba(197,163,106,.4) !important; background: rgba(197,163,106,.1) !important; color: #dfc58f !important; }
+.profile-request-discord-link:hover { border-color: rgba(215,183,122,.72) !important; background: rgba(197,163,106,.18) !important; }
+.profile-button--primary,.profile-department.is-selected { border-color: rgba(197,163,106,.45) !important; background: rgba(197,163,106,.15) !important; color: #ead5a7 !important; }
+.profile-history-row__open { color: #dfc58f !important; }
+.profile-heading__eyebrow,.profile-kicker,.profile-field__index { color: #c5a36a !important; }
