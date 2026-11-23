@@ -188,39 +188,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // If Discord's guild-list endpoint fails temporarily, retain the last known list.
-    if (!Array.isArray(userGuildIds)) {
-      const previousGuildIds = await kv.get(`user:guilds:${user.id}`).catch(() => null);
-      if (Array.isArray(previousGuildIds)) userGuildIds = previousGuildIds;
-    }
-
     await kv.set(`oauth:token:${user.id}`, tokenData.access_token, { ex: 7 * 24 * 3600 });
     if (Array.isArray(userGuildIds)) {
       await kv.set(`user:guilds:${user.id}`, userGuildIds, { ex: 7 * 24 * 3600 });
     }
 
-    // Один снимок ролей для админки, /hub и криминальных проверок.
-    const previousGuildRoles = await kv.get(`user:guild_roles:${user.id}`).catch(() => null);
-    const legacyLspdRoles = await kv.get(`user:roles:${user.id}`).catch(() => null);
+    // Build a fresh role snapshot for this guild only. Never merge cached role
+    // snapshots from the previous server: stale role IDs must not grant access.
     const roleSnapshot = Array.isArray(userGuildIds)
       ? await fetchUserGuildRoles(tokenData.access_token, userGuildIds)
-      : { guildRoles: {}, failedGuilds: [] };
-    const guildRoles = {
-      ...(previousGuildRoles && typeof previousGuildRoles === 'object' && !Array.isArray(previousGuildRoles)
-        ? previousGuildRoles
-        : {}),
-      ...roleSnapshot.guildRoles,
-    };
-    // Keep the last known LSPD role snapshot if Discord transiently fails during OAuth.
-    if (
-      !Array.isArray(guildRoles[GUILD_ID]) &&
-      Array.isArray(legacyLspdRoles) &&
-      Array.isArray(userGuildIds) &&
-      userGuildIds.includes(GUILD_ID)
-    ) {
-      guildRoles[GUILD_ID] = legacyLspdRoles;
-    }
-    const userRoles = Array.isArray(guildRoles[GUILD_ID]) ? guildRoles[GUILD_ID] : [];
+      : { guildRoles: { [GUILD_ID]: [] }, failedGuilds: [] };
+    const guildRoles = { [GUILD_ID]: Array.isArray(roleSnapshot.guildRoles[GUILD_ID])
+      ? roleSnapshot.guildRoles[GUILD_ID]
+      : [] };
+    const userRoles = guildRoles[GUILD_ID];
 
     if (roleSnapshot.rateLimited && roleSnapshot.retryAfterSeconds > 0) {
       const retryAfterSeconds = Math.max(1, Math.ceil(roleSnapshot.retryAfterSeconds));
