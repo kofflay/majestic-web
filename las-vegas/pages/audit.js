@@ -395,6 +395,12 @@ export default function HrAuditPage() {
             </div> : <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(197,163,106,.16)' }}>
               <div style={label}>РЕШЕНИЕ</div><div style={value}>{item.reviewer?.username} · {item.reviewer?.id} · {item.resolvedAt ? new Date(item.resolvedAt).toLocaleString('ru-RU') : ''}</div>
               {item.reason && <><div style={{ ...label, marginTop: 12 }}>ПРИЧИНА</div><div style={value}>{item.reason}</div></>}
+              {item.promotionRequest?.id && <div style={{ marginTop: 12 }}>
+                <div style={label}>СВЯЗАННЫЙ ЗАПРОС НА ПОВЫШЕНИЕ</div>
+                <a href={`/las-vegas/audit?id=${encodeURIComponent(item.promotionRequest.id)}`} style={{ color: '#d7bd8c', textDecoration: 'underline', fontSize: 13 }}>
+                  Открыть автоматически созданный запрос №{item.promotionRequest.number || item.promotionRequest.id}
+                </a>
+              </div>}
               {item.notificationPending && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ color: '#dfc58f' }}>{item.auditDeliveryUnconfirmed ? 'Кадровый канал мог принять сообщение, но подтверждение не получено. Проверьте канал вручную; повтор заблокирован во избежание дубликата.' : 'Уведомление кадрового аудита ожидает отправки или подтверждения.'}</span>
                 {!item.auditDeliveryUnconfirmed && <button disabled={busy === item.id} onClick={() => retryNotification(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ УВЕДОМЛЕНИЕ</button>}
