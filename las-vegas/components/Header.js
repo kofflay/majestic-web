@@ -91,9 +91,9 @@ export default function Header({ user }) {
   const isApplicationsActive = router.pathname === '/applications' || router.pathname === '/complaint' || router.pathname.startsWith('/forms/');
 
   const navItems = [
-    { label: 'Обращения', path: '/applications' },
-    { label: 'Служебные дела', path: '/hub' },
-    { label: 'Допуски', path: '/passes' },
+    { label: 'Заявления', path: '/applications' },
+    { label: 'Внутренние отчёты', path: '/hub' },
+    { label: 'Пропуска', path: '/passes' },
   ];
 
   const navigate = path => {
@@ -124,12 +124,12 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="FIB Las Vegas — на главную"
+            aria-label="Las Vegas — на главную"
           >
-            <span className="brand__mark" aria-hidden="true">FIB</span>
+            <span className="brand__mark" aria-hidden="true">◈</span>
             <span className="brand__text">
-              <strong>FEDERAL BUREAU</strong>
-              <small>LAS VEGAS FIELD OFFICE</small>
+              <strong>LAS VEGAS</strong>
+              <small>POLICE DEPARTMENT</small>
             </span>
           </button>
 
