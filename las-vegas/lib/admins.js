@@ -1,5 +1,4 @@
 import { kv } from './redis.js';
-import { STAFF_ROLE_IDS } from './role-config.js';
 
 export const ADMINS = [];
 // No legacy-server admin roles: configure current Las Vegas admin role IDs here when confirmed.
