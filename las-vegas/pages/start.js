@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import StaffCard from '../components/StaffCard';
 import Header from '../components/Header';
+import LivingBackground from '../components/LivingBackground'; // <-- Импорт фона
 
 export default function Home() {
   const router = useRouter();
@@ -53,22 +54,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="site-page-shell landing-page" style={{ position: 'relative', isolation: 'isolate' }}>
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: -1,
-          pointerEvents: 'none',
-          backgroundImage: "linear-gradient(180deg, rgba(3, 7, 14, 0.58) 0%, rgba(3, 7, 14, 0.72) 55%, rgba(3, 7, 14, 0.88) 100%), url('/las-vegas/start-bg.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
+    <div className="site-page-shell landing-page" style={{ position: 'relative' }}>
+      
+      {/* ВСТАВЛЯЕМ ЖИВОЙ ФОН СЮДА */}
+      <LivingBackground />
 
-      {/* Контент страницы расположен поверх фонового изображения */}
+      {/* Оборачиваем контент, чтобы он был поверх фона */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Header user={user} />
 
