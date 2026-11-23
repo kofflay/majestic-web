@@ -224,6 +224,21 @@ export default function HrAuditPage() {
     finally { setBusy(''); }
   };
 
+  const retryPersonnelAudit = async item => {
+    setBusy(item.id); setError('');
+    try {
+      const response = await fetch('/las-vegas/api/admin/hr-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, action: 'retry-personnel-audit' })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось повторить публикацию кадровой карточки');
+      setItems(prev => prev.map(entry => entry.id === item.id ? data.item : entry));
+    } catch (e) { setError(e.message); }
+    finally { setBusy(''); }
+  };
+
   const retryNotification = async item => {
     setBusy(item.id); setError('');
     try {
@@ -400,6 +415,10 @@ export default function HrAuditPage() {
                 <a href={`/las-vegas/audit?id=${encodeURIComponent(item.promotionRequest.id)}`} style={{ color: '#d7bd8c', textDecoration: 'underline', fontSize: 13 }}>
                   Открыть автоматически созданный запрос №{item.promotionRequest.number || item.promotionRequest.id}
                 </a>
+              </div>}
+              {item.status === 'accepted' && item.auditDeliveryState === 'failed' && !item.auditMessageId && !item.auditDeliveryUnconfirmed && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ color: '#dfc58f' }}>Решение сохранено, но Discord отклонил кадровую карточку. Можно безопасно повторить публикацию.</span>
+                <button disabled={busy === item.id} onClick={() => retryPersonnelAudit(item)} style={{ ...button('green'), opacity: busy === item.id ? .5 : 1 }}>ПОВТОРИТЬ ПУБЛИКАЦИЮ В КАДРОВЫЙ АУДИТ</button>
               </div>}
               {item.notificationPending && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ color: '#dfc58f' }}>{item.auditDeliveryUnconfirmed ? 'Кадровый канал мог принять сообщение, но подтверждение не получено. Проверьте канал вручную; повтор заблокирован во избежание дубликата.' : 'Уведомление кадрового аудита ожидает отправки или подтверждения.'}</span>
