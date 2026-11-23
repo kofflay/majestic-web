@@ -444,6 +444,10 @@ async function sendDecision(item, reviewer, decision, reason) {
         await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_card_update_failed', message: 'Discord не обновил карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, httpStatus: response.status, details });
         return { success: false, messageId: null, reason: `promotion_update_http_${response.status}` };
       }
+      if (accepted) {
+        const auditResult = await publishPersonnelAudit(item, reviewer, decision);
+        return { success: auditResult.success, messageId: auditResult.messageId || messageId, reason: auditResult.reason || null };
+      }
       return { success: true, messageId };
     } catch (error) {
       await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_card_update_failed', message: 'Не удалось обновить карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, details: String(error?.message || error).slice(0, 1000) });
@@ -826,7 +830,12 @@ async function sendDecision(item, reviewer, decision, reason) {
       return { success: false, messageId: null, reason: `discord_http_${response.status}` };
     }
 
-    // Для highrank обновляем только исходную карточку; отдельное сообщение-пинг не отправляем.
+    // Every approved HR action is also recorded in the personnel audit channel.
+    // Rejected applications only update their original card, matching the High-Rank flow.
+    if (accepted) {
+      const auditResult = await publishPersonnelAudit(item, reviewer, decision);
+      return { success: auditResult.success, messageId: auditResult.messageId || originalMessageId, reason: auditResult.reason || null };
+    }
     return { success: true, messageId: originalMessageId };
   }
 
