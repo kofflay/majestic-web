@@ -4,9 +4,9 @@ import { useRouter } from 'next/router';
 import PageLayout from '../components/PageLayout';
 
 const publicForms = [
-  { id: 'hiring', title: 'Трудоустройство', description: 'Подать заявку на вступление в LSPD', code: 'A-01' },
-  { id: 'transfer-to-lspd', title: 'Перевод в LSPD', description: 'Перевод из другой организации', code: 'A-02' },
-  { id: 'reinstatement', title: 'Восстановление', description: 'Восстановление в LSPD', code: 'A-03' },
+  { id: 'hiring', title: 'Трудоустройство', description: 'Подать заявку на вступление в федеральное бюро', code: 'A-01' },
+  { id: 'transfer-to-lspd', title: 'Перевод в отделение FIB', description: 'Перевод из другой организации', code: 'A-02' },
+  { id: 'reinstatement', title: 'Восстановление', description: 'Восстановление на службе в FIB', code: 'A-03' },
 ];
 
 export default function ApplicationsPage() {
@@ -28,7 +28,7 @@ export default function ApplicationsPage() {
     <PageLayout user={user}>
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '40px', fontWeight: '800', margin: '0 0 10px 0', letterSpacing: '-1px', fontFamily: "'Space Grotesk', sans-serif" }}>Заявления</h1>
-        <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников LSPD.</p>
+        <p style={{ color: '#9ca3af', fontSize: '16px', margin: 0 }}>Подавайте кадровые заявления или направляйте жалобы на действия сотрудников федерального бюро.</p>
       </div>
 
       {/* Терминальный контейнер */}
@@ -54,7 +54,7 @@ export default function ApplicationsPage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ animation: 'blink 1s step-end infinite' }}>█</span>
-            СИСТЕМА ПРИЁМА ЗАЯВЛЕНИЙ
+            ФЕДЕРАЛЬНАЯ СИСТЕМА ОБРАЩЕНИЙ
           </div>
           <span style={{ color: '#7f8a9a' }}>[{publicForms.length}]</span>
         </div>
@@ -168,7 +168,7 @@ export default function ApplicationsPage() {
           <span className="complaint-entry__icon" aria-hidden="true">!</span>
           <span className="complaint-entry__content">
             <span className="complaint-entry__title">Жалоба на сотрудника</span>
-            <span className="complaint-entry__description">Сообщить о нарушении или неправомерных действиях сотрудника LSPD</span>
+            <span className="complaint-entry__description">Сообщить о нарушении или неправомерных действиях сотрудника федерального бюро</span>
           </span>
           <span className="complaint-entry__action">[OPEN ↗]</span>
         </button>
