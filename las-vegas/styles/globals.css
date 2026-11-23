@@ -2382,3 +2382,111 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
 }
 .profile-request-modal__topline button,
 .profile-request-modal__back { color: #dfc58f !important; }
+
+
+/* HR audit secondary palette: cool slate/petrol contrasts with the primary FIB gold */
+.hr-audit-sidebar,
+.hr-audit-filters {
+  border-color: rgba(111,151,163,.28) !important;
+  background: linear-gradient(155deg, rgba(20,31,37,.96), rgba(11,17,21,.97)) !important;
+  box-shadow: inset 0 1px rgba(190,220,224,.035), 0 16px 38px rgba(0,0,0,.16) !important;
+}
+.hr-audit-sidebar-caption,
+.hr-audit-nav-group-title,
+.hr-audit-main-eyebrow,
+.hr-audit-filters-head,
+.hr-audit-sort-control {
+  color: #91aeb5 !important;
+}
+.hr-audit-nav-item {
+  border-color: transparent !important;
+  color: #c2d0d1 !important;
+}
+.hr-audit-nav-item:hover {
+  border-color: rgba(125,170,180,.22) !important;
+  background: rgba(87,133,145,.13) !important;
+  color: #e2eff0 !important;
+}
+.hr-audit-nav-item.is-active {
+  border-color: rgba(132,177,187,.38) !important;
+  background: linear-gradient(100deg, rgba(78,127,140,.3), rgba(48,81,91,.17)) !important;
+  color: #c4e0e3 !important;
+  box-shadow: inset 3px 0 #83aeb7 !important;
+}
+.hr-audit-nav-icon,
+.hr-audit-nav-item.is-active .hr-audit-nav-icon { color: #9fc2c8 !important; }
+.hr-audit-nav-count { color: #a9c0c3 !important; }
+.hr-audit-nav-soon { color: #7f9ba1 !important; }
+.hr-audit-sidebar-note { border-top-color: rgba(111,151,163,.2) !important; color: #81999d !important; }
+.hr-audit-collapse {
+  border-color: rgba(111,151,163,.32) !important;
+  background: #1a2a30 !important;
+  color: #b8d0d3 !important;
+}
+.hr-audit-collapse:hover {
+  border-color: rgba(151,195,203,.65) !important;
+  color: #e0f0f1 !important;
+}
+.hr-audit-search-panel {
+  border-color: rgba(111,151,163,.25) !important;
+  background: linear-gradient(120deg, rgba(20,31,37,.9), rgba(12,18,22,.88)) !important;
+}
+.hr-audit-search-field input,
+.hr-audit-filters input[type="date"],
+.hr-audit-sort-control select {
+  border-color: rgba(111,151,163,.36) !important;
+  background: #0c1519 !important;
+}
+.hr-audit-search-field input:focus,
+.hr-audit-filters input[type="date"]:focus {
+  border-color: #83aeb7 !important;
+  box-shadow: 0 0 0 3px rgba(131,174,183,.13) !important;
+}
+.hr-audit-search-field span { color: #9fc2c8 !important; }
+.hr-audit-filters-head {
+  border-bottom-color: rgba(111,151,163,.22) !important;
+  color: #a9c5ca !important;
+}
+.hr-audit-filters-head b {
+  background: rgba(111,151,163,.2) !important;
+  color: #c4e0e3 !important;
+}
+.hr-audit-filter-section { border-color: rgba(111,151,163,.2) !important; }
+.hr-audit-filters [style*="max-height: 168px"] {
+  border-color: rgba(111,151,163,.28) !important;
+  background: rgba(9,17,21,.7) !important;
+}
+.hr-audit-filters label { color: #c3d0d0 !important; }
+.hr-audit-filter-checkbox { accent-color: #83aeb7 !important; }
+.hr-audit-reset-filters {
+  border-color: rgba(111,151,163,.34) !important;
+  background: rgba(75,111,121,.1) !important;
+  color: #a9c5ca !important;
+}
+.hr-audit-reset-filters:not(:disabled):hover {
+  border-color: rgba(151,195,203,.7) !important;
+  background: rgba(75,111,121,.2) !important;
+  color: #e0f0f1 !important;
+}
+.hr-audit-main-total {
+  border-color: rgba(111,151,163,.35) !important;
+  background: rgba(75,111,121,.13) !important;
+  color: #b8d0d3 !important;
+}
+.hr-audit-card {
+  border-color: rgba(111,151,163,.24) !important;
+  background: linear-gradient(145deg, rgba(19,29,34,.96), rgba(10,15,18,.97)) !important;
+}
+.hr-audit-card-summary:hover,
+.hr-audit-card-summary:focus-visible { background: rgba(87,133,145,.12) !important; }
+.hr-audit-card-chevron {
+  border-color: rgba(111,151,163,.3) !important;
+  color: #a9c5ca !important;
+}
+.hr-audit-card-details { border-top-color: rgba(111,151,163,.22) !important; }
+.hr-audit-history-entry:not(:last-child)::before { background: rgba(131,174,183,.28) !important; }
+.hr-audit-history-entry::after {
+  border-color: #83aeb7 !important;
+  background: #142126 !important;
+  box-shadow: 0 0 0 3px rgba(131,174,183,.1) !important;
+}
