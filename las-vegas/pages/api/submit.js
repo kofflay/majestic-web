@@ -554,10 +554,16 @@ return {number, 1}
             console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
             const persisted = await kv.get(itemKey).catch(() => null);
             if (!(persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt)) {
+              await kv.set(itemKey, {
+                ...(persisted || attempted), deliveryPending: true, deliveryUnconfirmed: true,
+                history: [...(Array.isArray(persisted?.history) ? persisted.history : attempted.history), {
+                  action: 'delivery_unconfirmed', at: new Date().toISOString(), userId: 'system'
+                }]
+              }).catch(() => {});
               return res.status(200).json({
                 success: true,
                 number: hrAuditNumber,
-                warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил обновление. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
+                warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил ID сообщения. Повторная отправка заблокирована; сначала проверьте канал отдела.`
               });
             }
           }
