@@ -1,7 +1,7 @@
 import { verifyToken } from '../../../lib/discord';
 import { hasHrAuditAccess } from '../../../lib/hr-audit-access';
 import { kv } from '../../../lib/redis.js';
-import { getDepartment, getReportWebhook } from '../../../lib/departments';
+import { getDepartment, getReportWebhook, getTransferWebhook } from '../../../lib/departments';
 import { acquireHrAuditLock } from '../../../lib/hr-audit-locks';
 import { writeSystemLog } from '../../../lib/system-logs';
 
@@ -13,7 +13,7 @@ const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return -1 end
 local current = cjson.decode(raw)
-if current.type ~= 'report' and current.type ~= 'highrank' and current.type ~= 'promotion' then return -2 end
+if current.type ~= 'report' and current.type ~= 'highrank' and current.type ~= 'promotion' and current.type ~= 'transfer' and current.type ~= 'transfer-to-lspd' and current.type ~= 'hiring' and current.type ~= 'resignation' and current.type ~= 'reinstatement' then return -2 end
 if current.status ~= 'pending' then return 0 end
 if current.deliveryPending ~= false then return -3 end
 if tostring(current.id) ~= ARGV[2] then return -2 end
@@ -36,11 +36,18 @@ function getAuditWebhook(item) {
     const department = getDepartment(item.data?.department);
     return department ? getReportWebhook(department.id) : null;
   }
-  return null;
+  if (item?.type === 'transfer') return getTransferWebhook(item.data?.targetDepartment) || null;
+  const envByType = {
+    'transfer-to-lspd': 'WEBHOOK_TRANSFER_TO_LSPD',
+    hiring: 'WEBHOOK_HIRING',
+    resignation: 'WEBHOOK_RESIGNATION',
+    reinstatement: 'WEBHOOK_REINSTATEMENT'
+  };
+  return envByType[item?.type] ? process.env[envByType[item.type]] || null : null;
 }
 
 function isSupportedAuditItem(item) {
-  return Boolean(item && ['report', 'highrank', 'promotion'].includes(item.type));
+  return Boolean(item && ['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(item.type));
 }
 
 function webhookUrlWithWait(webhook) {
@@ -708,7 +715,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         username: 'Suspect Forms',
         content,
         embeds: [{
-          title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+          title: `${item.title || 'Заявка'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
           color: accepted ? 0x4CAF50 : 0xDC3545,
           description: auditUrl,
           fields,
