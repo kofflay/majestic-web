@@ -412,13 +412,20 @@ async function sendDecision(item, reviewer, decision, reason) {
         ...(originalEmbed.author?.name ? { author: { name: originalEmbed.author.name, ...(originalEmbed.author.url ? { url: originalEmbed.author.url } : {}), ...(originalEmbed.author.icon_url ? { icon_url: originalEmbed.author.icon_url } : {}) } } : {}),
         ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
-        title: `Отчёт на повышение хай-состава №${item.number} — ОДОБРЕНО`,
+        title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт о повышении'} №${item.number} — ОДОБРЕНО`,
         color: 0x4CAF50,
         description: profileReportUrl,
         fields: [
           { name: ' Имя Фамилия + Статик', value: applicantName, inline: false },
-          { name: ' Диапазон повышения', value: rankRange, inline: true },
-          { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
+          ...(item.type === 'highrank' ? [
+            { name: ' Диапазон повышения', value: rankRange, inline: true },
+            { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false }
+          ] : [
+            { name: ' Отдел', value: fieldValue(getDepartment(reportData.department)?.name || reportData.department), inline: true },
+            { name: ' Текущий ранг', value: fieldValue(reportData.currentRank), inline: true },
+            { name: ' Новый ранг', value: fieldValue(reportData.targetRank), inline: true },
+            { name: ' Ссылки на проделанную работу', value: fieldValue(reportData.workLinks), inline: false }
+          ]),
           { name: ' Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
           { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
           { name: ' Решение', value: 'Одобрено', inline: true },
@@ -433,7 +440,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         patchResponse = await fetch(messageUrl.toString(), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `Решение по отчёту на повышение №${item.number} принято: одобрено.`, embeds: [updatedEmbed] }),
+          body: JSON.stringify({ content: `Решение по ${item.type === 'highrank' ? 'отчёту High-Rank' : 'отчёту о повышении'} №${item.number} принято: одобрено.`, embeds: [updatedEmbed] }),
           signal: AbortSignal.timeout(15000)
         });
       } catch (error) {
@@ -486,12 +493,16 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
 
     const auditEmbed = {
-      title: ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
+      title: item.type === 'highrank' ? ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА (HIGH-RANK)' : ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
       color: 0x4CAF50,
       fields: [
         { name: ' Причина повышения', value: reportMessageUrl, inline: false },
-        { name: ' Повышен с ранга', value: rankRange, inline: true },
-        { name: ' Повышен', value: `<@${applicantId}>`, inline: true },
+        ...(item.type === 'highrank' ? [{ name: ' Диапазон повышения', value: rankRange, inline: true }] : [
+          { name: ' Отдел', value: fieldValue(getDepartment(reportData.department)?.name || reportData.department), inline: true },
+          { name: ' Повышен с ранга', value: fieldValue(reportData.currentRank), inline: true },
+          { name: ' Повышен до ранга', value: fieldValue(reportData.targetRank), inline: true }
+        ]),
+        { name: ' Повышен', value: `<@${applicantId}>`, inline: true }
         { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
         { name: ' Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
         { name: ' Повышает', value: `<@${reviewerId}>`, inline: true },
