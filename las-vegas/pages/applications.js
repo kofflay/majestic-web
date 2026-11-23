@@ -5,7 +5,7 @@ import PageLayout from '../components/PageLayout';
 
 const publicForms = [
   { id: 'hiring', title: 'Трудоустройство', description: 'Подать заявку на вступление в федеральное бюро', code: 'A-01' },
-  { id: 'transfer-to-lspd', title: 'Перевод в отделение FIB', description: 'Перевод из другой организации', code: 'A-02' },
+  { id: 'transfer-to-federal-bureau', title: 'Перевод в другое подразделение FIB', description: 'Перевод из другой организации', code: 'A-02' },
   { id: 'reinstatement', title: 'Восстановление', description: 'Восстановление на службе в FIB', code: 'A-03' },
 ];
 
