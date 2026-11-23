@@ -120,6 +120,14 @@ export const kv = {
     return deserializeValue(result);
   },
 
+  async mget(keys) {
+    const normalized = normalizeKeys(keys || []);
+    if (normalized.length === 0) return [];
+    const client = await getConnectedClient();
+    const results = await client.mGet(normalized);
+    return results.map((value) => deserializeValue(value));
+  },
+
   async set(key, value, options = {}) {
     const client = await getConnectedClient();
 
