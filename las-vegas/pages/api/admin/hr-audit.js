@@ -969,9 +969,10 @@ export default async function handler(req, res) {
     try {
       const ids = await kv.lrange(AUDIT_IDS_KEY, 0, -1);
       const safeIds = Array.isArray(ids) ? ids.filter(validItemId) : [];
-      const items = await Promise.all(safeIds.map(id => kv.get(`lspd:hr-audit:item:${id}`)));
+      // One Redis MGET round-trip instead of one network request per audit item.
+      const records = await kv.mget(safeIds.map(id => `lspd:hr-audit:item:${id}`));
       return res.status(200).json({
-        items: items.filter(isSupportedAuditItem)
+        items: records.filter(isSupportedAuditItem)
       });
     } catch (error) {
       console.error('HR audit list failed:', error);
