@@ -1,9 +1,9 @@
 // components/StaffCard.js
 export default function StaffCard({ member, onDelete, isAdminView }) {
   const getRankGradient = (rank) => {
-    if (rank === 'Director of FBI') return 'linear-gradient(45deg, #9e6bff, #9fc1ff)';
-    if (rank === 'Deputy Director') return 'linear-gradient(45deg, #2a2b36, #a0a3ce)';
-    return 'linear-gradient(45deg, #8b8ba7, #ffffff)';
+    if (rank === 'Director of FBI') return 'linear-gradient(45deg, #b18a4e, #dfc58f)';
+    if (rank === 'Deputy Director') return 'linear-gradient(45deg, #776342, #c5a36a)';
+    return 'linear-gradient(45deg, #9b8b6b, #f3e6c9)';
   };
 
   if (!isAdminView) {
@@ -20,9 +20,9 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           textAlign: 'center',
           color: '#f5f5f5',
           fontFamily: "'Inter', sans-serif",
-          backgroundColor: '#171717',
-          backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0, rgba(255,255,255,.045) 1px, transparent 1px, transparent 10px)',
-          border: '1px solid #303030',
+          backgroundColor: '#101216',
+          backgroundImage: 'repeating-linear-gradient(45deg, rgba(197,163,106,.035) 0, rgba(197,163,106,.035) 1px, transparent 1px, transparent 10px)',
+          border: '1px solid rgba(197,163,106,.22)',
           borderRadius: '27px',
           boxShadow: '0 16px 42px rgba(0,0,0,.28)',
           transition: 'transform .2s ease, border-color .2s ease',
@@ -33,7 +33,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.borderColor = '#303030';
+          e.currentTarget.style.borderColor = 'rgba(197,163,106,.22)';
         }}
       >
         <div style={{
@@ -51,7 +51,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           <div style={{
             width: '106px', height: '106px', borderRadius: '22px',
             display: 'grid', placeItems: 'center',
-            background: '#202020', border: '1px solid #383838',
+            background: '#171614', border: '1px solid rgba(197,163,106,.2)',
           }}>
             <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#f4f4f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="4" y="10" width="16" height="11" rx="2" />
@@ -125,10 +125,10 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
     position: 'absolute',
     top: '14px',
     right: '14px',
-    background: 'rgba(63, 131, 248, .13)',
-    border: '1px solid rgba(63, 131, 248, .28)',
+    background: 'rgba(197, 163, 106, .13)',
+    border: '1px solid rgba(197, 163, 106, .28)',
     borderRadius: '4px',
-    color: '#8dbaff',
+    color: '#dfc58f',
     fontSize: '9px',
     fontWeight: '700',
     padding: '5px 8px',
@@ -153,8 +153,8 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
     : { fontSize: '13px', fontWeight: '700', marginBottom: '18px', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflowWrap: 'anywhere' };
 
   const discordStyle = isAdminView
-    ? { color: '#8db8ff', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' }
-    : { color: '#8db8ff', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' };
+    ? { color: '#dfc58f', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' }
+    : { color: '#dfc58f', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' };
 
   const footerStyle = isAdminView
     ? { marginTop: 'auto', borderTop: '1px solid rgba(148,163,184,0.12)', paddingTop: '14px', color: '#64748b', fontSize: '9px', letterSpacing: '0.12em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', fontFamily: "'DM Mono', monospace" }
@@ -165,7 +165,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       style={cardStyle}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.borderColor = 'rgba(63, 131, 248, 0.5)';
+        e.currentTarget.style.borderColor = 'rgba(197, 163, 106, 0.5)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translateY(0)';
