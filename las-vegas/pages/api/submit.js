@@ -244,7 +244,7 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
       if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-  return { success: false, error: lastError?.message };
+  return { success: false, error: lastError?.message, unconfirmed: Boolean(options.waitForConfirmation && lastError) };
 }
 
 export default async function handler(req, res) {
@@ -493,8 +493,9 @@ return {number, 1}
         }
 
         const previousDeliveryAttempt = Number(storedBeforeSend.deliveryAttempts) > 0
+          || storedBeforeSend.deliveryUnconfirmed === true
           || (Array.isArray(storedBeforeSend.history) && storedBeforeSend.history.some(entry =>
-            ['delivery_attempted', 'delivery_pending', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
+            ['delivery_attempted', 'delivery_pending', 'delivery_unconfirmed', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
               .includes(entry?.action)
           ));
         if (previousDeliveryAttempt) {
@@ -532,14 +533,14 @@ return {number, 1}
         // Audit submissions use one confirmed attempt. A network timeout is ambiguous,
         // so automatic retries could create duplicate Discord messages.
         result = await sendToDiscord(webhookUrl, discordPayload, 1, { waitForConfirmation: true });
-        if (result.success) {
+        if (result.success && /^\d{17,20}$/.test(String(result.messageId || ''))) {
           const deliveredAt = new Date().toISOString();
           const delivered = {
             ...attempted,
             deliveryPending: false,
             discordPayload: null,
             deliveredAt,
-            deliveryMessageId: result.messageId || null,
+            deliveryMessageId: result.messageId,
             history: [...attempted.history, {
               action: 'delivered',
               at: deliveredAt,
@@ -561,12 +562,14 @@ return {number, 1}
             }
           }
         } else {
-          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error });
+          const deliveryUnconfirmed = result.success === true || result.unconfirmed === true;
+          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error, deliveryUnconfirmed });
           const pendingAt = new Date().toISOString();
           const pending = {
             ...attempted,
+            deliveryUnconfirmed,
             history: [...attempted.history, {
-              action: 'delivery_pending',
+              action: deliveryUnconfirmed ? 'delivery_unconfirmed' : 'delivery_pending',
               at: pendingAt,
               userId: 'system'
             }]
@@ -584,7 +587,9 @@ return {number, 1}
           return res.status(200).json({
             success: true,
             number: hrAuditNumber,
-            warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord не подтвердил доставку. Перед повтором проверяющий должен убедиться, что сообщения нет в канале отдела.`
+            warning: deliveryUnconfirmed
+              ? `Заявка №${hrAuditNumber} сохранена, но подтверждение Discord не получено или не вернулся ID сообщения. Автоматический повтор заблокирован — сначала проверьте канал отдела.`
+              : `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord отклонил доставку. Её можно повторить из кадрового аудита.`
           });
         }
       } finally {
