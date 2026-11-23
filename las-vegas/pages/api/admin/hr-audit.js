@@ -269,6 +269,108 @@ return {number, 1}
   return { success: true, item: delivered };
 }
 
+async function publishPersonnelAudit(item, reviewer, decision) {
+  const webhook = process.env.WEBHOOK_AUDIT_URL || '';
+  if (!webhook) return { success: false, reason: 'audit_webhook_not_configured' };
+  const itemKey = `lspd:hr-audit:item:${item.id}`;
+  const latest = await kv.get(itemKey).catch(() => null) || item;
+  if (latest.auditMessageId) return { success: true, messageId: latest.auditMessageId };
+  if (latest.auditDeliveryUnconfirmed || latest.auditDeliveryState === 'attempting') {
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  const applicantId = String(item.submitter?.id || '');
+  const reviewerId = String(reviewer?.id || '');
+  const data = item.data || {};
+  const titles = {
+    promotion: 'ПОВЫШЕНИЕ СОТРУДНИКА',
+    transfer: 'ПЕРЕВОД СОТРУДНИКА МЕЖДУ ОТДЕЛАМИ',
+    'transfer-to-lspd': 'ПЕРЕВОД СОТРУДНИКА В FIB',
+    hiring: 'ТРУДОУСТРОЙСТВО В FIB',
+    resignation: 'УВОЛЬНЕНИЕ СОТРУДНИКА',
+    reinstatement: 'ВОССТАНОВЛЕНИЕ СОТРУДНИКА В FIB'
+  };
+  const labels = {
+    fullName: 'Имя и статик', rankRange: 'Диапазон рангов', reportLink: 'Одобренный отчёт',
+    rank: 'Текущий ранг', currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина перевода',
+    approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
+    lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
+    screenshot: 'Скриншот планшета', rankAtDismissal: 'Ранг на момент увольнения', wasWarned: 'Было ли взыскание',
+    stateFractionsProof: 'Одобрение State Fractions', department: 'Отдел', currentRank: 'Текущий ранг', targetRank: 'Новый ранг',
+    isInstructor: 'Назначение инструктором', workLinks: 'Ссылки на проделанную работу', workLink: 'Ссылка на проделанную работу'
+  };
+  const fields = Object.entries(data).map(([key, raw]) => {
+    let value = raw;
+    if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) value = getDepartment(raw)?.name || raw;
+    if (['isInstructor', 'wasWarned'].includes(key)) value = raw === 'yes' ? 'Да' : raw === 'no' ? 'Нет' : raw;
+    if (value && typeof value === 'object') value = JSON.stringify(value);
+    return { name: labels[key] || key, value: String(value ?? '—').slice(0, 1024) || '—', inline: false };
+  });
+  fields.push(
+    { name: 'Заявитель', value: /^\d{17,20}$/.test(applicantId) ? '<@' + applicantId + '>' : 'Discord ID не указан', inline: true },
+    { name: 'Рассмотрел', value: '<@' + reviewerId + '>', inline: true },
+    { name: 'Решение', value: decision === 'accepted' ? 'Одобрено' : 'Отклонено', inline: true },
+    { name: 'Заявка', value: '№' + item.number, inline: true }
+  );
+  const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
+  const payload = {
+    username: 'Suspect Forms',
+    content: '<@' + reviewerId + '> рассмотрел кадровую заявку сотрудника ' + ( /^\d{17,20}$/.test(applicantId) ? '<@' + applicantId + '>' : '' ),
+    embeds: [{
+      title: (titles[item.type] || item.title || 'КАДРОВОЕ ДЕЙСТВИЕ') + ' — ОДОБРЕНО',
+      color: 0x4CAF50,
+      description: `[Открыть запись кадрового аудита №${item.number}](${auditUrl})`,
+      fields: fields.slice(0, 25),
+      timestamp: item.resolvedAt || new Date().toISOString(),
+      footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
+    }],
+    allowed_mentions: { users: [applicantId, reviewerId].filter(value => /^\d{17,20}$/.test(value)) }
+  };
+  const attemptedAt = new Date().toISOString();
+  const attempted = {
+    ...latest, auditDeliveryState: 'attempting', auditDeliveryAttemptedAt: attemptedAt,
+    history: [...historyOf(latest), { action: 'personnel_audit_delivery_attempted', at: attemptedAt, userId: 'system' }]
+  };
+  await kv.set(itemKey, attempted);
+  let response;
+  try {
+    response = await fetch(webhookUrlWithWait(webhook), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
+    });
+  } catch (error) {
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed', history: [...historyOf(attempted), { action: 'personnel_audit_delivery_unconfirmed', at, userId: 'system' }] }).catch(() => {});
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_unconfirmed', message: 'Не удалось подтвердить публикацию кадрового действия; повтор остановлен во избежание дубликата', auditId: item.id, auditType: item.type, details: String(error?.message || error).slice(0, 1000) });
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  if (!response.ok) {
+    const details = (await response.text()).slice(0, 1500);
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryState: 'failed', auditDeliveryUnconfirmed: false, history: [...historyOf(attempted), { action: 'personnel_audit_delivery_failed', at, userId: 'system' }] });
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_failed', message: 'Discord отклонил карточку кадрового действия', auditId: item.id, auditType: item.type, httpStatus: response.status, details });
+    return { success: false, reason: `audit_http_${response.status}` };
+  }
+  let message = null;
+  try { message = await response.json(); } catch {}
+  const messageId = String(message?.id || '');
+  if (!/^\d{17,20}$/.test(messageId)) {
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed', history: [...historyOf(attempted), { action: 'personnel_audit_delivery_unconfirmed', at, userId: 'system' }] }).catch(() => {});
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  const sentAt = new Date().toISOString();
+  const sent = { ...attempted, auditMessageId: messageId, auditSentAt: sentAt, auditDeliveryState: 'sent', auditDeliveryUnconfirmed: false, history: [...historyOf(attempted), { action: 'personnel_audit_sent', at: sentAt, userId: 'system' }] };
+  try {
+    await kv.set(itemKey, sent);
+  } catch (error) {
+    const persisted = await kv.get(itemKey).catch(() => null);
+    if (persisted?.auditMessageId !== messageId) {
+      await kv.set(itemKey, { ...(persisted || attempted), auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed' }).catch(() => {});
+      return { success: false, reason: 'audit_delivery_unconfirmed' };
+    }
+  }
+  return { success: true, messageId };
+}
 async function sendDecision(item, reviewer, decision, reason) {
   const webhook = getAuditWebhook(item);
   const applicantId = String(item.submitter?.id || '');
