@@ -7,6 +7,7 @@ import { kv } from '../../lib/redis.js';
 import { acquireHrAuditLock } from '../../lib/hr-audit-locks';
 import { recordSubmissionHistory } from '../../lib/submission-history';
 import { canSubmitDuringGate } from '../../lib/submission-gate';
+import { STAFF_ROLE_IDS } from '../../lib/role-config';
 import { 
   getDepartment, 
   getReportWebhook, 
@@ -269,15 +270,11 @@ export default async function handler(req, res) {
   const validationError = validateSubmission(type, formData, leaveType);
   if (validationError) return rejectSubmission(res, user, type, formData, leaveType, 400, validationError);
 
-  const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion']);
-  const userRoles = Array.isArray(user.roles) ? user.roles : [];
-  const STAFF_ROLE_ID = '1397291237567889582';
-  const HIGH_RANK_ROLE_ID = '1514608894679191597';
-  if (employeeOnlyTypes.has(type) && !userRoles.includes(STAFF_ROLE_ID)) {
+  const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion', 'highrank']);
+  const userRoles = Array.isArray(user.roles) ? user.roles.map(String) : [];
+  const hasStaffAccess = userRoles.some(roleId => STAFF_ROLE_IDS.includes(roleId));
+  if (employeeOnlyTypes.has(type) && !hasStaffAccess) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника полиции Las Vegas' });
-  }
-  if (type === 'highrank' && !userRoles.includes(HIGH_RANK_ROLE_ID)) {
-    return res.status(403).json({ error: 'Для подачи отчёта требуется роль старшего состава' });
   }
 
   const ip = req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';

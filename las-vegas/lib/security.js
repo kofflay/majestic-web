@@ -1,7 +1,6 @@
-// Discord guild and role snapshot configuration for the Las Vegas instance.
 export const CRIM_GUILDS = [];
 
-export const LSPD_GUILD_ID = '1514608894666735717';
+export const LSPD_GUILD_ID = '1561638801032486952';
 
 export function getRoleGuildIds() {
   return [LSPD_GUILD_ID];

@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import FormShell from '@/components/FormShell';
 import FormLoading from '@/components/FormLoading';
-
-const REQUIRED_ROLE_ID = '1514608894679191597'; // Роль, дающая доступ к хай-отчетам
+import { STAFF_ROLE_IDS } from '@/lib/role-config';
 
 const RANK_OPTIONS = ['1-2 ранг', '2-3 ранг', '3-4 ранг', '4-5 ранг', '5-6 ранг', '6-7 ранг', '7-8 ранг', '8-9 ранг', '9-10 ранг', '10-11 ранг', '11-12 ранг', '12-13 ранг', '13-14 ранг', '14-15 ранг'];
 
@@ -22,7 +21,7 @@ export default function HighRankReportForm() {
     fetch('/las-vegas/api/me').then(res => res.json()).then(data => {
       if (!data.user) { router.replace('/'); return; }
       setUser(data.user);
-      if (data.user.roles && data.user.roles.includes(REQUIRED_ROLE_ID)) {
+      if (Array.isArray(data.user.roles) && data.user.roles.some(roleId => STAFF_ROLE_IDS.includes(String(roleId)))) {
         setHasAccess(true);
       }
     }).catch(() => router.replace('/'));
