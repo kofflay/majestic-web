@@ -1176,13 +1176,20 @@ export default async function handler(req, res) {
       } catch (saveError) {
         console.error('Discord accepted the HR audit delivery but Redis state update failed:', saveError);
         const persisted = await kv.get(itemKey).catch(() => null);
-        if (persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt) {
+        if (persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt && persisted.deliveryMessageId === messageId) {
           return res.status(200).json({ success: true, item: persisted });
         }
+        const uncertain = {
+          ...(persisted || attempted), deliveryPending: true, deliveryUnconfirmed: true,
+          history: [...historyOf(persisted || attempted), {
+            action: 'delivery_retry_unconfirmed', at: new Date().toISOString(), userId: String(user.id)
+          }]
+        };
+        await kv.set(itemKey, uncertain).catch(() => {});
         return res.status(200).json({
           success: true,
-          item: attempted,
-          warning: 'Discord подтвердил отправку, но реестр не подтвердил обновление. Перед повторной отправкой проверьте канал отдела.'
+          item: uncertain,
+          warning: 'Discord подтвердил отправку, но реестр не подтвердил ID сообщения. Повтор заблокирован; сначала проверьте канал отдела.'
         });
       }
       return res.status(200).json({ success: true, item: updated });
