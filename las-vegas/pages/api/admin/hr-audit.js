@@ -57,7 +57,7 @@ function webhookUrlWithWait(webhook) {
 }
 
 
-async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
+async function createPromotionFromApprovedReport(item, reviewer, auditMessageId) {
   const itemKey = `lspd:hr-audit:item:${item.id}`;
   const auditWebhook = process.env.WEBHOOK_AUDIT_URL || '';
   const promotionWebhook = process.env.WEBHOOK_PROMOTION || '';
@@ -592,7 +592,7 @@ async function sendDecision(item, reviewer, decision, reason) {
 
     const latestBeforeAudit = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
     if (latestBeforeAudit?.auditMessageId) {
-      const promotionResult = await createPromotionFromHighrank(item, reviewer, latestBeforeAudit.auditMessageId);
+      const promotionResult = await createPromotionFromApprovedReport(item, reviewer, latestBeforeAudit.auditMessageId);
       return {
         success: promotionResult.success,
         messageId: latestBeforeAudit.auditMessageId,
@@ -714,7 +714,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
 
     await writeSystemLog({ level: 'info', category: 'discord', event: 'highrank_audit_report_sent', message: 'HR-карточка обновлена, карточка кадрового аудита отправлена', auditId: item.id, auditType: item.type, decision });
-    const promotionResult = await createPromotionFromHighrank(item, reviewer, auditMessageId);
+    const promotionResult = await createPromotionFromApprovedReport(item, reviewer, auditMessageId);
     return {
       success: promotionResult.success,
       messageId: auditMessageId,
