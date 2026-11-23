@@ -17,10 +17,23 @@ export default function Header({ user }) {
     }
 
     let active = true;
+    const cacheKey = 'las-vegas:admin-access';
+    const cacheTtl = 5 * 60 * 1000;
+    try {
+      const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
+      if (cached && Date.now() - cached.checkedAt < cacheTtl) {
+        setIsAdmin(Boolean(cached.isAdmin));
+        return () => { active = false; };
+      }
+    } catch {}
+
     fetch('/las-vegas/api/admin/check')
       .then(res => res.json())
       .then(data => {
-        if (active) setIsAdmin(Boolean(data.isAdmin));
+        if (!active) return;
+        const allowed = Boolean(data.isAdmin);
+        setIsAdmin(allowed);
+        try { window.sessionStorage.setItem(cacheKey, JSON.stringify({ isAdmin: allowed, checkedAt: Date.now() })); } catch {}
       })
       .catch(() => {
         if (active) setIsAdmin(false);
