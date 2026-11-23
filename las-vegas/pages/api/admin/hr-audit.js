@@ -108,7 +108,7 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
   if (!promotion) {
     const data = {
       fullName: String(item.data?.fullName || '').trim(),
-      rankRange: String(item.data?.rankRange || '').trim(),
+      rankRange: (item.type === 'report' ? [item.data?.currentRank, item.data?.targetRank].filter(Boolean).join(' → ') : item.data?.rankRange || '').trim(),
       reportLink: auditMessageUrl
     };
     const submittedAt = new Date().toISOString();
@@ -349,9 +349,9 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
 
 
-  // Approved high-rank reports: update the existing HR card, persist that
-  // stage, then publish the separate personnel-audit card.
-  if (item.type === 'highrank' && accepted) {
+  // Approved high-rank and regular promotion reports share the personnel-audit
+  // workflow. Other form types never create a promotion request.
+  if (['highrank', 'report'].includes(item.type) && accepted) {
     const auditWebhook = process.env.WEBHOOK_AUDIT_URL || null;
 
     const reportData = item.data && typeof item.data === 'object' ? item.data : {};
@@ -360,7 +360,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       return (text || fallback).slice(0, 1024);
     };
     const applicantName = fieldValue(reportData.fullName);
-    const rankRange = fieldValue(reportData.rankRange);
+    const rankRange = item.type === 'report' ? fieldValue(reportData.currentRank) + ' → ' + fieldValue(reportData.targetRank) : fieldValue(reportData.rankRange);
     const originalMessageId = String(item.deliveryMessageId || '');
     const reportWebhook = getAuditWebhook(item);
 
@@ -563,9 +563,8 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
   const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/profile?audit=${encodeURIComponent(item.id)})`;
 
-  // Для отчётов на повышение хай-состава обновляем исходную карточку,
-  // отправленную тем же вебхуком. Остальные типы заявок сохраняют прежний POST-процесс.
-  if (item.type === 'highrank') {
+  // Update the original Discord card for every HR form using PATCH.
+  if (item.type !== 'promotion') {
     const originalMessageId = String(item.deliveryMessageId || '');
     if (!/^\d{17,20}$/.test(originalMessageId)) {
       await writeSystemLog({
