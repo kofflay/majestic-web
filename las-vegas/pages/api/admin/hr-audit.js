@@ -616,24 +616,33 @@ async function sendDecision(item, reviewer, decision, reason) {
         const text = typeof value === 'string' ? value.trim() : '';
         return (text || fallback).slice(0, 1024);
       };
-      // Rebuild the high-rank card from the submitted form data, not from
-      // the old Discord embed, so every submitted field remains visible.
+      const fieldLabels = {
+        fullName: 'Имя и статик', department: 'Отдел', currentRank: 'Текущий ранг', targetRank: 'Запрашиваемый ранг',
+        isInstructor: 'Назначение инструктором', workLinks: 'Ссылки на проделанную работу', rankRange: 'Диапазон рангов',
+        workLink: 'Ссылка на проделанную работу', reportLink: 'Ссылка на отчёт', rank: 'Текущий ранг',
+        currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина',
+        approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
+        lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
+        screenshot: 'Скриншот', rankAtDismissal: 'Ранг на момент увольнения', wasWarned: 'Было ли взыскание',
+        stateFractionsProof: 'Одобрение State Fractions', dbWhatIs: 'Вопросы DB', dbExperience: 'Опыт DB',
+        dbExamples: 'Примеры DB', dbServers: 'Серверы DB', dbKnowledge: 'Знания DB', dbLawKnowledge: 'Знание законов DB',
+        swatShooting: 'Стрельба SWAT', swatRollback: 'Откат SWAT'
+      };
+      const submittedFields = Object.entries(reportData).map(([key, rawValue]) => {
+        let value = rawValue;
+        if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) value = getDepartment(rawValue)?.name || rawValue;
+        if (['isInstructor', 'wasWarned'].includes(key)) value = rawValue === 'yes' ? 'Да' : rawValue === 'no' ? 'Нет' : rawValue;
+        if (value && typeof value === 'object') value = JSON.stringify(value);
+        return { name: fieldLabels[key] || key, value: fieldValue(String(value ?? '')), inline: false };
+      });
       const decisionFields = [
-        { name: ' Имя Фамилия + Статик', value: fieldValue(reportData.fullName), inline: false },
-        { name: ' Диапазон повышения', value: fieldValue(reportData.rankRange), inline: true },
-        { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
-        {
-          name: ' Отправитель',
-          value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан',
-          inline: true
-        },
-        { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
-        { name: ' Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
-        { name: ' Проверил', value: `<@${reviewerId}>`, inline: true },
-        ...(!accepted && reason
-          ? [{ name: ' Причина отказа', value: fieldValue(reason), inline: false }]
-          : [])
-      ];
+        ...submittedFields,
+        { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? '<@' + applicantId + '>' : 'Discord ID не указан', inline: true },
+        { name: 'Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
+        { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
+        { name: 'Проверил', value: '<@' + reviewerId + '>', inline: true },
+        ...(!accepted && reason ? [{ name: 'Причина отказа', value: fieldValue(reason), inline: false }] : [])
+      ].slice(0, 25);
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? {
@@ -645,7 +654,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         } : {}),
         ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
-        title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `${item.title || 'Заявка'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: profileReportUrl,
         fields: decisionFields,
@@ -656,7 +665,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         timestamp: new Date().toISOString()
       };
 
-      const content = `Решение по отчёту на повышение №${item.number} принято: ${accepted ? 'одобрено' : 'отклонено'}.`;
+      const content = `Решение по заявке №${item.number} («${item.title || 'Заявка'}») принято: ${accepted ? 'одобрено' : 'отклонено'}.`;
       response = await fetch(messageUrl.toString(), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
