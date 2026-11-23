@@ -58,7 +58,14 @@ const FIELD_LABELS = {
   workLinks: 'Ссылки на проделанную работу',
   rankRange: 'Диапазон рангов',
   workLink: 'Ссылка на проделанную работу',
-  reportLink: 'Ссылка на кадровый аудит'
+  reportLink: 'Ссылка на кадровый аудит',
+  rank: 'Текущий ранг', currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина',
+  approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
+  lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
+  screenshot: 'Скриншот', rankAtDismissal: 'Ранг на момент увольнения', wasWarned: 'Было ли взыскание',
+  stateFractionsProof: 'Одобрение State Fractions', dbWhatIs: 'Вопросы DB', dbExperience: 'Опыт DB',
+  dbExamples: 'Примеры DB', dbServers: 'Серверы DB', dbKnowledge: 'Знания DB', dbLawKnowledge: 'Знание законов DB',
+  swatShooting: 'Стрельба SWAT', swatRollback: 'Откат SWAT'
 };
 
 const FORM_CATEGORY_GROUPS = [
@@ -67,7 +74,7 @@ const FORM_CATEGORY_GROUPS = [
     { id: 'highrank', label: 'Отчёты High-Rank', icon: '◆' },
     { id: 'promotion', label: 'Запросы на повышение', icon: '↑' },
     { id: 'transfer', label: 'Перевод между отделами', icon: '⇄' },
-    { id: 'transfer-to-lspd', label: 'Перевод в LSPD', icon: '＋' },
+    { id: 'transfer-to-lspd', label: 'Перевод в FIB', icon: '＋' },
     { id: 'hiring', label: 'Трудоустройство', icon: '＋' },
     { id: 'reinstatement', label: 'Восстановление', icon: '↺' },
     { id: 'resignation', label: 'Увольнение', icon: '−' }
@@ -96,7 +103,7 @@ const STATUS_LABELS = {
 function displayFieldValue(key, value) {
   if (value === null || value === undefined || value === '') return '—';
   if (key === 'isInstructor') return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
-  if (key === 'department') {
+  if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) {
     const department = getDepartment(value);
     return department ? department.name : String(value);
   }
@@ -104,7 +111,7 @@ function displayFieldValue(key, value) {
 }
 
 function renderFieldContent(key, value) {
-  if (!['workLinks', 'workLink', 'reportLink'].includes(key) || !value) return displayFieldValue(key, value);
+  if (!value) return displayFieldValue(key, value);
   const parts = String(value).split(/(https?:\/\/[^\s,]+)/gi);
   return parts.map((part, index) => /^https?:\/\//i.test(part)
     ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
@@ -212,9 +219,9 @@ export default function HrAuditPage() {
   const counts = items.reduce((acc, item) => ({ ...acc, [item.status]: (acc[item.status] || 0) + 1 }), {});
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
   const TYPE_LABELS = {
-    report: 'Отчёт о повышении',
-    highrank: 'Повышение хай-состава',
-    promotion: 'Запрос на повышение'
+    report: 'Отчёт о повышении', highrank: 'Отчёт High-Rank', promotion: 'Запрос на повышение',
+    transfer: 'Перевод между отделами', 'transfer-to-lspd': 'Перевод в FIB', hiring: 'Трудоустройство в FIB',
+    resignation: 'Увольнение', reinstatement: 'Восстановление в FIB'
   };
   const uniqueValues = values => Array.from(new Set(values.filter(value => value !== null && value !== undefined && String(value).trim() !== '').map(String)));
   const departmentOptions = uniqueValues([
@@ -236,7 +243,7 @@ export default function HrAuditPage() {
     const parsed = new Date(item.submittedAt);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
-  const connectedCategories = ['report', 'highrank', 'promotion'];
+  const connectedCategories = ['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'];
   const activeCategoryLabel = activeCategory === 'all' ? 'Все заявления' : FORM_CATEGORY_GROUPS.flatMap(group => group.items).find(category => category.id === activeCategory)?.label || 'Категория';
   const visibleItems = items.filter(item => {
     if (activeCategory !== 'all' && item.type !== activeCategory) return false;
@@ -250,7 +257,7 @@ export default function HrAuditPage() {
     return (!normalizedSearch || haystack.includes(normalizedSearch))
       && (!dateFrom || (submittedDay && submittedDay >= fromDay))
       && (!dateTo || (submittedDay && submittedDay <= toDay))
-      && (!selectedDepartments.length || selectedDepartments.includes(department))
+      && (!selectedDepartments.length || [department, item.data?.currentDepartment, item.data?.targetDepartment].filter(Boolean).some(value => selectedDepartments.includes(String(value))))
       && (!selectedStatuses.length || selectedStatuses.includes(item.status));
   });
   const sortedVisibleItems = visibleItems.slice().sort((a, b) => {
@@ -261,7 +268,7 @@ export default function HrAuditPage() {
 
   return (
     <PageLayout user={user}>
-        <AdminSectionHeader title="Кадровый аудит" description="Реестр отчётов хайранга и запросов на повышение: просмотр, доставка в Discord и фиксация решений проверяющих." backHref="/" backLabel="НА ГЛАВНУЮ" />
+        <AdminSectionHeader title="Кадровый аудит" description="Единый реестр кадровых заявлений: просмотр, доставка в Discord и фиксация решений проверяющих." backHref="/" backLabel="НА ГЛАВНУЮ" />
         {error && <div role="alert" style={{ ...panel, borderColor: 'rgba(220,53,69,.5)', color: '#ff9aa4' }}>{error}</div>}
         <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
           <div><div style={label}>ВСЕГО</div><div style={{ ...value, fontSize: 23, fontWeight: 800 }}>{items.length}</div></div>
@@ -289,7 +296,7 @@ export default function HrAuditPage() {
                 </button>;
               })}
             </div>)}
-            {!sidebarCollapsed && <div className="hr-audit-sidebar-note">Новые типы заявлений будут подключаться к реестру постепенно.</div>}
+            {!sidebarCollapsed && <div className="hr-audit-sidebar-note">В кадровом реестре отображаются все кадровые формы.</div>}
           </aside>
           <div className="hr-audit-main">
             <div className="hr-audit-main-heading">
@@ -317,13 +324,13 @@ export default function HrAuditPage() {
           const [statusText, statusColor] = status(item);
           return <section id={`audit-item-${item.id}`} key={item.id} className="hr-audit-card" style={panel}>
             <button type="button" className="hr-audit-card-summary" aria-expanded={expandedItems.has(item.id)} aria-controls={`audit-details-${item.id}`} onClick={() => setExpandedItems(prev => { const next = new Set(prev); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })}>
-              <span className="hr-audit-card-summary-main"><strong>{item.type === 'highrank' ? 'Отчёт хайранга' : item.type === 'promotion' ? 'Запрос на повышение' : 'Отчёт о повышении'} · №{item.number}</strong><span>{item.data?.fullName || item.submitter?.username || 'Заявитель не указан'}</span></span>
+              <span className="hr-audit-card-summary-main"><strong>{TYPE_LABELS[item.type] || item.title || 'Заявка'} · №{item.number}</strong><span>{item.data?.fullName || item.submitter?.username || 'Заявитель не указан'}</span></span>
               <span className="hr-audit-card-summary-meta"><span>{item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('ru-RU') : 'Дата не указана'}</span><span className="hr-audit-card-status" style={{ color: statusColor, borderColor: statusColor }}>{statusText}</span><span className={`hr-audit-card-chevron${expandedItems.has(item.id) ? ' is-open' : ''}`}>⌄</span></span>
             </button>
             {expandedItems.has(item.id) && <div className="hr-audit-card-details" id={`audit-details-${item.id}`}>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{item.type === 'highrank' ? 'Отчёт хайранга' : item.type === 'promotion' ? 'Запрос на повышение' : 'Отчёт о повышении'} · №{item.number}</h2>
+              <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{TYPE_LABELS[item.type] || item.title || 'Заявка'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
@@ -335,15 +342,15 @@ export default function HrAuditPage() {
                 <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>Автоматический запрос после одобрения отчёта хайранга</div></div>
                 <div><div style={label}>ДИАПАЗОН РАНГОВ</div><div style={value}>{displayFieldValue('rankRange', item.data?.rankRange)}</div></div>
               </> : <>
-                <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data?.department)}</div></div>
-                <div><div style={label}>ТЕКУЩИЙ / НОВЫЙ РАНГ</div><div style={value}>{item.data?.currentRank || '—'} → {item.data?.targetRank || '—'}</div></div>
+                <div><div style={label}>ТИП ЗАЯВКИ</div><div style={value}>{TYPE_LABELS[item.type] || item.title || 'Кадровый процесс'}</div></div>
+                {item.data?.department && <div><div style={label}>ОТДЕЛ</div><div style={value}>{displayFieldValue('department', item.data.department)}</div></div>}
               </>}
               <div><div style={label}>ОТПРАВЛЕНО</div><div style={value}>{item.submittedAt ? new Date(item.submittedAt).toLocaleString('ru-RU') : '—'}</div></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
               {Object.entries(item.data || {}).filter(([key]) => item.type === 'highrank'
                 ? !['fullName', 'rankRange'].includes(key)
-                : item.type === 'promotion' ? !['fullName', 'rankRange'].includes(key) : !['fullName', 'department', 'currentRank', 'targetRank'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
+                 : item.type === 'promotion' ? !['fullName', 'rankRange'].includes(key) : !['fullName'].includes(key)).map(([key, val]) => <div key={key}><div style={label}>{FIELD_LABELS[key] || key}</div><div style={value}>{renderFieldContent(key, val)}</div></div>)}
             </div>
             {item.status === 'pending' ? <div style={{ marginTop: 22, borderTop: '1px solid rgba(197,163,106,.16)', paddingTop: 18 }}>
               <label style={{ ...label, display: 'block' }}>ПРИЧИНА ОТКАЗА (ОБЯЗАТЕЛЬНО ПРИ ОТКЛОНЕНИИ)</label>
