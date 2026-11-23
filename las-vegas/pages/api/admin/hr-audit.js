@@ -328,7 +328,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
       timestamp: item.resolvedAt || new Date().toISOString(),
       footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
     }],
-    allowed_mentions: { users: [applicantId, reviewerId].filter(value => /^\d{17,20}$/.test(value)) }
+    allowed_mentions: { parse: [], users: [applicantId, reviewerId].filter(value => /^\d{17,20}$/.test(value)), roles: [] }
   };
   const attemptedAt = new Date().toISOString();
   const attempted = {
@@ -440,7 +440,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         body: JSON.stringify({
           content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}.`,
           embeds: [embed],
-          allowed_mentions: { users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)) }
+          allowed_mentions: { parse: [], users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)), roles: [] }
         }),
         signal: AbortSignal.timeout(15000)
       });
@@ -898,7 +898,9 @@ async function sendDecision(item, reviewer, decision, reason) {
           footer: { text: 'Suspect Forms • HR Audit' }
         }],
         allowed_mentions: {
-          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
+          parse: [],
+          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)),
+          roles: []
         }
       }),
       signal: AbortSignal.timeout(15000)
