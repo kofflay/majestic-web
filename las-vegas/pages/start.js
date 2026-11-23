@@ -53,7 +53,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="site-page-shell landing-page" style={{ position: 'relative', isolation: 'isolate', background: 'transparent' }}>
+    <div className="site-page-shell landing-page fib-landing" style={{ position: 'relative', isolation: 'isolate', background: 'transparent' }}>
       <div
         aria-hidden="true"
         style={{
@@ -77,36 +77,36 @@ export default function Home() {
             {/* Убираем старые статичные свечения, так как теперь есть LivingBackground */}
             
             <div className="landing-hero__content">
-              <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> LAS VEGAS</div>
-              <h1>Закон.<br /><span>Порядок.</span><br />Las Vegas.</h1>
-              <p>Las Vegas Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
+              <div className="landing-kicker"><i /> FEDERAL BUREAU OF INVESTIGATION <b>—</b> LAS VEGAS DIVISION</div>
+              <h1>Факты.<br /><span>Закон.</span><br />Справедливость.</h1>
+              <p>Федеральное бюро расследований — отделение Лас-Вегаса.<br />Раскрываем сложные дела. Защищаем правду. Служим закону.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
             </div>
             <div className="landing-orbit" aria-hidden="true"><strong>24</strong><small>HOURS</small></div>
-            <div className="landing-meta landing-meta--left">LAS VEGAS / 010</div>
-            <div className="landing-meta landing-meta--center">EST. 2026</div>
+            <div className="landing-meta landing-meta--left">FBI / LV-01</div>
+            <div className="landing-meta landing-meta--center">FIELD OFFICE</div>
             <div className="landing-meta landing-meta--right">LAS VEGAS, NV</div>
           </section>
 
           <section className="landing-mission">
             <div className="landing-section-label"><span>01</span> НАША МИССИЯ</div>
             <div>
-              <h2>Служить и защищать —<br /><em>это наш выбор.</em></h2>
-              <p>Мы создаём безопасный город, в котором каждый житель может чувствовать себя защищённым. Наша сила — в дисциплине, профессионализме и уважении к закону.</p>
+              <h2>Раскрывать факты —<br /><em>защищать правду.</em></h2>
+              <p>Мы устанавливаем обстоятельства, собираем доказательства и проводим расследования. Наша основа — точность, выдержка, конфиденциальность и верховенство закона.</p>
             </div>
             <div className="landing-quote">“</div>
           </section>
 
           <section className="landing-cards">
-            <a href="/las-vegas/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
-            <a href="/las-vegas/staff"><span>02</span><strong>Состав полиции</strong><small>Команда и руководство</small><b>↗</b></a>
+            <a href="/las-vegas/applications"><span>01</span><strong>Обращения</strong><small>Заявления и сообщения</small><b>↗</b></a>
+            <a href="/las-vegas/staff"><span>02</span><strong>Состав бюро</strong><small>Агенты и руководство</small><b>↗</b></a>
           </section>
 
           <section className="landing-command" aria-labelledby="landing-command-title">
-            <div className="landing-command__eyebrow">TOP SECRET // CLEARANCE REQUIRED</div>
-            <div className="landing-section-label"><span>03</span> РУКОВОДСТВО</div>
-            <h2 id="landing-command-title">Командование департамента</h2>
-            <p>Высшее руководство Las Vegas Police Department</p>
+            <div className="landing-command__eyebrow">CLASSIFIED // AUTHORIZED PERSONNEL ONLY</div>
+            <div className="landing-section-label"><span>03</span> РУКОВОДСТВО БЮРО</div>
+            <h2 id="landing-command-title">Руководство федерального бюро</h2>
+            <p>Руководящий состав FIB — Las Vegas Division</p>
             <div className="landing-command__grid">
               {staff.map((member) => (
                 <StaffCard key={member.id} member={member} isAdminView={false} />
@@ -115,7 +115,7 @@ export default function Home() {
           </section>
         </main>
         <footer className="landing-footer">
-          <span>LAS VEGAS ROLEPLAY SYSTEM</span>
+          <span>FEDERAL BUREAU // LAS VEGAS DIVISION</span>
           <span className="landing-footer__credit">
             ЧАСТЬ ПРОЕКТА{' '}
             <a href="https://discord.com" target="_blank" rel="noopener noreferrer">
