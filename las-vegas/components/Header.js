@@ -124,12 +124,12 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="Las Vegas — на главную"
+            aria-label="Федеральное бюро расследований — на главную"
           >
             <span className="brand__mark" aria-hidden="true">◈</span>
             <span className="brand__text">
-              <strong>LAS VEGAS</strong>
-              <small>POLICE DEPARTMENT</small>
+              <strong>ФБР</strong>
+              <small>FEDERAL BUREAU OF INVESTIGATION</small>
             </span>
           </button>
 
@@ -323,12 +323,12 @@ export default function Header({ user }) {
           flex: 0 0 42px;
           width: 42px;
           height: 42px;
-          border: 1px solid rgba(73, 145, 255, .58);
+          border: 1px solid rgba(197, 163, 106, .58);
           border-radius: 12px;
-          background: radial-gradient(circle at 30% 20%, rgba(63, 131, 248, .22), rgba(12, 22, 38, .92) 72%);
-          color: #70adff;
+          background: radial-gradient(circle at 30% 20%, rgba(197, 163, 106, .2), rgba(18, 17, 15, .94) 72%);
+          color: #dfc58f;
           font-size: 19px;
-          box-shadow: 0 0 28px rgba(63, 131, 248, .13);
+          box-shadow: 0 0 28px rgba(197, 163, 106, .13);
         }
 
         .brand__text {
@@ -389,8 +389,8 @@ export default function Header({ user }) {
           left: 0;
           height: 2px;
           border-radius: 2px;
-          background: #4b91ff;
-          box-shadow: 0 0 12px rgba(75, 145, 255, .34);
+          background: #c5a36a;
+          box-shadow: 0 0 12px rgba(197, 163, 106, .28);
           content: '';
           transform: scaleX(0);
           transform-origin: center;
@@ -598,7 +598,7 @@ export default function Header({ user }) {
         }
 
         .mobile-menu-toggle:hover {
-          color: #70adff;
+          color: #dfc58f;
         }
 
         .mobile-menu-toggle__icon {
