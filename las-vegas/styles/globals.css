@@ -1791,3 +1791,70 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   .profile-request-modal__actions{width:100%;justify-content:space-between}
   .profile-request-discord-link{flex:1;font-size:10px}
 }
+
+
+/* FIB Las Vegas identity — landing page and shared federal header */
+.fib-landing {
+  --blue: #c5a36a;
+  --blue-soft: rgba(197, 163, 106, .18);
+  color: #f3f0e9;
+}
+.fib-landing .landing-hero::before {
+  opacity: .42;
+  background-image: linear-gradient(rgba(210,190,155,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(210,190,155,.035) 1px, transparent 1px);
+}
+.fib-landing .landing-kicker { color: #d0b987; letter-spacing: .2em; }
+.fib-landing .landing-kicker i { background: #d5b777; box-shadow: 0 0 12px rgba(213,183,119,.65); }
+.fib-landing .landing-kicker b { color: #8e7650; }
+.fib-landing .landing-hero h1 { color: #f6f3ed; text-shadow: 0 8px 38px rgba(0,0,0,.36); }
+.fib-landing .landing-hero h1 span { -webkit-text-stroke: 1px #d4bd91; }
+.fib-landing .landing-hero p { color: #c3c0ba; text-shadow: 0 2px 12px rgba(0,0,0,.75); }
+.fib-landing .landing-meta { color: #c2ad83; }
+.fib-landing .landing-orbit { border-color: rgba(197,163,106,.28); color: #e0c38c; }
+.fib-landing .landing-orbit::before, .fib-landing .landing-orbit::after { border-color: rgba(197,163,106,.18); }
+.fib-landing .landing-orbit small { color: #b6a17b; }
+.fib-landing .landing-section-label { color: #c9c0ad; }
+.fib-landing .landing-section-label span { color: #d3b77e; }
+.fib-landing .landing-mission h2 { color: #f3f0e9; }
+.fib-landing .landing-mission h2 em { color: #d7b77a; }
+.fib-landing .landing-mission p { color: #c1bdB4; }
+.fib-landing .landing-quote { color: rgba(215,183,122,.3); }
+.fib-landing .landing-cards a { border-color: rgba(197,163,106,.24); background: linear-gradient(135deg, rgba(13,16,21,.62), rgba(8,10,14,.42)); backdrop-filter: blur(8px); }
+.fib-landing .landing-cards a:hover { border-color: rgba(215,183,122,.72); background: rgba(92,68,34,.2); }
+.fib-landing .landing-cards span, .fib-landing .landing-cards small { color: #b4a78f; }
+.fib-landing .landing-cards b { color: #d7b77a; }
+.fib-landing .landing-command { border-color: rgba(197,163,106,.2); background: linear-gradient(180deg, rgba(8,11,16,.1), rgba(8,11,16,.58)); }
+.fib-landing .landing-command__eyebrow { background: rgba(112,82,39,.82); color: #f4e5c7; border: 1px solid rgba(215,183,122,.35); }
+.fib-landing .landing-command h2 { color: #f3f0e9; }
+.fib-landing .landing-command > p { color: #bcb5a7; }
+.fib-landing .landing-footer { color: #9e927b; border-top: 1px solid rgba(197,163,106,.16); }
+.fib-landing .landing-footer__credit strong, .fib-landing .landing-footer__author strong { color: #d4bd91; }
+.fib-landing .landing-footer a { color: inherit; text-decoration: none; }
+.fib-landing .landing-footer a:hover { color: #f3dfb5; }
+.site-header {
+  border-bottom-color: rgba(197,163,106,.2) !important;
+  background: rgba(8,10,14,.94) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.28) !important;
+}
+.site-header .site-header__inner { min-height: 76px !important; }
+.site-header .brand__mark {
+  flex-basis: 46px !important; width: 46px !important; height: 46px !important;
+  border: 1px solid rgba(207,174,112,.7) !important; border-radius: 8px !important;
+  background: linear-gradient(145deg, rgba(120,91,48,.38), rgba(18,20,23,.96)) !important;
+  color: #e3c78f !important; font: 800 11px 'DM Mono', monospace !important;
+  letter-spacing: .04em; box-shadow: 0 0 24px rgba(197,163,106,.12) !important;
+}
+.site-header .brand__text strong { color: #f1eadc !important; letter-spacing: .12em; }
+.site-header .brand__text small { color: #b5a27e !important; letter-spacing: .14em; }
+.site-header .site-nav button { color: #aaa69d !important; }
+.site-header .site-nav button:hover, .site-header .site-nav button.is-active { color: #f5eddf !important; }
+.site-header .site-nav button::after { background: #c7a66c !important; box-shadow: 0 0 12px rgba(199,166,108,.35) !important; }
+.site-header .profile-link { border-color: rgba(197,163,106,.36) !important; background: rgba(197,163,106,.09) !important; color: #e0c995 !important; }
+.site-header .profile-link:hover, .site-header .profile-link[aria-current="page"] { border-color: rgba(215,183,122,.72) !important; background: rgba(197,163,106,.18) !important; color: #fff4df !important; }
+.site-header .profile-avatar-button { border-color: rgba(197,163,106,.48) !important; background: rgba(197,163,106,.1) !important; }
+.site-header .header-login { background: linear-gradient(135deg,#8c6b39,#b18b4f) !important; color: #fff9ed !important; }
+.site-header .header-login:hover { background: linear-gradient(135deg,#a27c43,#c29c5e) !important; }
+@media (max-width: 760px) {
+  .site-header .site-header__inner { min-height: 68px !important; }
+  .site-header .brand__mark { flex-basis: 40px !important; width: 40px !important; height: 40px !important; }
+}
