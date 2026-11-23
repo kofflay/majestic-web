@@ -28,7 +28,7 @@ require_ready_host() {
   [[ "$(stat -c '%U:%G' "$ENV_FILE")" == "root:$APP_GROUP" ]] || fail "$ENV_FILE must be owned by root:$APP_GROUP"
   local env_mode
   env_mode="$(stat -c '%a' "$ENV_FILE")"
-  (( (8#$env_mode & 0077) == 0 )) || fail "$ENV_FILE must not be accessible by group or other users"
+  (( (8#$env_mode & 0037) == 0 )) || fail "$ENV_FILE must be root-owned, readable by the Las Vegas group only, and inaccessible to others"
   [[ -d "$INCOMING" && -d "$RELEASES" ]] || fail "release directories are missing"
   [[ "$(stat -c '%G' "$INCOMING")" == "$DEPLOY_GROUP" ]] || fail "$INCOMING must belong to $DEPLOY_GROUP"
   local incoming_mode
@@ -77,6 +77,9 @@ deploy_command() {
 
   local listing entry
   listing="$(tar -tzf "$archive")" || fail "cannot read release archive"
+  if ! tar -tvzf "$archive" | awk 'substr($0, 1, 1) != "-" && substr($0, 1, 1) != "d" { exit 1 }'; then
+    fail "archive contains a link or special file; only regular files and directories are accepted"
+  fi
   [[ -n "$listing" ]] || fail "release archive is empty"
   while IFS= read -r entry; do
     [[ "$entry" != /* ]] || fail "archive contains an absolute path"
