@@ -47,12 +47,21 @@ export default async function handler(req, res) {
       return item && typeof item === 'object' ? item : null;
     }).filter(Boolean);
 
-    const enrichedHistory = await Promise.all(parsedHistory.map(async item => {
-      const auditNumber = String(item.auditNumber || '');
+    const validHistory = parsedHistory.map(item => ({
+      item,
+      auditNumber: String(item.auditNumber || '')
+    }));
+    const auditNumbers = validHistory
+      .map(entry => entry.auditNumber)
+      .filter(number => /^[1-9][0-9]{0,11}$/.test(number));
+    const uniqueAuditNumbers = [...new Set(auditNumbers)];
+    const auditRecords = await kv.mget(uniqueAuditNumbers.map(number => `lspd:hr-audit:item:${number}`));
+    const auditByNumber = new Map(uniqueAuditNumbers.map((number, index) => [number, auditRecords[index]]));
+    const enrichedHistory = validHistory.map(({ item, auditNumber }) => {
       if (!/^[1-9][0-9]{0,11}$/.test(auditNumber)) {
         return { ...item, status: item.status === 'accepted' || item.status === 'rejected' ? item.status : 'pending' };
       }
-      const audit = await kv.get(`lspd:hr-audit:item:${auditNumber}`).catch(() => null);
+      const audit = auditByNumber.get(auditNumber);
       if (!audit || String(audit.submitter?.id || '') !== String(user.id)) {
         return { ...item, status: 'pending' };
       }
@@ -61,7 +70,7 @@ export default async function handler(req, res) {
         status: ['pending', 'accepted', 'rejected'].includes(audit.status) ? audit.status : 'pending',
         date: audit.submittedAt || item.date
       };
-    }));
+    });
 
     res.status(200).json({
       total: Number.parseInt(total, 10) || 0,
