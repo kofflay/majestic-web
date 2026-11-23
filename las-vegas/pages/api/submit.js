@@ -373,15 +373,11 @@ export default async function handler(req, res) {
   let result;
   let embed = baseEmbed;
   let hrAuditNumber = null;
-  if (type === 'highrank') {
+  if (['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(type)) {
     const submittedAt = new Date().toISOString();
     // The existing high-rank form does not send a client idempotency token.
     // A short-lived fingerprint prevents duplicate clicks/retries without blocking a later new report.
-    const auditRequestId = `highrank-${createHash('sha256').update(JSON.stringify([
-      formData.fullName,
-      formData.rankRange,
-      formData.workLink
-    ])).digest('hex')}`;
+    const auditRequestId = `${type}-${createHash('sha256').update(JSON.stringify([user.id, type, formData])).digest('hex')}`;
     const auditIdempotencyTtl = 600;
     const auditItem = {
       id: '',
@@ -461,17 +457,11 @@ return {number, 1}
 
       try {
         const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${hrAuditNumber}`;
-        embed = {
+        embed = type === 'highrank' ? {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
-          fields: [
-            {
-              name: ' Имя Фамилия + Статик',
-              value: String(formData.fullName || 'Не указано').slice(0, 1024),
-              inline: false
-            }
-          ]
-        };
+          fields: [{ name: ' Имя Фамилия + Статик', value: String(formData.fullName || 'Не указано').slice(0, 1024), inline: false }]
+        } : { ...baseEmbed, description: `[Открыть заявку для одобрения или отклонения](${auditUrl})` };
         discordPayload.embeds = [embed];
 
         let storedBeforeSend = await kv.get(itemKey);
@@ -620,7 +610,7 @@ return {number, 1}
 
   // Discord delivery succeeded.
   try {
-    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: type === 'highrank' ? hrAuditNumber : null });
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber });
   } catch (historyError) {
     console.error('Submission history update failed after delivery:', historyError);
   }
@@ -657,7 +647,7 @@ return {number, 1}
     const today = new Date().toISOString().split('T')[0];
     await kv.incr('lspd:stats:total');
     await kv.incr(`lspd:stats:${today}`);
-    if (type === 'highrank') {
+    if (['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(type)) {
     const globalRequest = {
       id: submissionRecordId,
       type: type || 'unknown',
@@ -684,9 +674,9 @@ function getFormTitle(type, department, targetDepartment, leaveType) {
   if (type === 'transfer') { const d = getDepartment(targetDepartment); return ` Запрос на перевод в ${d ? d.name : 'Отдел'}`; }
   if (type === 'highrank') return ' Отчёт на повышение (Хай Ранги)';
   if (type === 'resignation') return ' Заявление на увольнение';
-  if (type === 'reinstatement') return ' Восстановление в полиции Las Vegas';
-  if (type === 'transfer-to-lspd') return ' Перевод в полицию Las Vegas';
-  if (type === 'hiring') return ' Трудоустройство в полицию Las Vegas';
+  if (type === 'reinstatement') return ' Восстановление в FIB';
+  if (type === 'transfer-to-lspd') return ' Перевод в FIB';
+  if (type === 'hiring') return ' Трудоустройство в FIB';
   if (type === 'weapon-request') return ' Запрос на спец вооружение';
   if (type === 'premium') return ' Премия';
   if (type === 'complaint') return ' ЖАЛОБА НА СОТРУДНИКА';
