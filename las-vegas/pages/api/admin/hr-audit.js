@@ -721,7 +721,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       reason: promotionResult.reason || null
     };
   }
-  const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/profile?audit=${encodeURIComponent(item.id)})`;
+  const profileReportUrl = `[Открыть заявку в кадровом аудите №${item.number}](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)})`;
 
   // Update the original Discord card for every HR form using PATCH.
   if (item.type !== 'promotion') {
