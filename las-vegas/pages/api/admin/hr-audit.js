@@ -147,7 +147,8 @@ return {number, 1}
         id: '', number: 0, type: 'promotion', title, status: 'pending',
         deliveryPending: true, submittedAt,
         submitter: { id: applicantId, username: item.submitter?.username || 'Unknown' },
-        data, sourceHighrankId: String(item.id), sourceHighrankNumber: item.number,
+        data, sourceAuditId: String(item.id), sourceAuditType: item.type,
+        ...(item.type === 'highrank' ? { sourceHighrankId: String(item.id), sourceHighrankNumber: item.number } : { sourceReportId: String(item.id), sourceReportNumber: item.number }),
         auditMessageId: String(auditMessageId), auditMessageUrl,
         history: [{ action: 'submitted', at: submittedAt, userId: 'system' }]
       })]
@@ -155,7 +156,7 @@ return {number, 1}
     if (!Array.isArray(allocation) || allocation.length < 2) throw new Error('Не удалось создать запись запроса на повышение');
     const promotionId = String(allocation[0]);
     promotion = await kv.get(`lspd:hr-audit:item:${promotionId}`);
-    if (!promotion || promotion.type !== 'promotion' || String(promotion.sourceHighrankId) !== String(item.id)) {
+    if (!promotion || promotion.type !== 'promotion' || String(promotion.sourceAuditId || promotion.sourceHighrankId || '') !== String(item.id) || (promotion.sourceAuditType && promotion.sourceAuditType !== item.type)) {
       throw new Error('Запись запроса на повышение не найдена после создания');
     }
     const parent = await kv.get(itemKey);
@@ -424,7 +425,8 @@ async function sendDecision(item, reviewer, decision, reason) {
             { name: ' Отдел', value: fieldValue(getDepartment(reportData.department)?.name || reportData.department), inline: true },
             { name: ' Текущий ранг', value: fieldValue(reportData.currentRank), inline: true },
             { name: ' Новый ранг', value: fieldValue(reportData.targetRank), inline: true },
-            { name: ' Ссылки на проделанную работу', value: fieldValue(reportData.workLinks), inline: false }
+            { name: ' Ссылки на проделанную работу', value: fieldValue(reportData.workLinks), inline: false },
+            { name: ' Инструктор', value: reportData.isInstructor === 'yes' ? 'Да' : 'Нет', inline: true }
           ]),
           { name: ' Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
           { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
