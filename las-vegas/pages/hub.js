@@ -3,8 +3,8 @@ import GlobalLoader from '../components/GlobalLoader';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import PageLayout from '../components/PageLayout';
+import { STAFF_ROLE_IDS } from '../lib/role-config';
 
-const REQUIRED_ROLE_ID = '1552313180041121802';
 const HIGH_RANK_ROLE_ID = '1514608894679191597';
 
 // Группируем формы по 4 новым категориям
@@ -54,7 +54,7 @@ export default function HubPage() {
     fetch('/las-vegas/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
-      if (d.user.roles && d.user.roles.includes(REQUIRED_ROLE_ID)) {
+      if (d.user.roles && d.user.roles.some(roleId => STAFF_ROLE_IDS.includes(String(roleId)))) {
         setHasAccess(true);
       }
       setLoading(false);
