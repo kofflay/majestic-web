@@ -117,6 +117,31 @@ function renderFieldContent(key, value) {
     ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#81c784', textDecoration: 'underline', overflowWrap: 'anywhere' }}>{part}</a>
     : part);
 }
+function getActionSummary(item) {
+  const data = item.data || {};
+  const departmentName = value => getDepartment(value)?.name || value || 'не указан';
+  const summaries = {
+    report: { title: 'Отчёт о повышении', text: 'Проверяется выполненная работа и соответствие перехода на следующий ранг. При одобрении автоматически создаётся отдельный запрос на повышение.' },
+    highrank: { title: 'Отчёт High-Rank', text: 'Проверяется отчёт руководящего состава. При одобрении автоматически создаётся отдельный запрос на повышение.' },
+    promotion: { title: 'Запрос на повышение', text: 'Проверяется запрос на повышение, сформированный по одобренному отчёту. Повторный запрос автоматически не создаётся.' },
+    transfer: { title: 'Перевод между отделами', text: 'Проверяется перевод сотрудника из текущего отдела в выбранный. Одобрение фиксирует решение кадрового аудита и не создаёт запрос на повышение.' },
+    'transfer-to-lspd': { title: 'Перевод в FIB', text: 'Проверяются подтверждение одобрения перевода и доказательство текущего ранга. Одобрение фиксирует кадровое решение без создания запроса на повышение.' },
+    hiring: { title: 'Трудоустройство в FIB', text: 'Проверяются анкетные данные, опыт, знание законов и приложенные документы. Одобрение фиксирует решение о трудоустройстве.' },
+    resignation: { title: 'Увольнение', text: 'Проверяется заявление сотрудника и приложенный скриншот планшета. Одобрение фиксирует решение об увольнении.' },
+    reinstatement: { title: 'Восстановление в FIB', text: 'Проверяются ранг на момент увольнения, подтверждение ранга и сведения о взысканиях. Одобрение фиксирует решение о восстановлении.' }
+  };
+  const summary = summaries[item.type] || { title: item.title || 'Кадровая заявка', text: 'Проверьте данные и подтверждения, затем зафиксируйте решение кадрового аудита.' };
+  const details = item.type === 'transfer'
+    ? `Перевод: ${departmentName(data.currentDepartment)} → ${departmentName(data.targetDepartment)}`
+    : item.type === 'report'
+      ? `Отдел: ${departmentName(data.department)} · Ранг: ${data.currentRank || '—'} → ${data.targetRank || '—'}`
+      : item.type === 'reinstatement'
+        ? `Ранг на момент увольнения: ${data.rankAtDismissal || '—'} · Взыскание: ${data.wasWarned === 'yes' ? 'Да' : data.wasWarned === 'no' ? 'Нет' : 'Не указано'}`
+        : item.type === 'highrank'
+          ? `Диапазон повышения: ${data.rankRange || '—'}`
+          : '';
+  return { ...summary, details };
+}
 
 export default function HrAuditPage() {
   const router = useRouter();
@@ -332,6 +357,12 @@ export default function HrAuditPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
               <h2 style={{ margin: 0, fontSize: 20, color: '#fff' }}>{TYPE_LABELS[item.type] || item.title || 'Заявка'} · №{item.number}</h2>
               <span style={{ color: statusColor, border: `1px solid ${statusColor}`, borderRadius: 4, padding: '5px 9px', fontSize: 11, fontWeight: 700 }}>{statusText}</span>
+            </div>
+            <div style={{ border: '1px solid rgba(197,163,106,.24)', borderRadius: 6, padding: 14, marginBottom: 18, background: 'rgba(197,163,106,.055)' }}>
+              <div style={{ ...label, color: '#d7bd8c' }}>ЧТО ИМЕННО РАССМАТРИВАЕТСЯ</div>
+              <div style={{ ...value, fontWeight: 700, marginBottom: 5 }}>{getActionSummary(item).title}</div>
+              <div style={{ ...value, color: '#cbd5e1', fontSize: 13 }}>{getActionSummary(item).text}</div>
+              {getActionSummary(item).details && <div style={{ ...value, color: '#e5d4b3', fontSize: 13, marginTop: 8 }}>{getActionSummary(item).details}</div>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
               <div><div style={label}>ЗАЯВИТЕЛЬ</div><div style={value}>{item.data?.fullName || item.submitter?.username || 'Не указано'}</div><div style={{ ...value, color: '#9ca3af', fontSize: 12 }}>Discord: {item.submitter?.id || '—'}</div></div>
