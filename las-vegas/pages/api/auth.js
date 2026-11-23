@@ -5,7 +5,7 @@ import { fetchUserGuildRoles } from '../../lib/security';
 import { kv } from '../../lib/redis.js';
 import { getDiscordAvatarUrl } from '../../lib/avatar';
 
-const GUILD_ID = '1182356767234068481'; // Las Vegas Discord server
+const GUILD_ID = '1514608894666735717'; // Las Vegas Discord server
 const OAUTH_COOKIE_PATH = '/las-vegas/api/auth';
 const APP_PATH = '/las-vegas';
 const CALLBACK_LOCK_TTL_SECONDS = 10 * 60;
