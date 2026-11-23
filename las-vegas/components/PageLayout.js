@@ -22,8 +22,8 @@ export default function PageLayout({ user, children }) {
           min-height: 100vh;
           overflow: clip;
           background:
-            radial-gradient(ellipse at 50% -12%, rgba(197, 163, 106, .10), transparent 48rem),
-            linear-gradient(180deg, #0b0c0e 0%, #08090b 58%, #070809 100%);
+            radial-gradient(ellipse at 50% -12%, rgba(197, 163, 106, .19), transparent 48rem),
+            linear-gradient(180deg, #171716 0%, #121314 58%, #0e1011 100%);
         }
         .fib-atmosphere {
           position: fixed;
@@ -32,8 +32,8 @@ export default function PageLayout({ user, children }) {
           overflow: hidden;
           pointer-events: none;
           background-image:
-            linear-gradient(rgba(197, 163, 106, .025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(197, 163, 106, .025) 1px, transparent 1px);
+            linear-gradient(rgba(215, 183, 122, .045) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(215, 183, 122, .045) 1px, transparent 1px);
           background-size: 72px 72px;
           mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.7) 60%, transparent 100%);
         }
@@ -43,17 +43,17 @@ export default function PageLayout({ user, children }) {
           aspect-ratio: 1;
           border-radius: 50%;
           filter: blur(115px);
-          opacity: .42;
+          opacity: .62;
         }
         .fib-atmosphere__glow--gold {
           top: -38vw;
           left: -18vw;
-          background: radial-gradient(circle, rgba(197,163,106,.19), transparent 68%);
+          background: radial-gradient(circle, rgba(215,183,122,.3), transparent 68%);
         }
         .fib-atmosphere__glow--red {
           right: -28vw;
           bottom: -42vw;
-          background: radial-gradient(circle, rgba(166,75,82,.13), transparent 70%);
+          background: radial-gradient(circle, rgba(166,75,82,.18), transparent 70%);
         }
         .fib-atmosphere__seal {
           position: absolute;
@@ -65,7 +65,7 @@ export default function PageLayout({ user, children }) {
           aspect-ratio: 1;
           border: 1px solid rgba(197,163,106,.055);
           border-radius: 50%;
-          color: rgba(197,163,106,.035);
+          color: rgba(197,163,106,.07);
           font: 600 clamp(46px, 8vw, 112px)/1 'Space Grotesk', sans-serif;
           letter-spacing: .12em;
           box-shadow: 0 0 0 18px rgba(197,163,106,.012), 0 0 0 38px rgba(197,163,106,.009), inset 0 0 70px rgba(197,163,106,.018);
