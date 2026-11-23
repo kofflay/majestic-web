@@ -77,15 +77,15 @@ export default function Home() {
             {/* Убираем старые статичные свечения, так как теперь есть LivingBackground */}
             
             <div className="landing-hero__content">
-              <div className="landing-kicker"><i /> FEDERAL BUREAU OF INVESTIGATION <b>—</b> LAS VEGAS DIVISION</div>
+              <div className="landing-kicker"><i /> FEDERAL BUREAU OF INVESTIGATION</div>
               <h1>Факты.<br /><span>Закон.</span><br />Справедливость.</h1>
               <p>Федеральное бюро расследований — отделение Лас-Вегаса.<br />Раскрываем сложные дела. Защищаем правду. Служим закону.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
             </div>
             <div className="landing-orbit" aria-hidden="true"><strong>24</strong><small>HOURS</small></div>
-            <div className="landing-meta landing-meta--left">FBI / LV-01</div>
+            <div className="landing-meta landing-meta--left">FBI / FIELD OFFICE</div>
             <div className="landing-meta landing-meta--center">FIELD OFFICE</div>
-            <div className="landing-meta landing-meta--right">LAS VEGAS, NV</div>
+            <div className="landing-meta landing-meta--right">FIELD OFFICE</div>
           </section>
 
           <section className="landing-mission">
@@ -115,7 +115,7 @@ export default function Home() {
           </section>
         </main>
         <footer className="landing-footer">
-          <span>FEDERAL BUREAU // LAS VEGAS DIVISION</span>
+          <span>FEDERAL BUREAU // FIELD OFFICE</span>
           <span className="landing-footer__credit">
             ЧАСТЬ ПРОЕКТА{' '}
             <a href="https://discord.com" target="_blank" rel="noopener noreferrer">
