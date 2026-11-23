@@ -1,3 +1,4 @@
+
 name: Build and deploy Las Vegas
 
 on:
@@ -105,7 +106,12 @@ jobs:
   deploy:
     name: Deploy isolated Las Vegas service
     needs: build
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy == true && vars.LAS_VEGAS_DEPLOY_READY == 'true'
+    if: |
+      vars.LAS_VEGAS_DEPLOY_READY == 'true' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && inputs.deploy == true)
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
