@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 027
+
+readonly BASE="/var/lib/las-vegas-deploy"
+readonly INCOMING="$BASE/incoming"
+readonly RELEASES="$BASE/releases"
+readonly CURRENT="$BASE/current"
+readonly PREVIOUS="$BASE/previous"
+readonly SERVICE="majestic-las-vegas.service"
+readonly APP_USER="lasvegas"
+readonly APP_GROUP="lasvegas"
+readonly DEPLOY_GROUP="las-vegas-deploy"
+readonly ENV_FILE="/etc/majestic-las-vegas/las-vegas.env"
+readonly LOCK_FILE="/run/lock/las-vegas-deploy.lock"
+
+fail() { printf 'las-vegas-deploy: ERROR: %s\n' "$*" >&2; exit 1; }
+log() { printf 'las-vegas-deploy: %s\n' "$*"; }
+require_root() { [[ "$(id -u)" -eq 0 ]] || fail "must run as root"; }
+valid_sha() { [[ "$1" =~ ^[a-f0-9]{40}$ ]]; }
+
+require_ready_host() {
+  [[ -x /usr/bin/node ]] || fail "/usr/bin/node is missing"
+  id "$APP_USER" >/dev/null 2>&1 || fail "dedicated app user $APP_USER is missing"
+  getent group "$APP_GROUP" >/dev/null || fail "dedicated app group $APP_GROUP is missing"
+  getent group "$DEPLOY_GROUP" >/dev/null || fail "deployment group $DEPLOY_GROUP is missing"
+  [[ -f "$ENV_FILE" ]] || fail "isolated environment file $ENV_FILE is missing"
+  [[ "$(stat -c '%U:%G' "$ENV_FILE")" == "root:$APP_GROUP" ]] || fail "$ENV_FILE must be owned by root:$APP_GROUP"
+  local env_mode
+  env_mode="$(stat -c '%a' "$ENV_FILE")"
+  (( (8#$env_mode & 0077) == 0 )) || fail "$ENV_FILE must not be accessible by group or other users"
+  [[ -d "$INCOMING" && -d "$RELEASES" ]] || fail "release directories are missing"
+  [[ "$(stat -c '%G' "$INCOMING")" == "$DEPLOY_GROUP" ]] || fail "$INCOMING must belong to $DEPLOY_GROUP"
+  local incoming_mode
+  incoming_mode="$(stat -c '%a' "$INCOMING")"
+  (( (8#$incoming_mode & 0020) != 0 )) || fail "$INCOMING must be group-writable for the SSH deployment user"
+  systemctl cat "$SERVICE" >/dev/null 2>&1 || fail "$SERVICE is not installed"
+  [[ -f /etc/nginx/snippets/las-vegas-location.conf ]] || fail "Las Vegas Nginx snippet is not installed"
+}
+
+with_lock() {
+  exec 9>"$LOCK_FILE"
+  flock -n 9 || fail "another Las Vegas deployment operation is running"
+}
+
+switch_symlink() {
+  local link_path="$1" target="$2" temp_path="${link_path}.new.$$"
+  rm -f "$temp_path"
+  ln -s "$target" "$temp_path"
+  mv -Tf "$temp_path" "$link_path"
+}
+
+restore_previous_after_failed_start() {
+  local old_target="${1:-}"
+  if [[ -n "$old_target" && -d "$old_target" ]]; then
+    switch_symlink "$CURRENT" "$old_target"
+    systemctl restart "$SERVICE" || true
+  else
+    rm -f "$CURRENT"
+    systemctl stop "$SERVICE" || true
+  fi
+}
+
+check_command() {
+  require_ready_host
+  log "host prerequisites are present; Memphis service and Nginx upstream are not touched"
+}
+
+deploy_command() {
+  local sha="$1"
+  valid_sha "$sha" || fail "release id must be a 40-character lowercase Git commit SHA"
+  require_ready_host
+
+  local archive="$INCOMING/$sha.tar.gz"
+  [[ -f "$archive" && ! -L "$archive" ]] || fail "incoming archive $archive is missing or is a symlink"
+  [[ ! -e "$RELEASES/$sha" ]] || fail "release $sha already exists"
+
+  local listing entry
+  listing="$(tar -tzf "$archive")" || fail "cannot read release archive"
+  [[ -n "$listing" ]] || fail "release archive is empty"
+  while IFS= read -r entry; do
+    [[ "$entry" != /* ]] || fail "archive contains an absolute path"
+    [[ "/$entry/" != *"/../"* ]] || fail "archive contains a parent-directory path"
+  done <<< "$listing"
+
+  mkdir -p "$RELEASES"
+  local staging="$RELEASES/.staging-$sha-$$"
+  local final="$RELEASES/$sha"
+  local old_target=""
+  if [[ -L "$CURRENT" ]]; then
+    old_target="$(readlink -f "$CURRENT" || true)"
+    [[ -n "$old_target" && -d "$old_target" ]] || fail "current release symlink is broken"
+  elif [[ -e "$CURRENT" ]]; then
+    fail "$CURRENT exists but is not a symlink"
+  fi
+
+  rm -rf "$staging"
+  mkdir -m 0750 "$staging"
+  if ! tar -xzf "$archive" --no-same-owner --no-same-permissions -C "$staging"; then
+    rm -rf "$staging"
+    fail "release extraction failed"
+  fi
+  [[ -f "$staging/server.js" && -f "$staging/.next/BUILD_ID" ]] || {
+    rm -rf "$staging"
+    fail "archive is not a Next.js standalone release"
+  }
+
+  chown -R "root:$APP_GROUP" "$staging"
+  find "$staging" -type d -exec chmod 0750 {} +
+  find "$staging" -type f -exec chmod 0640 {} +
+  mv "$staging" "$final"
+
+  if [[ -n "$old_target" ]]; then
+    switch_symlink "$PREVIOUS" "$old_target"
+  else
+    rm -f "$PREVIOUS"
+  fi
+  switch_symlink "$CURRENT" "$final"
+
+  log "starting isolated Las Vegas release $sha"
+  if ! systemctl restart "$SERVICE" || ! systemctl is-active --quiet "$SERVICE"; then
+    restore_previous_after_failed_start "$old_target"
+    rm -rf "$final"
+    fail "Las Vegas service failed to start; previous Las Vegas release was restored"
+  fi
+
+  rm -f "$archive"
+  log "release $sha is active on the Las Vegas service"
+}
+
+rollback_command() {
+  require_ready_host
+  local current_target="" previous_target=""
+  [[ -L "$CURRENT" ]] && current_target="$(readlink -f "$CURRENT" || true)"
+  [[ -L "$PREVIOUS" ]] && previous_target="$(readlink -f "$PREVIOUS" || true)"
+
+  if [[ -n "$previous_target" && -d "$previous_target" ]]; then
+    switch_symlink "$CURRENT" "$previous_target"
+    if [[ -n "$current_target" && -d "$current_target" ]]; then
+      switch_symlink "$PREVIOUS" "$current_target"
+    else
+      rm -f "$PREVIOUS"
+    fi
+    if ! systemctl restart "$SERVICE" || ! systemctl is-active --quiet "$SERVICE"; then
+      if [[ -n "$current_target" && -d "$current_target" ]]; then
+        switch_symlink "$CURRENT" "$current_target"
+        switch_symlink "$PREVIOUS" "$previous_target"
+        systemctl restart "$SERVICE" || true
+      fi
+      fail "rollback failed; attempted to restore the previously active Las Vegas release"
+    fi
+    log "Las Vegas was rolled back to $previous_target"
+  else
+    rm -f "$CURRENT" "$PREVIOUS"
+    systemctl stop "$SERVICE" || true
+    log "no previous Las Vegas release exists; isolated Las Vegas service was stopped"
+  fi
+}
+
+commit_command() {
+  local sha="$1"
+  valid_sha "$sha" || fail "release id must be a 40-character lowercase Git commit SHA"
+  require_ready_host
+  local current_target
+  current_target="$(readlink -f "$CURRENT" || true)"
+  [[ "$current_target" == "$RELEASES/$sha" ]] || fail "active Las Vegas release does not match $sha"
+  rm -f "$PREVIOUS"
+  log "Las Vegas release $sha passed its public health check and was committed"
+}
+
+main() {
+  require_root
+  with_lock
+  case "$1" in
+    --check) [[ "$#" -eq 1 ]] || fail "usage: las-vegas-deploy --check"; check_command ;;
+    --rollback) [[ "$#" -eq 1 ]] || fail "usage: las-vegas-deploy --rollback"; rollback_command ;;
+    --commit) [[ "$#" -eq 2 ]] || fail "usage: las-vegas-deploy --commit <40-char-sha>"; commit_command "$2" ;;
+    *) [[ "$#" -eq 1 ]] || fail "usage: las-vegas-deploy <40-char-sha>"; deploy_command "$1" ;;
+  esac
+}
+main "$@"
