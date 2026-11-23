@@ -595,7 +595,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       };
     }
 
-    if (latestBeforeAudit?.auditDeliveryUnconfirmed === true) {
+    if (latestBeforeAudit?.auditDeliveryUnconfirmed === true || latestBeforeAudit?.auditDeliveryState === 'attempting') {
       await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_unconfirmed', message: 'Доставка карточки кадрового аудита не подтверждена; повторная публикация остановлена во избежание дубликата', auditId: item.id, auditType: item.type, decision });
       return { success: false, messageId: reportMessageId, reason: 'audit_delivery_unconfirmed' };
     }
@@ -629,6 +629,14 @@ async function sendDecision(item, reviewer, decision, reason) {
     // Brief pause after the HR card update before publishing the personnel audit.
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    const auditAttemptAt = new Date().toISOString();
+    const latestBeforeAuditSend = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => item);
+    const auditAttempted = {
+      ...(latestBeforeAuditSend || item), auditDeliveryState: 'attempting', auditDeliveryAttemptedAt: auditAttemptAt,
+      history: [...historyOf(latestBeforeAuditSend || item), { action: 'personnel_audit_delivery_attempted', at: auditAttemptAt, userId: 'system' }]
+    };
+    await kv.set(`lspd:hr-audit:item:${item.id}`, auditAttempted);
+
     let auditResponse;
     try {
       auditResponse = await fetch(webhookUrlWithWait(auditWebhook), {
@@ -652,6 +660,11 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
     if (!auditResponse.ok) {
       const details = (await auditResponse.text()).slice(0, 2000);
+      const failedAt = new Date().toISOString();
+      await kv.set(`lspd:hr-audit:item:${item.id}`, {
+        ...(await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => auditAttempted)), auditDeliveryState: 'failed', auditDeliveryUnconfirmed: false,
+        history: [...historyOf(await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => auditAttempted)), { action: 'personnel_audit_delivery_failed', at: failedAt, userId: 'system' }]
+      }).catch(() => {});
       await writeSystemLog({ level: 'error', category: 'discord', event: 'discord_http_error', message: 'Discord отклонил публикацию карточки в кадровый аудит', auditId: item.id, auditType: item.type, decision, httpStatus: auditResponse.status, details });
       return { success: false, messageId: reportMessageId, reason: `audit_http_${auditResponse.status}` };
     }
@@ -673,7 +686,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     try {
       await kv.set(`lspd:hr-audit:item:${item.id}`, {
         ...(latestAfterAudit || item),
-        auditMessageId,
+        auditMessageId, auditDeliveryState: 'sent', auditDeliveryUnconfirmed: false,
         auditSentAt: stageTwoAt,
         history: [...historyOf(latestAfterAudit || item), { action: 'personnel_audit_sent', at: stageTwoAt, userId: 'system' }]
       });
