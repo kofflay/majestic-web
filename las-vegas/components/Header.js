@@ -107,7 +107,7 @@ export default function Header({ user }) {
     try {
       await fetch('/las-vegas/api/logout', { method: 'POST' });
     } finally {
-      router.replace('/las-vegas/start');
+      router.replace('/start');
     }
   };
 
