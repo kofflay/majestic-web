@@ -102,7 +102,7 @@ const STATUS_LABELS = {
 
 function displayFieldValue(key, value) {
   if (value === null || value === undefined || value === '') return '—';
-  if (key === 'isInstructor') return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
+  if (['isInstructor', 'wasWarned'].includes(key)) return value === 'yes' ? 'Да' : value === 'no' ? 'Нет' : String(value);
   if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) {
     const department = getDepartment(value);
     return department ? department.name : String(value);
@@ -226,7 +226,7 @@ export default function HrAuditPage() {
   const uniqueValues = values => Array.from(new Set(values.filter(value => value !== null && value !== undefined && String(value).trim() !== '').map(String)));
   const departmentOptions = uniqueValues([
     ...DEPARTMENTS.map(department => department.id),
-    ...items.map(item => item.data?.department)
+    ...items.flatMap(item => [item.data?.department, item.data?.currentDepartment, item.data?.targetDepartment])
   ]).sort((a, b) => {
     const nameA = getDepartment(a)?.name || a;
     const nameB = getDepartment(b)?.name || b;
