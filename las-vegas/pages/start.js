@@ -106,7 +106,7 @@ export default function Home() {
             <div className="landing-command__eyebrow">CLASSIFIED // AUTHORIZED PERSONNEL ONLY</div>
             <div className="landing-section-label"><span>03</span> РУКОВОДСТВО БЮРО</div>
             <h2 id="landing-command-title">Руководство федерального бюро</h2>
-            <p>Руководящий состав FIB — Las Vegas Division</p>
+            <p>Руководящий состав федерального бюро</p>
             <div className="landing-command__grid">
               {staff.map((member) => (
                 <StaffCard key={member.id} member={member} isAdminView={false} />
