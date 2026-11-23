@@ -693,8 +693,12 @@ async function sendDecision(item, reviewer, decision, reason) {
     } catch (saveError) {
       const persisted = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
       if (persisted?.auditMessageId !== auditMessageId) {
-        await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_state_save_failed', message: 'Карточка кадрового аудита отправлена, но ID не удалось подтвердить в реестре; перед повтором проверьте канал', auditId: item.id, auditType: item.type, decision, details: String(saveError?.message || saveError).slice(0, 1000) });
-        return { success: false, messageId: reportMessageId, reason: 'audit_state_save_failed' };
+        await kv.set(`lspd:hr-audit:item:${item.id}`, {
+          ...(persisted || latestAfterAudit || item), auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed',
+          history: [...historyOf(persisted || latestAfterAudit || item), { action: 'personnel_audit_delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+        }).catch(() => {});
+        await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_state_save_failed', message: 'Карточка кадрового аудита отправлена, но ID не удалось подтвердить в реестре; повтор остановлен во избежание дубликата', auditId: item.id, auditType: item.type, decision, details: String(saveError?.message || saveError).slice(0, 1000) });
+        return { success: false, messageId: reportMessageId, reason: 'audit_delivery_unconfirmed' };
       }
     }
 
