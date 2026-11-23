@@ -275,7 +275,12 @@ async function publishPersonnelAudit(item, reviewer, decision) {
   const itemKey = `lspd:hr-audit:item:${item.id}`;
   const latest = await kv.get(itemKey).catch(() => null) || item;
   if (latest.auditMessageId) return { success: true, messageId: latest.auditMessageId };
-  if (latest.auditDeliveryUnconfirmed || latest.auditDeliveryState === 'attempting') {
+  if (latest.auditDeliveryUnconfirmed) return { success: false, reason: 'audit_delivery_unconfirmed' };
+  if (latest.auditDeliveryState === 'attempting') {
+    await kv.set(itemKey, {
+      ...latest, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed',
+      history: [...historyOf(latest), { action: 'personnel_audit_delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+    }).catch(() => {});
     return { success: false, reason: 'audit_delivery_unconfirmed' };
   }
   const applicantId = String(item.submitter?.id || '');
@@ -596,6 +601,10 @@ async function sendDecision(item, reviewer, decision, reason) {
     }
 
     if (latestBeforeAudit?.auditDeliveryUnconfirmed === true || latestBeforeAudit?.auditDeliveryState === 'attempting') {
+      await kv.set(`lspd:hr-audit:item:${item.id}`, {
+        ...(latestBeforeAudit || item), auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed',
+        history: [...historyOf(latestBeforeAudit || item), { action: 'personnel_audit_delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+      }).catch(() => {});
       await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_unconfirmed', message: 'Доставка карточки кадрового аудита не подтверждена; повторная публикация остановлена во избежание дубликата', auditId: item.id, auditType: item.type, decision });
       return { success: false, messageId: reportMessageId, reason: 'audit_delivery_unconfirmed' };
     }
