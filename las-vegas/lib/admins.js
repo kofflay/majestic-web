@@ -1,12 +1,10 @@
 import { kv } from './redis.js';
+import { STAFF_ROLE_IDS } from './role-config.js';
 
 export const ADMINS = [];
-export const ADMIN_ROLE_IDS = [
-  '1182356767343120481',
-  '1182356767343120480',
-];
+// No legacy-server admin roles: configure current Las Vegas admin role IDs here when confirmed.
+export const ADMIN_ROLE_IDS = [];
 export const SUPER_ADMIN_ID = '200102286473691139';
-export const STAFF_ROLE_IDS = ['1397291237567889582'];
 const DENIED_ADMINS_KEY = 'lspd:admin_denied_ids';
 
 export function isAdmin(userId) {
