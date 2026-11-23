@@ -457,11 +457,14 @@ return {number, 1}
 
       try {
         const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${hrAuditNumber}`;
-        embed = type === 'highrank' ? {
+        // Match the High-Rank workflow: the initial department webhook is a concise
+        // notification. The complete form data is restored into this same message
+        // when the HR reviewer accepts or rejects the application.
+        embed = {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
           fields: [{ name: ' Имя Фамилия + Статик', value: String(formData.fullName || 'Не указано').slice(0, 1024), inline: false }]
-        } : { ...baseEmbed, description: `[Открыть заявку для одобрения или отклонения](${auditUrl})` };
+        };
         discordPayload.embeds = [embed];
 
         let storedBeforeSend = await kv.get(itemKey);
