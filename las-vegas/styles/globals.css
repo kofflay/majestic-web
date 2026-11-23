@@ -1032,7 +1032,7 @@ select option { background: #0b0f16 !important; color: var(--text) !important; }
   }
 }
 
-/* Memphis LSPD visual system refresh: shared rhythm, surfaces and responsive layouts. */
+/* Shared visual system refresh: shared rhythm, surfaces and responsive layouts. */
 :root {
   --panel-raised: rgba(15,22,33,.92);
   --line-strong: rgba(148,163,184,.24);
