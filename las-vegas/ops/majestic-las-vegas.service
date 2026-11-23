@@ -1,0 +1,38 @@
+[Unit]
+Description=Majestic Web Las Vegas isolated test application
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=lasvegas
+Group=lasvegas
+WorkingDirectory=/var/lib/las-vegas-deploy/current
+
+EnvironmentFile=/etc/majestic-las-vegas/las-vegas.env
+Environment=NODE_ENV=production
+Environment=PORT=3100
+Environment=HOSTNAME=127.0.0.1
+Environment=NEXT_TELEMETRY_DISABLED=1
+
+ExecStart=/usr/bin/node /var/lib/las-vegas-deploy/current/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
