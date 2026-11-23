@@ -89,7 +89,7 @@ export default function AdminHub() {
     });
   }, []);
 
-  if (loading || !user) return <div style={{ minHeight: '100vh', background: '#030303' }} />;
+  if (loading || !user) return <div style={{ minHeight: '100vh', background: '#121316' }} />;
 
   return (
     <PageLayout user={user}>
@@ -107,7 +107,7 @@ export default function AdminHub() {
           Центр Управления
         </h1>
         <p className="admin-page-heading__description">
-          Панель администратора Las Vegas Police Department.
+          Панель управления Федерального бюро расследований.
         </p>
       </div>
 
@@ -119,8 +119,8 @@ export default function AdminHub() {
             className={tool.isRestricted ? 'admin-tool-card is-restricted' : 'admin-tool-card'}
             onClick={() => router.push(tool.path)}
             style={{
-              background: 'rgba(11, 15, 22, 0.6)',
-              border: '1px solid rgba(148, 163, 184, 0.15)',
+              background: 'rgba(20, 21, 23, .88)',
+              border: '1px solid rgba(197, 163, 106, .24)',
               borderRadius: '4px',
               padding: '24px',
               cursor: 'pointer',
@@ -131,15 +131,15 @@ export default function AdminHub() {
               overflow: 'hidden'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(63, 131, 248, 0.05)';
-              e.currentTarget.style.borderColor = tool.isRestricted ? 'rgba(255, 38, 64, 0.5)' : 'rgba(63, 131, 248, 0.5)';
+              e.currentTarget.style.background = 'rgba(197, 163, 106, 0.10)';
+              e.currentTarget.style.borderColor = tool.isRestricted ? 'rgba(166, 75, 82, 0.55)' : 'rgba(197, 163, 106, 0.58)';
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.querySelector('.arrow').style.opacity = '1';
               e.currentTarget.querySelector('.arrow').style.transform = 'translateX(0)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(11, 15, 22, 0.6)';
-              e.currentTarget.style.borderColor = 'rgba(148, 163, 184, 0.15)';
+              e.currentTarget.style.background = 'rgba(20, 21, 23, .88)';
+              e.currentTarget.style.borderColor = 'rgba(197, 163, 106, .24)';
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.querySelector('.arrow').style.opacity = '0.3';
               e.currentTarget.querySelector('.arrow').style.transform = 'translateX(-5px)';
