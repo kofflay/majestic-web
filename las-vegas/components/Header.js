@@ -497,10 +497,10 @@ export default function Header({ user }) {
           justify-content: center;
           min-height: 36px;
           padding: 0 14px;
-          border: 1px solid rgba(91, 151, 235, .38);
+          border: 1px solid rgba(197, 163, 106, .38);
           border-radius: 6px;
-          background: rgba(63, 131, 248, .1);
-          color: #b8d4fa;
+          background: rgba(197, 163, 106, .10);
+          color: #dfc58f;
           font-size: 12px;
           font-weight: 600;
           text-decoration: none;
@@ -509,8 +509,8 @@ export default function Header({ user }) {
 
         .profile-link:hover,
         .profile-link[aria-current="page"] {
-          border-color: rgba(104, 166, 255, .72);
-          background: rgba(63, 131, 248, .19);
+          border-color: rgba(223, 197, 143, .72);
+          background: rgba(197, 163, 106, .18);
           color: #fff;
         }
 
@@ -524,7 +524,7 @@ export default function Header({ user }) {
           overflow: hidden;
           border: 1px solid rgba(92, 150, 231, .52);
           border-radius: 50%;
-          background: rgba(63, 131, 248, .12);
+          background: rgba(197, 163, 106, .12);
           color: #a9caff;
           cursor: pointer;
           font-size: 19px;
@@ -532,8 +532,8 @@ export default function Header({ user }) {
         }
 
         .profile-avatar-button:hover {
-          border-color: #75afff;
-          box-shadow: 0 0 0 3px rgba(63, 131, 248, .13), 0 0 20px rgba(63, 131, 248, .16);
+          border-color: #dfc58f;
+          box-shadow: 0 0 0 3px rgba(197, 163, 106, .13), 0 0 20px rgba(197, 163, 106, .16);
           transform: translateY(-1px);
         }
 
@@ -560,8 +560,8 @@ export default function Header({ user }) {
         }
 
         .header-login:hover {
-          background: linear-gradient(135deg, #4b91ff, #3478df);
-          box-shadow: 0 7px 22px rgba(49, 116, 222, .22);
+          background: linear-gradient(135deg, #dfc58f, #b18a4e);
+          box-shadow: 0 7px 22px rgba(197, 163, 106, .22);
           transform: translateY(-1px);
         }
 
