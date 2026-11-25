@@ -341,20 +341,30 @@ async function publishPersonnelAudit(item, reviewer, decision) {
     add('Discord ID', applicantId, true);
     if (data.workLinks || data.workLink) add('Проделанная работа', data.workLinks || data.workLink, false);
   } else if (item.type === 'transfer' || item.type === 'transfer-to-lspd') {
-    add('Причина перевода', sourceMessageUrl ? `[Открыть исходное заявление на перевод](${sourceMessageUrl})` : data.reason, false);
-    add('Переводит из отдела', departmentName(data.currentDepartment), true);
-    add('Переводит в отдел', departmentName(data.targetDepartment || (item.type === 'transfer-to-lspd' ? 'fib' : '')), true);
+    add('Причина перевода', sourceMessageUrl ? `[Открыть исходное заявление на перевод](${sourceMessageUrl})` : data.reason || data.approvalProof, false);
+    if (data.rank) add('Текущий ранг', data.rank, true);
+    if (data.currentDepartment) add('Переводит из отдела', departmentName(data.currentDepartment), true);
+    if (data.targetDepartment || item.type === 'transfer-to-lspd') add('Переводит в отдел', departmentName(data.targetDepartment || 'fib'), true);
+    if (data.approvalProof) add('Подтверждение одобрения', data.approvalProof, false);
+    if (data.rankProof) add('Подтверждение ранга', data.rankProof, false);
     add('Сотрудник', employeeName, true);
     add('Discord ID', applicantId, true);
   } else if (item.type === 'hiring') {
     add('Основание трудоустройства', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
-    add('Принимается на должность', data.rank || data.targetRank, true);
-    add('Отдел', departmentName(data.department || data.targetDepartment), true);
+    add('Возраст', data.age, true);
+    add('Опыт', data.experience, false);
+    add('Знание законов', data.lawKnowledge, true);
+    add('Паспорт', data.passport, false);
+    add('Военный билет', data.militaryId, false);
+    add('Медицинская карта', data.medical, false);
     add('Сотрудник', employeeName, true);
     add('Discord ID', applicantId, true);
   } else if (item.type === 'reinstatement') {
     add('Основание восстановления', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
     add('Восстановлен на ранг', data.rankAtDismissal || data.rank, true);
+    add('Подтверждение ранга', data.rankProof, false);
+    add('Было ли взыскание', data.wasWarned === 'yes' ? 'Да' : data.wasWarned === 'no' ? 'Нет' : data.wasWarned, true);
+    if (data.stateFractionsProof) add('Одобрение State Fractions', data.stateFractionsProof, false);
     add('Сотрудник', employeeName, true);
     add('Discord ID', applicantId, true);
   } else {
