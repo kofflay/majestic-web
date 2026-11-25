@@ -328,7 +328,8 @@ async function publishPersonnelAudit(item, reviewer, decision) {
   const fields = [];
   const add = (name, value, inline = false) => fields.push({ name, value: textValue(value), inline });
   if (item.type === 'resignation') {
-    add('Причина увольнения', sourceMessageUrl ? `[Открыть исходное заявление на увольнение](${sourceMessageUrl})` : data.reason, false);
+    add('Причина увольнения', sourceMessageUrl ? `[Открыть исходное заявление на увольнение](${sourceMessageUrl})` : data.screenshot || data.reason, false);
+    if (data.screenshot) add('Скриншот планшета', data.screenshot, false);
     add('Уволен с', textValue(data.rankAtDismissal || data.rank) + ' ранга', false);
     add('Уволен', employeeName, true);
     add('Discord ID', applicantId, true);
@@ -470,7 +471,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     const fields = [
       { name: 'Имя Фамилия + Статик', value: fieldValue(data.fullName), inline: false },
       { name: ' Диапазон рангов', value: fieldValue(data.rankRange), inline: false },
-      { name: ' Ссылка на отчет', value: fieldValue(data.reportLink), inline: false },
+      { name: ' Отчёт-доказательство', value: data.reportLink && /^https?:\/\//i.test(data.reportLink) ? `[Открыть исходный отчёт в Discord](${data.reportLink})` : fieldValue(data.reportLink), inline: false },
       { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
       { name: 'Discord ID', value: fieldValue(applicantId), inline: true },
       { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
