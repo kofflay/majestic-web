@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import FormShell from '../../components/FormShell';
 import FormLoading from '../../components/FormLoading';
 
-export default function TransferToLSPDForm() {
+export default function TransferToFIBForm() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export default function TransferToLSPDForm() {
   const lbl = { display:'block', marginBottom:'8px', color:'#8b8ba7', fontSize:'13px', fontWeight:500 };
 
   return (
-    <FormShell user={user} title="Перевод в LSPD" icon="🏛️" accent="#00BCD4">
+    <FormShell user={user} title="Перевод в FIB" icon="🏛️" accent="#00BCD4">
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Имя Фамилия + Статик *</label>

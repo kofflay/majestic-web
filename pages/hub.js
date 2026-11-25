@@ -22,7 +22,7 @@ const CATEGORIES = [
     items: [
       { id: 'leave', title: 'Отпуск', description: 'OOC или IC отпуск', code: 'APP-01' },
       { id: 'resignation', title: 'Заявление на увольнение', description: 'Подать заявление на увольнение', code: 'APP-02' },
-      { id: 'transfer', title: 'Перевод в отдел', description: 'Перевод в другой отдел LSPD', code: 'APP-03' },
+      { id: 'transfer', title: 'Перевод в отдел', description: 'Перевод в другой отдел FIB', code: 'APP-03' },
     ]
   },
   {
@@ -68,7 +68,7 @@ export default function HubPage() {
           <div style={{ background: 'rgba(255, 38, 64, 0.05)', border: '1px solid #ff2640', padding: '50px', borderRadius: '4px', textAlign: 'center', maxWidth: '500px', boxShadow: '0 10px 40px rgba(255, 38, 64, 0.1)' }}>
             <div style={{ fontSize: '64px', marginBottom: '20px' }}>⛔</div>
             <h1 style={{ color: '#ff2640', fontSize: '32px', margin: '0 0 16px 0', fontWeight: '900', letterSpacing: '2px', fontFamily: "'Space Grotesk', sans-serif" }}>ACCESS DENIED</h1>
-            <p style={{ color: '#9ca3af', margin: 0, fontSize: '16px', lineHeight: 1.6 }}>У вас недостаточно прав для доступа к этому разделу.<br/>Требуется роль сотрудника LSPD.</p>
+            <p style={{ color: '#9ca3af', margin: 0, fontSize: '16px', lineHeight: 1.6 }}>У вас недостаточно прав для доступа к этому разделу.<br/>Требуется роль сотрудника FIB.</p>
           </div>
         </div>
       </PageLayout>
