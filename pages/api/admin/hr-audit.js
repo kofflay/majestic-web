@@ -1,7 +1,7 @@
 import { verifyToken } from '../../../lib/discord';
 import { hasHrAuditAccess } from '../../../lib/hr-audit-access';
 import { kv } from '../../../lib/redis.js';
-import { getDepartment, getReportWebhook } from '../../../lib/departments';
+import { getDepartment, getReportWebhook, getTransferWebhook } from '../../../lib/departments';
 import { acquireHrAuditLock } from '../../../lib/hr-audit-locks';
 import { writeSystemLog } from '../../../lib/system-logs';
 
@@ -13,7 +13,7 @@ const SAVE_DECISION_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return -1 end
 local current = cjson.decode(raw)
-if current.type ~= 'report' and current.type ~= 'highrank' and current.type ~= 'promotion' then return -2 end
+if current.type ~= 'report' and current.type ~= 'highrank' and current.type ~= 'promotion' and current.type ~= 'transfer' and current.type ~= 'transfer-to-lspd' and current.type ~= 'hiring' and current.type ~= 'resignation' and current.type ~= 'reinstatement' then return -2 end
 if current.status ~= 'pending' then return 0 end
 if current.deliveryPending ~= false then return -3 end
 if tostring(current.id) ~= ARGV[2] then return -2 end
@@ -36,11 +36,18 @@ function getAuditWebhook(item) {
     const department = getDepartment(item.data?.department);
     return department ? getReportWebhook(department.id) : null;
   }
-  return null;
+  if (item?.type === 'transfer') return getTransferWebhook(item.data?.targetDepartment) || null;
+  const envByType = {
+    'transfer-to-lspd': 'WEBHOOK_TRANSFER_TO_LSPD',
+    hiring: 'WEBHOOK_HIRING',
+    resignation: 'WEBHOOK_RESIGNATION',
+    reinstatement: 'WEBHOOK_REINSTATEMENT'
+  };
+  return envByType[item?.type] ? process.env[envByType[item.type]] || null : null;
 }
 
 function isSupportedAuditItem(item) {
-  return Boolean(item && ['report', 'highrank', 'promotion'].includes(item.type));
+  return Boolean(item && ['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(item.type));
 }
 
 function webhookUrlWithWait(webhook) {
@@ -50,7 +57,7 @@ function webhookUrlWithWait(webhook) {
 }
 
 
-async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
+async function createPromotionFromApprovedReport(item, reviewer, auditMessageId) {
   const itemKey = `lspd:hr-audit:item:${item.id}`;
   const auditWebhook = process.env.WEBHOOK_AUDIT_URL || '';
   const promotionWebhook = process.env.WEBHOOK_PROMOTION || '';
@@ -99,10 +106,15 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
   }
 
   if (!promotion) {
+    const sourceReportUrl = item.approvedReportMessageUrl || await getDiscordMessageUrl(getAuditWebhook(item), item.deliveryMessageId);
+    if (!sourceReportUrl) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_source_report_link_missing', message: 'Не удалось получить ссылку на исходный отчёт для связанного запроса на повышение', auditId: item.id, auditType: item.type });
+      return { success: false, reason: 'promotion_source_report_link_missing' };
+    }
     const data = {
       fullName: String(item.data?.fullName || '').trim(),
-      rankRange: String(item.data?.rankRange || '').trim(),
-      reportLink: auditMessageUrl
+      rankRange: (item.type === 'report' ? [item.data?.currentRank, item.data?.targetRank].filter(Boolean).join(' → ') : item.data?.rankRange || '').trim(),
+      reportLink: sourceReportUrl
     };
     const submittedAt = new Date().toISOString();
     const title = 'Запрос на повышение';
@@ -112,7 +124,7 @@ async function createPromotionFromHighrank(item, reviewer, auditMessageId) {
       fields: [
         { name: 'Имя Фамилия + Статик', value: data.fullName.slice(0, 1024), inline: false },
         { name: ' Диапазон рангов', value: data.rankRange.slice(0, 1024), inline: false },
-        { name: ' Ссылка на отчет', value: data.reportLink, inline: false },
+        { name: ' Отчёт-доказательство', value: `[Открыть исходный отчёт в Discord](${data.reportLink})`, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
@@ -140,7 +152,8 @@ return {number, 1}
         id: '', number: 0, type: 'promotion', title, status: 'pending',
         deliveryPending: true, submittedAt,
         submitter: { id: applicantId, username: item.submitter?.username || 'Unknown' },
-        data, sourceHighrankId: String(item.id), sourceHighrankNumber: item.number,
+        data, sourceAuditId: String(item.id), sourceAuditType: item.type,
+        ...(item.type === 'highrank' ? { sourceHighrankId: String(item.id), sourceHighrankNumber: item.number } : { sourceReportId: String(item.id), sourceReportNumber: item.number }),
         auditMessageId: String(auditMessageId), auditMessageUrl,
         history: [{ action: 'submitted', at: submittedAt, userId: 'system' }]
       })]
@@ -148,7 +161,7 @@ return {number, 1}
     if (!Array.isArray(allocation) || allocation.length < 2) throw new Error('Не удалось создать запись запроса на повышение');
     const promotionId = String(allocation[0]);
     promotion = await kv.get(`lspd:hr-audit:item:${promotionId}`);
-    if (!promotion || promotion.type !== 'promotion' || String(promotion.sourceHighrankId) !== String(item.id)) {
+    if (!promotion || promotion.type !== 'promotion' || String(promotion.sourceAuditId || promotion.sourceHighrankId || '') !== String(item.id) || (promotion.sourceAuditType && promotion.sourceAuditType !== item.type)) {
       throw new Error('Запись запроса на повышение не найдена после создания');
     }
     const parent = await kv.get(itemKey);
@@ -168,14 +181,13 @@ return {number, 1}
       fields: [
         { name: 'Имя Фамилия + Статик', value: promotion.data.fullName.slice(0, 1024), inline: false },
         { name: ' Диапазон рангов', value: promotion.data.rankRange.slice(0, 1024), inline: false },
-        { name: ' Ссылка на отчет', value: promotion.data.reportLink, inline: false },
+        { name: ' Отчёт-доказательство', value: `[Открыть исходный отчёт в Discord](${promotion.data.reportLink})`, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
       footer: { text: 'Suspect Forms • Запрос на повышение' },
       timestamp: promotion.submittedAt
     }],
-    allowed_mentions: { roles: ['1514608894679191597'], users: [applicantId] }
   };
   const attemptAt = new Date().toISOString();
   promotion = {
@@ -261,6 +273,187 @@ return {number, 1}
   return { success: true, item: delivered };
 }
 
+async function getDiscordMessageUrl(webhook, messageId) {
+  if (!webhook || !DISCORD_ID_PATTERN.test(String(messageId || ''))) return null;
+  try {
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${messageId}`;
+    const [messageResponse, webhookResponse] = await Promise.all([
+      fetch(messageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) }),
+      fetch(webhook, { method: 'GET', signal: AbortSignal.timeout(15000) })
+    ]);
+    if (!messageResponse.ok || !webhookResponse.ok) return null;
+    const [message, webhookInfo] = await Promise.all([messageResponse.json(), webhookResponse.json()]);
+    const guildId = String(webhookInfo.guild_id || '');
+    const channelId = String(message.channel_id || webhookInfo.channel_id || '');
+    if (!DISCORD_ID_PATTERN.test(guildId) || !DISCORD_ID_PATTERN.test(channelId)) return null;
+    return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
+  } catch { return null; }
+}
+
+async function getDiscordSourceMessage(webhook, messageId) {
+  if (!webhook || !DISCORD_ID_PATTERN.test(String(messageId || ''))) return null;
+  try {
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${messageId}`;
+    const response = await fetch(messageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch { return null; }
+}
+
+async function publishPersonnelAudit(item, reviewer, decision) {
+  const webhook = process.env.WEBHOOK_AUDIT_URL || '';
+  if (!webhook) return { success: false, reason: 'audit_webhook_not_configured' };
+  const itemKey = `lspd:hr-audit:item:${item.id}`;
+  const latest = await kv.get(itemKey).catch(() => null) || item;
+  if (latest.auditMessageId) return { success: true, messageId: latest.auditMessageId };
+  if (latest.auditDeliveryUnconfirmed) return { success: false, reason: 'audit_delivery_unconfirmed' };
+  if (latest.auditDeliveryState === 'attempting') {
+    await kv.set(itemKey, {
+      ...latest, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed',
+      history: [...historyOf(latest), { action: 'personnel_audit_delivery_unconfirmed', at: new Date().toISOString(), userId: 'system' }]
+    }).catch(() => {});
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  const applicantId = String(item.submitter?.id || '');
+  const reviewerId = String(reviewer?.id || '');
+  const data = item.data || {};
+  const sourceWebhook = getAuditWebhook(item);
+  const [sourceMessageUrl, sourceMessage] = await Promise.all([
+    getDiscordMessageUrl(sourceWebhook, item.deliveryMessageId),
+    getDiscordSourceMessage(sourceWebhook, item.deliveryMessageId)
+  ]);
+  const textValue = (value, fallback = 'Не указано') => {
+    const valueText = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+    return (valueText || fallback).slice(0, 1024);
+  };
+  const employeeName = textValue(data.fullName || item.submitter?.username || applicantId);
+  const reviewerName = textValue(reviewer?.username || reviewerId);
+  const employeeMention = DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : employeeName;
+  const reviewerMention = DISCORD_ID_PATTERN.test(reviewerId) ? `<@${reviewerId}>` : reviewerName;
+  const action = {
+    resignation: { verb: 'увольняет', title: 'Отчет об увольнении сотрудника', employeeLabel: 'Уволен' },
+    report: { verb: 'повышает', title: 'Отчет о повышении сотрудника', employeeLabel: 'Повышен' },
+    highrank: { verb: 'повышает', title: 'Отчет о повышении сотрудника (HIGH-RANK)', employeeLabel: 'Повышен' },
+    transfer: { verb: 'переводит', title: 'Отчет о переводе сотрудника', employeeLabel: 'Переведен' },
+    'transfer-to-lspd': { verb: 'переводит в LSPD', title: 'Отчет о переводе сотрудника в LSPD', employeeLabel: 'Переведен' },
+    hiring: { verb: 'принимает на службу', title: 'Отчет о трудоустройстве сотрудника', employeeLabel: 'Принят' },
+    reinstatement: { verb: 'восстанавливает', title: 'Отчет о восстановлении сотрудника', employeeLabel: 'Восстановлен' }
+  }[item.type] || { verb: 'оформляет действие', title: item.title || 'Отчет о кадровом действии', employeeLabel: 'Сотрудник' };
+  const sourceEmbed = Array.isArray(sourceMessage?.embeds) ? sourceMessage.embeds[0] || {} : {};
+  const sourceDescription = String(sourceEmbed.description || '').trim();
+  const sourceFields = Array.isArray(sourceEmbed.fields) ? sourceEmbed.fields : [];
+  const sourceField = (...names) => {
+    const field = sourceFields.find(entry => names.some(name => String(entry.name || '').toLowerCase().includes(name.toLowerCase())));
+    return field?.value || '';
+  };
+  const evidenceLink = sourceMessageUrl ? `[Открыть исходную заявку](${sourceMessageUrl})` : '';
+  const rankValue = textValue(data.rankAtDismissal || data.rank || sourceField('ранг'));
+  const fields = [];
+  const add = (name, value, inline = true) => fields.push({ name, value: textValue(value), inline });
+  if (item.type === 'resignation') {
+    add('Причина увольнения', evidenceLink || data.screenshot || data.reason, false);
+    add('Уволен с', `${rankValue} ранга`, false);
+  } else if (item.type === 'report' || item.type === 'highrank') {
+    add('Причина повышения', evidenceLink || data.workLinks || data.workLink, false);
+    add('Повышен с ранга', item.type === 'report' ? data.currentRank : String(data.rankRange || '').split(/[→-]/)[0]?.trim(), true);
+    add('Повышен до ранга', item.type === 'report' ? data.targetRank : String(data.rankRange || '').split(/[→-]/)[1]?.trim(), true);
+  } else if (item.type === 'transfer' || item.type === 'transfer-to-lspd') {
+    add('Причина перевода', evidenceLink || data.reason || data.approvalProof, false);
+    if (data.rank) add('Переведен с', `${data.rank} ранга`, true);
+    add('Переведен из отдела', getDepartment(data.currentDepartment)?.name || data.currentDepartment, true);
+    add('Переведен в отдел', getDepartment(data.targetDepartment || 'fib')?.name || data.targetDepartment || 'LSPD', true);
+  } else if (item.type === 'hiring') {
+    add('Основание трудоустройства', evidenceLink || data.passport, false);
+    add('Возраст', data.age, true);
+    add('Опыт', data.experience, false);
+    add('Знание законов', data.lawKnowledge, true);
+  } else if (item.type === 'reinstatement') {
+    add('Причина восстановления', evidenceLink || data.rankProof, false);
+    add('Восстановлен на', `${rankValue} ранг`, true);
+    add('Взыскание', data.wasWarned === 'yes' ? 'Да' : data.wasWarned === 'no' ? 'Нет' : data.wasWarned, true);
+  }
+  fields.push(
+    { name: action.employeeLabel + ':', value: employeeMention, inline: true },
+    { name: 'Имя Фамилия:', value: employeeName, inline: true },
+    { name: 'Discord ID:', value: textValue(applicantId), inline: true },
+    { name: action.verb === 'увольняет' ? 'Уволил:' : action.verb === 'повышает' ? 'Повышает:' : 'Оформил:', value: reviewerMention, inline: true },
+    { name: 'Имя Фамилия:', value: reviewerName, inline: true },
+    { name: 'Discord ID:', value: textValue(reviewerId), inline: true }
+  );
+  const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)}`;
+  const payload = {
+    username: 'Suspect Forms',
+    content: `${reviewerMention} ${action.verb} ${employeeMention}`,
+    embeds: [{
+      title: action.title,
+      color: 0x292a2f,
+      description: [
+        item.type === 'resignation' ? '' :
+        item.type === 'report' || item.type === 'highrank' ? `Причина повышения: ${evidenceLink || textValue(data.workLinks || data.workLink)}` :
+        item.type === 'transfer' || item.type === 'transfer-to-lspd' ? `Причина перевода: ${evidenceLink || textValue(data.reason || data.approvalProof)}` :
+        item.type === 'hiring' ? `Основание трудоустройства: ${evidenceLink || textValue(data.passport)}` :
+        item.type === 'reinstatement' ? `Причина восстановления: ${evidenceLink || textValue(data.rankProof)}` : sourceDescription.slice(0, 500),
+        item.type === 'resignation' ? `Уволен с ${rankValue} ранга` :
+        item.type === 'report' ? `Повышен с ${textValue(data.currentRank)} ранга на ${textValue(data.targetRank)} ранг` :
+        item.type === 'highrank' ? `Повышение: ${textValue(data.rankRange)}` : ''
+      ].filter(Boolean).join('\n'),
+      fields: fields.slice(0, 25),
+      timestamp: item.resolvedAt || new Date().toISOString(),
+      footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
+    }]
+  };
+  const attemptedAt = new Date().toISOString();
+  const attempted = {
+    ...latest, auditDeliveryState: 'attempting', auditDeliveryAttemptedAt: attemptedAt,
+    history: [...historyOf(latest), { action: 'personnel_audit_delivery_attempted', at: attemptedAt, userId: 'system' }]
+  };
+  await kv.set(itemKey, attempted);
+  let response;
+  try {
+    response = await fetch(webhookUrlWithWait(webhook), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
+    });
+  } catch (error) {
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed', history: [...historyOf(attempted), { action: 'personnel_audit_delivery_unconfirmed', at, userId: 'system' }] }).catch(() => {});
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_unconfirmed', message: 'Не удалось подтвердить публикацию кадрового действия; повтор остановлен во избежание дубликата', auditId: item.id, auditType: item.type, details: String(error?.message || error).slice(0, 1000) });
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  if (!response.ok) {
+    const details = (await response.text()).slice(0, 1500);
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryState: 'failed', auditDeliveryUnconfirmed: false, history: [...historyOf(attempted), { action: 'personnel_audit_delivery_failed', at, userId: 'system' }] });
+    await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_delivery_failed', message: 'Discord отклонил карточку кадрового действия', auditId: item.id, auditType: item.type, httpStatus: response.status, details });
+    return { success: false, reason: `audit_http_${response.status}` };
+  }
+  let message = null;
+  try { message = await response.json(); } catch {}
+  const messageId = String(message?.id || '');
+  if (!/^\d{17,20}$/.test(messageId)) {
+    const at = new Date().toISOString();
+    await kv.set(itemKey, { ...attempted, auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed', history: [...historyOf(attempted), { action: 'personnel_audit_delivery_unconfirmed', at, userId: 'system' }] }).catch(() => {});
+    return { success: false, reason: 'audit_delivery_unconfirmed' };
+  }
+  const sentAt = new Date().toISOString();
+  const sent = { ...attempted, auditMessageId: messageId, auditSentAt: sentAt, auditDeliveryState: 'sent', auditDeliveryUnconfirmed: false, history: [...historyOf(attempted), { action: 'personnel_audit_sent', at: sentAt, userId: 'system' }] };
+  try {
+    await kv.set(itemKey, sent);
+  } catch (error) {
+    const persisted = await kv.get(itemKey).catch(() => null);
+    if (persisted?.auditMessageId !== messageId) {
+      await kv.set(itemKey, { ...(persisted || attempted), auditDeliveryUnconfirmed: true, auditDeliveryState: 'unconfirmed' }).catch(() => {});
+      return { success: false, reason: 'audit_delivery_unconfirmed' };
+    }
+  }
+  return { success: true, messageId };
+}
 async function sendDecision(item, reviewer, decision, reason) {
   const webhook = getAuditWebhook(item);
   const applicantId = String(item.submitter?.id || '');
@@ -301,7 +494,7 @@ async function sendDecision(item, reviewer, decision, reason) {
     const fields = [
       { name: 'Имя Фамилия + Статик', value: fieldValue(data.fullName), inline: false },
       { name: ' Диапазон рангов', value: fieldValue(data.rankRange), inline: false },
-      { name: ' Ссылка на отчет', value: fieldValue(data.reportLink), inline: false },
+      { name: ' Отчёт-доказательство', value: data.reportLink && /^https?:\/\//i.test(data.reportLink) ? `[Открыть исходный отчёт в Discord](${data.reportLink})` : fieldValue(data.reportLink), inline: false },
       { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
       { name: 'Discord ID', value: fieldValue(applicantId), inline: true },
       { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
@@ -323,9 +516,8 @@ async function sendDecision(item, reviewer, decision, reason) {
       const response = await fetch(messageUrl.toString(), {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}.`,
+          content: `Запрос на повышение №${item.number}: ${accepted ? 'одобрен' : 'отклонён'}. Проверяющий: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${applicantId}.`,
           embeds: [embed],
-          allowed_mentions: { users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value)) }
         }),
         signal: AbortSignal.timeout(15000)
       });
@@ -333,6 +525,9 @@ async function sendDecision(item, reviewer, decision, reason) {
         const details = (await response.text()).slice(0, 1500);
         await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_card_update_failed', message: 'Discord не обновил карточку запроса на повышение', auditId: item.id, auditType: item.type, decision, httpStatus: response.status, details });
         return { success: false, messageId: null, reason: `promotion_update_http_${response.status}` };
+      }
+      if (accepted) {
+        return { success: true, messageId };
       }
       return { success: true, messageId };
     } catch (error) {
@@ -342,9 +537,9 @@ async function sendDecision(item, reviewer, decision, reason) {
   }
 
 
-  // Approved high-rank reports: update the existing HR card, persist that
-  // stage, then publish the separate personnel-audit card.
-  if (item.type === 'highrank' && accepted) {
+  // Approved high-rank and regular promotion reports share the personnel-audit
+  // workflow. Other form types never create a promotion request.
+  if (['highrank', 'report'].includes(item.type) && accepted) {
     const auditWebhook = process.env.WEBHOOK_AUDIT_URL || null;
 
     const reportData = item.data && typeof item.data === 'object' ? item.data : {};
@@ -353,7 +548,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       return (text || fallback).slice(0, 1024);
     };
     const applicantName = fieldValue(reportData.fullName);
-    const rankRange = fieldValue(reportData.rankRange);
+    const rankRange = item.type === 'report' ? fieldValue(reportData.currentRank) + ' → ' + fieldValue(reportData.targetRank) : fieldValue(reportData.rankRange);
     const originalMessageId = String(item.deliveryMessageId || '');
     const reportWebhook = getAuditWebhook(item);
 
@@ -399,19 +594,29 @@ async function sendDecision(item, reviewer, decision, reason) {
       }
 
       const originalEmbed = Array.isArray(sourceMessage.embeds) ? sourceMessage.embeds[0] || {} : {};
-      const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
+      const profileReportUrl = item.type === 'highrank'
+        ? `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`
+        : `[Открыть заявку в кадровом аудите №${item.number}](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`;
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? { author: { name: originalEmbed.author.name, ...(originalEmbed.author.url ? { url: originalEmbed.author.url } : {}), ...(originalEmbed.author.icon_url ? { icon_url: originalEmbed.author.icon_url } : {}) } } : {}),
         ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
-        title: `Отчёт на повышение хай-состава №${item.number} — ОДОБРЕНО`,
+        title: `${item.type === 'highrank' ? 'Отчёт на повышение хай-состава' : 'Отчёт о повышении'} №${item.number} — ОДОБРЕНО`,
         color: 0x4CAF50,
         description: profileReportUrl,
         fields: [
           { name: ' Имя Фамилия + Статик', value: applicantName, inline: false },
-          { name: ' Диапазон повышения', value: rankRange, inline: true },
-          { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
+          ...(item.type === 'highrank' ? [
+            { name: ' Диапазон повышения', value: rankRange, inline: true },
+            { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false }
+          ] : [
+            { name: ' Отдел', value: fieldValue(getDepartment(reportData.department)?.name || reportData.department), inline: true },
+            { name: ' Текущий ранг', value: fieldValue(reportData.currentRank), inline: true },
+            { name: ' Новый ранг', value: fieldValue(reportData.targetRank), inline: true },
+            { name: ' Ссылки на проделанную работу', value: fieldValue(reportData.workLinks), inline: false },
+            { name: ' Инструктор', value: reportData.isInstructor === 'yes' ? 'Да' : 'Нет', inline: true }
+          ]),
           { name: ' Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан', inline: true },
           { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
           { name: ' Решение', value: 'Одобрено', inline: true },
@@ -426,7 +631,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         patchResponse = await fetch(messageUrl.toString(), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `Решение по отчёту на повышение №${item.number} принято: одобрено.`, embeds: [updatedEmbed] }),
+          body: JSON.stringify({ content: `Решение по ${item.type === 'highrank' ? 'отчёту High-Rank' : 'отчёту о повышении'} №${item.number} принято: одобрено.`, embeds: [updatedEmbed] }),
           signal: AbortSignal.timeout(15000)
         });
       } catch (error) {
@@ -463,7 +668,7 @@ async function sendDecision(item, reviewer, decision, reason) {
 
     const latestBeforeAudit = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
     if (latestBeforeAudit?.auditMessageId) {
-      const promotionResult = await createPromotionFromHighrank(item, reviewer, latestBeforeAudit.auditMessageId);
+      const promotionResult = await createPromotionFromApprovedReport(item, reviewer, latestBeforeAudit.auditMessageId);
       return {
         success: promotionResult.success,
         messageId: latestBeforeAudit.auditMessageId,
@@ -473,79 +678,17 @@ async function sendDecision(item, reviewer, decision, reason) {
       };
     }
 
-    if (!auditWebhook) {
-      await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_webhook_not_configured', message: 'Не настроен WEBHOOK_AUDIT_URL для кадрового аудита', auditId: item.id, auditType: item.type, decision });
-      return { success: false, messageId: reportMessageId, reason: 'audit_webhook_not_configured' };
+    const personnelResult = await publishPersonnelAudit(item, reviewer, decision);
+    if (!personnelResult.success) {
+      return {
+        success: false,
+        messageId: reportMessageId,
+        approvedReportMessageId: reportMessageId,
+        reason: personnelResult.reason || 'personnel_audit_delivery_failed'
+      };
     }
-
-    const auditEmbed = {
-      title: ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
-      color: 0x4CAF50,
-      fields: [
-        { name: ' Причина повышения', value: reportMessageUrl, inline: false },
-        { name: ' Повышен с ранга', value: rankRange, inline: true },
-        { name: ' Повышен', value: `<@${applicantId}>`, inline: true },
-        { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
-        { name: ' Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
-        { name: ' Повышает', value: `<@${reviewerId}>`, inline: true },
-        { name: ' Discord ID проверяющего', value: reviewerId, inline: true },
-        { name: ' Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
-      ],
-      timestamp: item.resolvedAt || new Date().toISOString(),
-      footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
-    };
-
-    // Brief pause after the HR card update before publishing the personnel audit.
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    let auditResponse;
-    try {
-      auditResponse = await fetch(webhookUrlWithWait(auditWebhook), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'Suspect Forms',
-          content: `<@${reviewerId}> повышает <@${applicantId}>`,
-          embeds: [auditEmbed]
-        }),
-        signal: AbortSignal.timeout(15000)
-      });
-    } catch (error) {
-      await writeSystemLog({ level: 'error', category: 'discord', event: error?.name === 'TimeoutError' ? 'discord_timeout' : 'discord_network_error', message: 'Не удалось отправить карточку во второй канал кадрового аудита', auditId: item.id, auditType: item.type, decision, details: String(error?.message || error).slice(0, 1200) });
-      return { success: false, messageId: reportMessageId, reason: 'audit_delivery_failed' };
-    }
-    if (!auditResponse.ok) {
-      const details = (await auditResponse.text()).slice(0, 2000);
-      await writeSystemLog({ level: 'error', category: 'discord', event: 'discord_http_error', message: 'Discord отклонил публикацию карточки в кадровый аудит', auditId: item.id, auditType: item.type, decision, httpStatus: auditResponse.status, details });
-      return { success: false, messageId: reportMessageId, reason: `audit_http_${auditResponse.status}` };
-    }
-
-    let auditMessage = null;
-    try { auditMessage = await auditResponse.json(); } catch {}
-    const auditMessageId = String(auditMessage?.id || '');
-    if (!/^\d{17,20}$/.test(auditMessageId)) {
-      await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_message_metadata_missing', message: 'Discord принял карточку кадрового аудита, но не вернул ID сообщения', auditId: item.id, auditType: item.type, decision });
-      return { success: false, messageId: reportMessageId, reason: 'audit_message_metadata_missing' };
-    }
-    const stageTwoAt = new Date().toISOString();
-    const latestAfterAudit = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
-    try {
-      await kv.set(`lspd:hr-audit:item:${item.id}`, {
-        ...(latestAfterAudit || item),
-        auditMessageId,
-        auditSentAt: stageTwoAt,
-        history: [...historyOf(latestAfterAudit || item), { action: 'personnel_audit_sent', at: stageTwoAt, userId: 'system' }]
-      });
-    } catch (saveError) {
-      const persisted = await kv.get(`lspd:hr-audit:item:${item.id}`).catch(() => null);
-      if (persisted?.auditMessageId !== auditMessageId) {
-        await writeSystemLog({ level: 'error', category: 'discord', event: 'audit_state_save_failed', message: 'Карточка кадрового аудита отправлена, но ID не удалось подтвердить в реестре; перед повтором проверьте канал', auditId: item.id, auditType: item.type, decision, details: String(saveError?.message || saveError).slice(0, 1000) });
-        return { success: false, messageId: reportMessageId, reason: 'audit_state_save_failed' };
-      }
-    }
-
-    await writeSystemLog({ level: 'info', category: 'discord', event: 'highrank_audit_report_sent', message: 'HR-карточка обновлена, карточка кадрового аудита отправлена', auditId: item.id, auditType: item.type, decision });
-    const promotionResult = await createPromotionFromHighrank(item, reviewer, auditMessageId);
+    const auditMessageId = personnelResult.messageId;
+    const promotionResult = await createPromotionFromApprovedReport(item, reviewer, auditMessageId);
     return {
       success: promotionResult.success,
       messageId: auditMessageId,
@@ -554,11 +697,10 @@ async function sendDecision(item, reviewer, decision, reason) {
       reason: promotionResult.reason || null
     };
   }
-  const profileReportUrl = `[Открыть отчёт в личном кабинете](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/profile?audit=${encodeURIComponent(item.id)})`;
+  const profileReportUrl = `[Открыть заявку в кадровом аудите №${item.number}](${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${encodeURIComponent(item.id)})`;
 
-  // Для отчётов на повышение хай-состава обновляем исходную карточку,
-  // отправленную тем же вебхуком. Остальные типы заявок сохраняют прежний POST-процесс.
-  if (item.type === 'highrank') {
+  // Update the original Discord card for every HR form using PATCH.
+  if (item.type !== 'promotion') {
     const originalMessageId = String(item.deliveryMessageId || '');
     if (!/^\d{17,20}$/.test(originalMessageId)) {
       await writeSystemLog({
@@ -599,24 +741,33 @@ async function sendDecision(item, reviewer, decision, reason) {
         const text = typeof value === 'string' ? value.trim() : '';
         return (text || fallback).slice(0, 1024);
       };
-      // Rebuild the high-rank card from the submitted form data, not from
-      // the old Discord embed, so every submitted field remains visible.
+      const fieldLabels = {
+        fullName: 'Имя и статик', department: 'Отдел', currentRank: 'Текущий ранг', targetRank: 'Запрашиваемый ранг',
+        isInstructor: 'Назначение инструктором', workLinks: 'Ссылки на проделанную работу', rankRange: 'Диапазон рангов',
+        workLink: 'Ссылка на проделанную работу', reportLink: 'Ссылка на отчёт', rank: 'Текущий ранг',
+        currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина',
+        approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
+        lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
+        screenshot: 'Скриншот', rankAtDismissal: 'Ранг на момент увольнения', wasWarned: 'Было ли взыскание',
+        stateFractionsProof: 'Одобрение State Fractions', dbWhatIs: 'Вопросы DB', dbExperience: 'Опыт DB',
+        dbExamples: 'Примеры DB', dbServers: 'Серверы DB', dbKnowledge: 'Знания DB', dbLawKnowledge: 'Знание законов DB',
+        swatShooting: 'Стрельба SWAT', swatRollback: 'Откат SWAT'
+      };
+      const submittedFields = Object.entries(reportData).map(([key, rawValue]) => {
+        let value = rawValue;
+        if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) value = getDepartment(rawValue)?.name || rawValue;
+        if (['isInstructor', 'wasWarned'].includes(key)) value = rawValue === 'yes' ? 'Да' : rawValue === 'no' ? 'Нет' : rawValue;
+        if (value && typeof value === 'object') value = JSON.stringify(value);
+        return { name: fieldLabels[key] || key, value: fieldValue(String(value ?? '')), inline: false };
+      });
       const decisionFields = [
-        { name: ' Имя Фамилия + Статик', value: fieldValue(reportData.fullName), inline: false },
-        { name: ' Диапазон повышения', value: fieldValue(reportData.rankRange), inline: true },
-        { name: ' Ссылка на проделанную работу', value: fieldValue(reportData.workLink), inline: false },
-        {
-          name: ' Отправитель',
-          value: DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : 'Discord ID не указан',
-          inline: true
-        },
-        { name: ' Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
-        { name: ' Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
-        { name: ' Проверил', value: `<@${reviewerId}>`, inline: true },
-        ...(!accepted && reason
-          ? [{ name: ' Причина отказа', value: fieldValue(reason), inline: false }]
-          : [])
-      ];
+        ...submittedFields,
+        { name: 'Отправитель', value: DISCORD_ID_PATTERN.test(applicantId) ? '<@' + applicantId + '>' : 'Discord ID не указан', inline: true },
+        { name: 'Discord ID', value: fieldValue(applicantId, 'Не указан'), inline: true },
+        { name: 'Решение', value: accepted ? 'Одобрено' : 'Отклонено', inline: true },
+        { name: 'Проверил', value: '<@' + reviewerId + '>', inline: true },
+        ...(!accepted && reason ? [{ name: 'Причина отказа', value: fieldValue(reason), inline: false }] : [])
+      ].slice(0, 25);
       const updatedEmbed = {
         ...(originalEmbed.url ? { url: originalEmbed.url } : {}),
         ...(originalEmbed.author?.name ? {
@@ -628,7 +779,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         } : {}),
         ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
-        title: `Отчёт на повышение хай-состава №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `${item.title || 'Заявка'} №${item.number}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: profileReportUrl,
         fields: decisionFields,
@@ -639,12 +790,10 @@ async function sendDecision(item, reviewer, decision, reason) {
         timestamp: new Date().toISOString()
       };
 
-      const content = `Решение по отчёту на повышение №${item.number} принято: ${accepted ? 'одобрено' : 'отклонено'}.`;
       response = await fetch(messageUrl.toString(), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content,
           embeds: [updatedEmbed]
         }),
         signal: AbortSignal.timeout(15000)
@@ -681,7 +830,11 @@ async function sendDecision(item, reviewer, decision, reason) {
       return { success: false, messageId: null, reason: `discord_http_${response.status}` };
     }
 
-    // Для highrank обновляем только исходную карточку; отдельное сообщение-пинг не отправляем.
+    // Standalone promotion requests are handled only in their own channel.
+    if (accepted && item.type !== 'promotion') {
+      const auditResult = await publishPersonnelAudit(item, reviewer, decision);
+      return { success: auditResult.success, messageId: auditResult.messageId || originalMessageId, reason: auditResult.reason || null };
+    }
     return { success: true, messageId: originalMessageId };
   }
 
@@ -694,10 +847,6 @@ async function sendDecision(item, reviewer, decision, reason) {
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
     ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
   ];
-  const content = [
-    DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : null,
-    `<@${reviewerId}>`
-  ].filter(Boolean).join(' ');
 
   let response;
   try {
@@ -706,18 +855,14 @@ async function sendDecision(item, reviewer, decision, reason) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Suspect Forms',
-        content,
         embeds: [{
-          title: `Отчёт на повышение №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+          title: `${item.title || 'Заявка'} №${item.number}`,
           color: accepted ? 0x4CAF50 : 0xDC3545,
           description: auditUrl,
           fields,
           timestamp: new Date().toISOString(),
           footer: { text: 'Suspect Forms • HR Audit' }
         }],
-        allowed_mentions: {
-          users: [applicantId, reviewerId].filter(value => DISCORD_ID_PATTERN.test(value))
-        }
       }),
       signal: AbortSignal.timeout(15000)
     });
@@ -787,9 +932,10 @@ export default async function handler(req, res) {
     try {
       const ids = await kv.lrange(AUDIT_IDS_KEY, 0, -1);
       const safeIds = Array.isArray(ids) ? ids.filter(validItemId) : [];
-      const items = await Promise.all(safeIds.map(id => kv.get(`lspd:hr-audit:item:${id}`)));
+      // One Redis MGET round-trip instead of one network request per audit item.
+      const records = await kv.mget(safeIds.map(id => `lspd:hr-audit:item:${id}`));
       return res.status(200).json({
-        items: items.filter(isSupportedAuditItem)
+        items: records.filter(isSupportedAuditItem)
       });
     } catch (error) {
       console.error('HR audit list failed:', error);
@@ -897,6 +1043,46 @@ export default async function handler(req, res) {
     }
   }
 
+  if (action === 'retry-personnel-audit') {
+    let lock;
+    try {
+      lock = await acquireHrAuditLock('personnel-audit', id);
+      if (!lock) return res.status(409).json({ error: 'Публикация кадровой карточки уже выполняется. Обновите страницу позже.' });
+      const item = await kv.get(itemKey);
+      if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
+        return res.status(404).json({ error: 'Заявка не найдена' });
+      }
+      if (item.type === 'promotion') {
+        return res.status(409).json({ error: 'Персональные запросы на повышение не публикуются в кадровом аудите.' });
+      }
+      if (item.status !== 'accepted') {
+        return res.status(409).json({ error: 'Повторная публикация доступна только для одобренной заявки.' });
+      }
+      if (item.auditMessageId || item.auditDeliveryUnconfirmed) {
+        return res.status(409).json({ error: 'Карточка уже опубликована или результат доставки не подтверждён. Проверьте кадровый канал вручную.' });
+      }
+      if (item.auditDeliveryState !== 'failed') {
+        return res.status(409).json({ error: 'Нет подтверждённой ошибки доставки для безопасного повтора.' });
+      }
+      if (!item.reviewer || !DISCORD_ID_PATTERN.test(String(item.reviewer.id || ''))) {
+        return res.status(409).json({ error: 'В записи отсутствует проверяющий; повторная публикация невозможна.' });
+      }
+      const result = await publishPersonnelAudit(item, item.reviewer, 'accepted');
+      const updated = await kv.get(itemKey).catch(() => item);
+      if (!result.success) {
+        return res.status(502).json({ error: result.reason === 'audit_delivery_unconfirmed'
+          ? 'Discord не подтвердил результат. Проверьте кадровый канал вручную; повтор заблокирован во избежание дубликата.'
+          : 'Discord снова отклонил карточку. Подробности сохранены в системном журнале.', item: updated });
+      }
+      return res.status(200).json({ success: true, item: updated });
+    } catch (error) {
+      console.error('Personnel audit retry failed:', error);
+      return res.status(500).json({ error: 'Не удалось повторить публикацию кадровой карточки.' });
+    } finally {
+      await lock?.release();
+    }
+  }
+
   if (action === 'retry-delivery') {
     let lock;
     try {
@@ -942,6 +1128,7 @@ export default async function handler(req, res) {
         const at = new Date().toISOString();
         const updated = {
           ...attempted,
+          deliveryUnconfirmed: true,
           history: [...historyOf(attempted), {
             action: 'delivery_retry_unconfirmed',
             at,
@@ -960,6 +1147,7 @@ export default async function handler(req, res) {
         const at = new Date().toISOString();
         const updated = {
           ...attempted,
+          deliveryUnconfirmed: false,
           history: [...historyOf(attempted), {
             action: 'delivery_retry_failed',
             at,
@@ -973,12 +1161,24 @@ export default async function handler(req, res) {
       let message = null;
       try { message = await response.json(); } catch {}
       const deliveredAt = new Date().toISOString();
+      const messageId = typeof message?.id === 'string' ? message.id : '';
+      if (!/^\d{17,20}$/.test(messageId)) {
+        const uncertain = {
+          ...attempted,
+          deliveryPending: true,
+          deliveryUnconfirmed: true,
+          history: [...historyOf(attempted), { action: 'delivery_retry_unconfirmed', at: deliveredAt, userId: String(user.id) }]
+        };
+        await kv.set(itemKey, uncertain);
+        return res.status(502).json({ error: 'Discord принял запрос, но не вернул ID сообщения. Проверьте канал вручную; повторная отправка заблокирована во избежание дубликата.' });
+      }
       const updated = {
         ...attempted,
         deliveryPending: false,
+        deliveryUnconfirmed: false,
         discordPayload: null,
         deliveredAt,
-        deliveryMessageId: typeof message?.id === 'string' ? message.id : null,
+        deliveryMessageId: messageId,
         history: [...historyOf(attempted), {
           action: 'delivered',
           at: deliveredAt,
@@ -991,13 +1191,20 @@ export default async function handler(req, res) {
       } catch (saveError) {
         console.error('Discord accepted the HR audit delivery but Redis state update failed:', saveError);
         const persisted = await kv.get(itemKey).catch(() => null);
-        if (persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt) {
+        if (persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt && persisted.deliveryMessageId === messageId) {
           return res.status(200).json({ success: true, item: persisted });
         }
+        const uncertain = {
+          ...(persisted || attempted), deliveryPending: true, deliveryUnconfirmed: true,
+          history: [...historyOf(persisted || attempted), {
+            action: 'delivery_retry_unconfirmed', at: new Date().toISOString(), userId: String(user.id)
+          }]
+        };
+        await kv.set(itemKey, uncertain).catch(() => {});
         return res.status(200).json({
           success: true,
-          item: attempted,
-          warning: 'Discord подтвердил отправку, но реестр не подтвердил обновление. Перед повторной отправкой проверьте канал отдела.'
+          item: uncertain,
+          warning: 'Discord подтвердил отправку, но реестр не подтвердил ID сообщения. Повтор заблокирован; сначала проверьте канал отдела.'
         });
       }
       return res.status(200).json({ success: true, item: updated });
