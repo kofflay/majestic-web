@@ -646,11 +646,8 @@ async function sendDecision(item, reviewer, decision, reason) {
           { name: ' Повышен с ранга', value: fieldValue(reportData.currentRank), inline: true },
           { name: ' Повышен до ранга', value: fieldValue(reportData.targetRank), inline: true }
         ]),
-        { name: ' Повышен', value: `<@${applicantId}>`, inline: true },
-        { name: 'Имя Фамилия + Статик', value: applicantName, inline: false },
-        { name: ' Discord ID', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
-        { name: ' Повышает', value: `<@${reviewerId}>`, inline: true },
-        { name: ' Discord ID проверяющего', value: reviewerId, inline: true },
+        { name: ' Сотрудник', value: applicantName, inline: false },
+        { name: ' Discord ID сотрудника', value: DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'Не указан', inline: true },
         { name: ' Дата повышения', value: new Date(item.resolvedAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), inline: true }
       ],
       timestamp: item.resolvedAt || new Date().toISOString(),
