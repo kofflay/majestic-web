@@ -2570,3 +2570,8 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
   .fib-landing .landing-footer { align-items: flex-start; flex-direction: column; }
   .fib-landing .landing-footer__right { text-align: left; }
 }
+
+
+/* White typography throughout the mission section; keep the Suspect word styling unchanged. */
+.fib-landing .reference-mission .reference-section-heading { color: #fff; }
+.fib-landing .reference-mission .reference-mission__copy p { color: #fff; }
