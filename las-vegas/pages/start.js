@@ -81,7 +81,7 @@ export default function Home() {
           <section className="landing-command reference-command" aria-labelledby="landing-command-title">
             <div className="landing-command__eyebrow">TOP SECRET // CLEARANCE REQUIRED</div>
             <h2 id="landing-command-title">Руководство</h2>
-            <p>Высшее командование Федерального расследовательского бюро</p>
+            <p>Высшее командование Федерального бюро расследований</p>
             <div className="landing-command__grid">
               {staff.map((member) => <StaffCard key={member.id} member={member} isAdminView={false} />)}
             </div>
