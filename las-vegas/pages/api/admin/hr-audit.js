@@ -106,10 +106,15 @@ async function createPromotionFromApprovedReport(item, reviewer, auditMessageId)
   }
 
   if (!promotion) {
+    const sourceReportUrl = item.approvedReportMessageUrl || await getDiscordMessageUrl(getAuditWebhook(item), item.deliveryMessageId);
+    if (!sourceReportUrl) {
+      await writeSystemLog({ level: 'error', category: 'discord', event: 'promotion_source_report_link_missing', message: 'Не удалось получить ссылку на исходный отчёт для связанного запроса на повышение', auditId: item.id, auditType: item.type });
+      return { success: false, reason: 'promotion_source_report_link_missing' };
+    }
     const data = {
       fullName: String(item.data?.fullName || '').trim(),
       rankRange: (item.type === 'report' ? [item.data?.currentRank, item.data?.targetRank].filter(Boolean).join(' → ') : item.data?.rankRange || '').trim(),
-      reportLink: auditMessageUrl
+      reportLink: sourceReportUrl
     };
     const submittedAt = new Date().toISOString();
     const title = 'Запрос на повышение';
@@ -119,7 +124,7 @@ async function createPromotionFromApprovedReport(item, reviewer, auditMessageId)
       fields: [
         { name: 'Имя Фамилия + Статик', value: data.fullName.slice(0, 1024), inline: false },
         { name: ' Диапазон рангов', value: data.rankRange.slice(0, 1024), inline: false },
-        { name: ' Ссылка на отчет', value: data.reportLink, inline: false },
+        { name: ' Отчёт-доказательство', value: `[Открыть исходный отчёт в Discord](${data.reportLink})`, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
@@ -176,7 +181,7 @@ return {number, 1}
       fields: [
         { name: 'Имя Фамилия + Статик', value: promotion.data.fullName.slice(0, 1024), inline: false },
         { name: ' Диапазон рангов', value: promotion.data.rankRange.slice(0, 1024), inline: false },
-        { name: ' Ссылка на отчет', value: promotion.data.reportLink, inline: false },
+        { name: ' Отчёт-доказательство', value: `[Открыть исходный отчёт в Discord](${promotion.data.reportLink})`, inline: false },
         { name: 'Отправитель', value: `<@${applicantId}>`, inline: true },
         { name: 'Discord ID', value: applicantId, inline: true }
       ],
@@ -268,6 +273,26 @@ return {number, 1}
   return { success: true, item: delivered };
 }
 
+async function getDiscordMessageUrl(webhook, messageId) {
+  if (!webhook || !DISCORD_ID_PATTERN.test(String(messageId || ''))) return null;
+  try {
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${messageId}`;
+    const [messageResponse, webhookResponse] = await Promise.all([
+      fetch(messageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) }),
+      fetch(webhook, { method: 'GET', signal: AbortSignal.timeout(15000) })
+    ]);
+    if (!messageResponse.ok || !webhookResponse.ok) return null;
+    const [message, webhookInfo] = await Promise.all([messageResponse.json(), webhookResponse.json()]);
+    const guildId = String(webhookInfo.guild_id || '');
+    const channelId = String(message.channel_id || webhookInfo.channel_id || '');
+    if (!DISCORD_ID_PATTERN.test(guildId) || !DISCORD_ID_PATTERN.test(channelId)) return null;
+    return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
+  } catch { return null; }
+}
+
 async function publishPersonnelAudit(item, reviewer, decision) {
   const webhook = process.env.WEBHOOK_AUDIT_URL || '';
   if (!webhook) return { success: false, reason: 'audit_webhook_not_configured' };
@@ -285,6 +310,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
   const applicantId = String(item.submitter?.id || '');
   const reviewerId = String(reviewer?.id || '');
   const data = item.data || {};
+  const sourceMessageUrl = await getDiscordMessageUrl(getAuditWebhook(item), item.deliveryMessageId);
   const titles = {
     promotion: 'ПОВЫШЕНИЕ СОТРУДНИКА',
     transfer: 'ПЕРЕВОД СОТРУДНИКА МЕЖДУ ОТДЕЛАМИ',
@@ -294,7 +320,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
     reinstatement: 'ВОССТАНОВЛЕНИЕ СОТРУДНИКА В FIB'
   };
   const labels = {
-    fullName: 'Имя и статик', rankRange: 'Диапазон рангов', reportLink: 'Одобренный отчёт',
+    fullName: 'Имя и статик', rankRange: 'Диапазон рангов', reportLink: 'Отчёт-доказательство',
     rank: 'Текущий ранг', currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина перевода',
     approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
     lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
@@ -309,18 +335,16 @@ async function publishPersonnelAudit(item, reviewer, decision) {
     if (value && typeof value === 'object') value = JSON.stringify(value);
     return { name: labels[key] || key, value: String(value ?? '—').slice(0, 1024) || '—', inline: false };
   });
+  if (sourceMessageUrl) fields.push({ name: 'Исходное сообщение / доказательство', value: `[Открыть исходную заявку в Discord](${sourceMessageUrl})`, inline: false });
   fields.push(
-    { name: 'Заявитель', value: /^\d{17,20}$/.test(applicantId) ? '<@' + applicantId + '>' : 'Discord ID не указан', inline: true },
-    { name: 'Рассмотрел', value: '<@' + reviewerId + '>', inline: true },
-    { name: 'Решение', value: decision === 'accepted' ? 'Одобрено' : 'Отклонено', inline: true },
+    { name: 'Сотрудник', value: String(data.fullName || item.submitter?.username || applicantId || 'Не указан').slice(0, 1024), inline: true },
     { name: 'Заявка', value: '№' + item.number, inline: true }
   );
   const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
   const payload = {
     username: 'Suspect Forms',
-    content: 'Кадровую заявку рассмотрел: ' + String(reviewer?.username || reviewerId) + '. Сотрудник: ' + ( /^\d{17,20}$/.test(applicantId) ? applicantId : 'Discord ID не указан' ),
     embeds: [{
-      title: (titles[item.type] || item.title || 'КАДРОВОЕ ДЕЙСТВИЕ') + ' — ОДОБРЕНО',
+      title: titles[item.type] || item.title || 'КАДРОВОЕ ДЕЙСТВИЕ',
       color: 0x4CAF50,
       description: `[Открыть запись кадрового аудита №${item.number}](${auditUrl})`,
       fields: fields.slice(0, 25),
@@ -447,8 +471,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         return { success: false, messageId: null, reason: `promotion_update_http_${response.status}` };
       }
       if (accepted) {
-        const auditResult = await publishPersonnelAudit(item, reviewer, decision);
-        return { success: auditResult.success, messageId: auditResult.messageId || messageId, reason: auditResult.reason || null };
+        return { success: true, messageId };
       }
       return { success: true, messageId };
     } catch (error) {
@@ -617,7 +640,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       title: item.type === 'highrank' ? ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА (HIGH-RANK)' : ' ОТЧЁТ О ПОВЫШЕНИИ СОТРУДНИКА',
       color: 0x4CAF50,
       fields: [
-        { name: ' Причина повышения', value: reportMessageUrl, inline: false },
+        { name: ' Отчёт-доказательство', value: `[Открыть исходный отчёт в Discord](${reportMessageUrl})`, inline: false },
         ...(item.type === 'highrank' ? [{ name: ' Диапазон повышения', value: rankRange, inline: true }] : [
           { name: ' Отдел', value: fieldValue(getDepartment(reportData.department)?.name || reportData.department), inline: true },
           { name: ' Повышен с ранга', value: fieldValue(reportData.currentRank), inline: true },
@@ -652,7 +675,6 @@ async function sendDecision(item, reviewer, decision, reason) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'Suspect Forms',
-          content: `Повышение сотрудника. Проверяющий: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${applicantId}.`,
           embeds: [auditEmbed]
         }),
         signal: AbortSignal.timeout(15000)
@@ -802,7 +824,7 @@ async function sendDecision(item, reviewer, decision, reason) {
         } : {}),
         ...(originalEmbed.image?.url ? { image: { url: originalEmbed.image.url } } : {}),
         ...(originalEmbed.thumbnail?.url ? { thumbnail: { url: originalEmbed.thumbnail.url } } : {}),
-        title: `${item.title || 'Заявка'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+        title: `${item.title || 'Заявка'} №${item.number}`,
         color: accepted ? 0x4CAF50 : 0xDC3545,
         description: profileReportUrl,
         fields: decisionFields,
@@ -813,12 +835,10 @@ async function sendDecision(item, reviewer, decision, reason) {
         timestamp: new Date().toISOString()
       };
 
-      const content = `Решение по заявке №${item.number} («${item.title || 'Заявка'}») принято: ${accepted ? 'одобрено' : 'отклонено'}.`;
       response = await fetch(messageUrl.toString(), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content,
           embeds: [updatedEmbed]
         }),
         signal: AbortSignal.timeout(15000)
@@ -855,9 +875,8 @@ async function sendDecision(item, reviewer, decision, reason) {
       return { success: false, messageId: null, reason: `discord_http_${response.status}` };
     }
 
-    // Every approved HR action is also recorded in the personnel audit channel.
-    // Rejected applications only update their original card, matching the High-Rank flow.
-    if (accepted) {
+    // Standalone promotion requests are handled only in their own channel.
+    if (accepted && item.type !== 'promotion') {
       const auditResult = await publishPersonnelAudit(item, reviewer, decision);
       return { success: auditResult.success, messageId: auditResult.messageId || originalMessageId, reason: auditResult.reason || null };
     }
@@ -873,7 +892,6 @@ async function sendDecision(item, reviewer, decision, reason) {
     { name: 'Рассмотрел', value: `<@${reviewerId}>`, inline: true },
     ...(reason ? [{ name: 'Причина отказа', value: reason, inline: false }] : [])
   ];
-  const content = `Кадровое решение рассмотрел: ${String(reviewer?.username || reviewerId)} (${reviewerId}). Сотрудник ID: ${DISCORD_ID_PATTERN.test(applicantId) ? applicantId : 'не указан'}.`;
 
   let response;
   try {
@@ -882,9 +900,8 @@ async function sendDecision(item, reviewer, decision, reason) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Suspect Forms',
-        content,
         embeds: [{
-          title: `${item.title || 'Заявка'} №${item.number} — ${accepted ? 'ОДОБРЕНО' : 'ОТКЛОНЕНО'}`,
+          title: `${item.title || 'Заявка'} №${item.number}`,
           color: accepted ? 0x4CAF50 : 0xDC3545,
           description: auditUrl,
           fields,
