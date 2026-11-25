@@ -822,11 +822,12 @@ function buildFields(type, department, targetDepartment, data, leaveType, userId
 
   if (type === 'weapon-request') {
     const d = getDepartment(data.department);
+    const requestedWeapon = WEAPON_OPTIONS.find(item => item.value === data.weapon || item.label.trim() === String(data.weapon || '').trim());
     return [
       { name: ' Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: ' Отдел', value: d ? d.name : (data.department || 'Не указан'), inline: false },
       { name: ' Ранг', value: data.rank || 'Не указан', inline: false },
-      { name: ' Запрашиваемое оружие', value: data.weapon || 'Не указано', inline: false },
+      { name: ' Запрашиваемое оружие', value: requestedWeapon ? requestedWeapon.label.trim() : 'Не указано', inline: false },
       ...base
     ];
   }
