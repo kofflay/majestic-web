@@ -272,8 +272,8 @@ export default async function handler(req, res) {
 
   const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion']);
   const userRoles = Array.isArray(user.roles) ? user.roles.map(String) : [];
-  const STAFF_ROLE_ID = '1552313180041121802';
-  const HIGH_RANK_ROLE_ID = '1514608894679191597';
+  const STAFF_ROLE_ID = '1563222369655459941';
+  const HIGH_RANK_ROLE_ID = '1563222369655459941';
   if (employeeOnlyTypes.has(type) && !userRoles.includes(STAFF_ROLE_ID)) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника LSPD' });
   }
@@ -336,7 +336,7 @@ export default async function handler(req, res) {
     if (!webhookUrl) return rejectSubmission(res, user, type, formData, leaveType, 500, 'Вебхук не настроен');
     roleMentions = getRoleMentions(targetDepartment);
   } else if (type === 'highrank') { webhookUrl = webhooks.highrank; roleMentions = '<@&1514608894700159142> <@&1514690313233371226>'; }
-  else if (type === 'resignation') { webhookUrl = webhooks.resignation; roleMentions = '<@&1514608894679191597>'; }
+  else if (type === 'resignation') { webhookUrl = webhooks.resignation; roleMentions = '<@&1563222369655459941>'; }
   else if (type === 'reinstatement') { webhookUrl = webhooks.reinstatement; roleMentions = '<@&1514690313233371226> <@&1514608894679191598>'; }
   else if (type === 'transfer-to-lspd') { webhookUrl = webhooks['transfer-to-lspd']; roleMentions = '<@&1514690313233371226> <@&1514608894700159142>'; }
   else if (type === 'hiring') { webhookUrl = webhooks.hiring; roleMentions = '<@&1514608894666735724> <@&1514608894679191598> <@&1541129110623879249>'; }
@@ -347,7 +347,7 @@ export default async function handler(req, res) {
     webhookUrl = webhooks.leave;
     roleMentions = getRoleMentions(department);
     threadId = leaveType === 'ooc' ? '1541113530743390288' : '1541113565505781891';
-  } else { webhookUrl = webhooks.promotion; roleMentions = '<@&1514608894679191597>'; }
+  } else { webhookUrl = webhooks.promotion; roleMentions = '<@&1563222369655459941>'; }
   if (!webhookUrl) return rejectSubmission(res, user, type, formData, leaveType, 500, 'Вебхук не настроен');
 
   if (!isWhitelisted) {
