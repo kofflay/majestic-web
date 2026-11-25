@@ -137,12 +137,12 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="Федеральное бюро расследований — на главную"
+            aria-label="Federal Investigation Bureau — на главную"
           >
             <span className="brand__mark" aria-hidden="true">◈</span>
             <span className="brand__text">
-              <strong>ФБР</strong>
-              <small>FEDERAL BUREAU OF INVESTIGATION</small>
+              
+              <small>FEDERAL INVESTIGATION BUREAU</small>
             </span>
           </button>
 
