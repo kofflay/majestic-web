@@ -139,11 +139,11 @@ export default function Header({ user }) {
             onClick={() => navigate('/start')}
             aria-label="Federal Investigation Bureau — на главную"
           >
-            <span className="brand__mark" aria-hidden="true">◈</span>
-            <span className="brand__text">
-              
-              <small>FEDERAL INVESTIGATION BUREAU</small>
-            </span>
+            <img
+              className="brand__logo"
+              src="/las-vegas/logo.svg"
+              alt="Federal Investigation Bureau"
+            />
           </button>
 
           <nav
@@ -328,6 +328,12 @@ export default function Header({ user }) {
           padding: 0;
           color: var(--text, #f5f7fb);
           text-align: left;
+        }
+
+        .brand__logo {
+          display: block;
+          width: min(248px, 100%);
+          height: auto;
         }
 
         .brand__mark {
