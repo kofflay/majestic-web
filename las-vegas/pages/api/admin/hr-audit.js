@@ -308,38 +308,60 @@ async function publishPersonnelAudit(item, reviewer, decision) {
     return { success: false, reason: 'audit_delivery_unconfirmed' };
   }
   const applicantId = String(item.submitter?.id || '');
-  const reviewerId = String(reviewer?.id || '');
   const data = item.data || {};
   const sourceMessageUrl = await getDiscordMessageUrl(getAuditWebhook(item), item.deliveryMessageId);
+  const textValue = (value, fallback = 'Не указано') => {
+    const valueText = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+    return (valueText || fallback).slice(0, 1024);
+  };
+  const departmentName = value => getDepartment(value)?.name || textValue(value);
   const titles = {
-    promotion: 'ПОВЫШЕНИЕ СОТРУДНИКА',
+    report: 'ПОВЫШЕНИЕ СОТРУДНИКА',
+    highrank: 'ПОВЫШЕНИЕ СОТРУДНИКА (HIGH-RANK)',
     transfer: 'ПЕРЕВОД СОТРУДНИКА МЕЖДУ ОТДЕЛАМИ',
     'transfer-to-lspd': 'ПЕРЕВОД СОТРУДНИКА В FIB',
     hiring: 'ТРУДОУСТРОЙСТВО В FIB',
     resignation: 'УВОЛЬНЕНИЕ СОТРУДНИКА',
     reinstatement: 'ВОССТАНОВЛЕНИЕ СОТРУДНИКА В FIB'
   };
-  const labels = {
-    fullName: 'Имя и статик', rankRange: 'Диапазон рангов', reportLink: 'Отчёт-доказательство',
-    rank: 'Текущий ранг', currentDepartment: 'Текущий отдел', targetDepartment: 'Новый отдел', reason: 'Причина перевода',
-    approvalProof: 'Подтверждение одобрения', rankProof: 'Подтверждение ранга', age: 'Возраст', experience: 'Опыт',
-    lawKnowledge: 'Знание законов', passport: 'Паспорт', militaryId: 'Военный билет', medical: 'Медицинская карта',
-    screenshot: 'Скриншот планшета', rankAtDismissal: 'Ранг на момент увольнения', wasWarned: 'Было ли взыскание',
-    stateFractionsProof: 'Одобрение State Fractions', department: 'Отдел', currentRank: 'Текущий ранг', targetRank: 'Новый ранг',
-    isInstructor: 'Назначение инструктором', workLinks: 'Ссылки на проделанную работу', workLink: 'Ссылка на проделанную работу'
-  };
-  const fields = Object.entries(data).map(([key, raw]) => {
-    let value = raw;
-    if (['department', 'currentDepartment', 'targetDepartment'].includes(key)) value = getDepartment(raw)?.name || raw;
-    if (['isInstructor', 'wasWarned'].includes(key)) value = raw === 'yes' ? 'Да' : raw === 'no' ? 'Нет' : raw;
-    if (value && typeof value === 'object') value = JSON.stringify(value);
-    return { name: labels[key] || key, value: String(value ?? '—').slice(0, 1024) || '—', inline: false };
-  });
-  if (sourceMessageUrl) fields.push({ name: 'Исходное сообщение / доказательство', value: `[Открыть исходную заявку в Discord](${sourceMessageUrl})`, inline: false });
-  fields.push(
-    { name: 'Сотрудник', value: String(data.fullName || item.submitter?.username || applicantId || 'Не указан').slice(0, 1024), inline: true },
-    { name: 'Заявка', value: '№' + item.number, inline: true }
-  );
+  const employeeName = textValue(data.fullName || item.submitter?.username || applicantId);
+  const fields = [];
+  const add = (name, value, inline = false) => fields.push({ name, value: textValue(value), inline });
+  if (item.type === 'resignation') {
+    add('Причина увольнения', sourceMessageUrl ? `[Открыть исходное заявление на увольнение](${sourceMessageUrl})` : data.reason, false);
+    add('Уволен с', textValue(data.rankAtDismissal || data.rank) + ' ранга', false);
+    add('Уволен', employeeName, true);
+    add('Discord ID', applicantId, true);
+  } else if (item.type === 'report' || item.type === 'highrank') {
+    const rankRange = item.type === 'report' ? `${textValue(data.currentRank)} → ${textValue(data.targetRank)}` : textValue(data.rankRange);
+    add('Причина повышения', sourceMessageUrl ? `[Открыть исходный отчёт о повышении](${sourceMessageUrl})` : data.workLink || data.workLinks, false);
+    add('Повышен с ранга', item.type === 'report' ? data.currentRank : rankRange, true);
+    if (item.type === 'report') add('Повышен до ранга', data.targetRank, true);
+    add('Повышен', employeeName, true);
+    add('Discord ID', applicantId, true);
+    if (data.workLinks || data.workLink) add('Проделанная работа', data.workLinks || data.workLink, false);
+  } else if (item.type === 'transfer' || item.type === 'transfer-to-lspd') {
+    add('Причина перевода', sourceMessageUrl ? `[Открыть исходное заявление на перевод](${sourceMessageUrl})` : data.reason, false);
+    add('Переводит из отдела', departmentName(data.currentDepartment), true);
+    add('Переводит в отдел', departmentName(data.targetDepartment || (item.type === 'transfer-to-lspd' ? 'fib' : '')), true);
+    add('Сотрудник', employeeName, true);
+    add('Discord ID', applicantId, true);
+  } else if (item.type === 'hiring') {
+    add('Основание трудоустройства', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
+    add('Принимается на должность', data.rank || data.targetRank, true);
+    add('Отдел', departmentName(data.department || data.targetDepartment), true);
+    add('Сотрудник', employeeName, true);
+    add('Discord ID', applicantId, true);
+  } else if (item.type === 'reinstatement') {
+    add('Основание восстановления', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
+    add('Восстановлен на ранг', data.rankAtDismissal || data.rank, true);
+    add('Сотрудник', employeeName, true);
+    add('Discord ID', applicantId, true);
+  } else {
+    for (const [key, value] of Object.entries(data)) add(key, value);
+    if (sourceMessageUrl) add('Исходное сообщение', `[Открыть исходную заявку](${sourceMessageUrl})`);
+  }
+  add('Заявка', '№' + item.number, true);
   const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
   const payload = {
     username: 'Suspect Forms',
@@ -1093,6 +1115,9 @@ export default async function handler(req, res) {
       const item = await kv.get(itemKey);
       if (!item || !isSupportedAuditItem(item) || String(item.id) !== String(id)) {
         return res.status(404).json({ error: 'Заявка не найдена' });
+      }
+      if (item.type === 'promotion') {
+        return res.status(409).json({ error: 'Персональные запросы на повышение не публикуются в кадровом аудите.' });
       }
       if (item.status !== 'accepted') {
         return res.status(409).json({ error: 'Повторная публикация доступна только для одобренной заявки.' });
