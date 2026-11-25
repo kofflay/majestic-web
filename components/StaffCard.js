@@ -11,7 +11,6 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       <div
         style={{
           width: 'min(308px, 100%)',
-          minHeight: '505px',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
@@ -67,7 +66,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{member.rank}</div>
         </div>
 
-        <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
+        <div style={{ padding: '18px 16px' }}>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>CONTACT · DISCORD</div>
           <div style={{ color: '#d8bd87', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
         </div>
