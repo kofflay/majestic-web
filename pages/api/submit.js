@@ -86,7 +86,7 @@ function validateSubmission(type, data, leaveType) {
     report: ['fullName', 'department', 'currentRank', 'targetRank', 'workLinks'],
     transfer: ['fullName', 'rank', 'currentDepartment', 'targetDepartment', 'reason'],
     highrank: ['fullName', 'rankRange', 'workLink'],
-    resignation: ['fullName', 'screenshot'],
+    resignation: ['fullName', 'rankAtDismissal', 'screenshot'],
     reinstatement: ['fullName', 'rankAtDismissal', 'rankProof', 'wasWarned'],
     'transfer-to-lspd': ['fullName', 'approvalProof', 'rankProof'],
     hiring: ['fullName', 'age', 'experience', 'lawKnowledge', 'passport', 'militaryId', 'medical'],
@@ -114,6 +114,7 @@ function validateSubmission(type, data, leaveType) {
   }
 
   const validRank = value => /^[1-9]$|^1[0-5]$/.test(value || '');
+  if (type === 'resignation' && !validRank(data.rankAtDismissal)) return 'Выберите корректный ранг, с которого увольняется сотрудник.';
   if (type === 'report') {
     if (!getDepartment(data.department)) return 'Выберите существующий отдел.';
     if (!validRank(data.currentRank) || !validRank(data.targetRank)) return 'Выберите корректный ранг.';
@@ -243,7 +244,7 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
       if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-  return { success: false, error: lastError?.message };
+  return { success: false, error: lastError?.message, unconfirmed: Boolean(options.waitForConfirmation && lastError) };
 }
 
 export default async function handler(req, res) {
@@ -270,7 +271,7 @@ export default async function handler(req, res) {
   if (validationError) return rejectSubmission(res, user, type, formData, leaveType, 400, validationError);
 
   const employeeOnlyTypes = new Set(['report', 'transfer', 'resignation', 'weapon-request', 'leave', 'promotion']);
-  const userRoles = Array.isArray(user.roles) ? user.roles : [];
+  const userRoles = Array.isArray(user.roles) ? user.roles.map(String) : [];
   const STAFF_ROLE_ID = '1552313180041121802';
   const HIGH_RANK_ROLE_ID = '1514608894679191597';
   if (employeeOnlyTypes.has(type) && !userRoles.includes(STAFF_ROLE_ID)) {
@@ -369,22 +370,18 @@ export default async function handler(req, res) {
     content: roleMentions.trim() || undefined,
     embeds: [baseEmbed],
     username: 'Suspect Forms',
-    avatar_url: 'https://i.imgur.com/AfFp7pu.png',
+    avatar_url: 'https://suspect-famq.ru/logo.gif',
     ...(threadId ? { thread_id: threadId } : {})
   };
 
   let result;
   let embed = baseEmbed;
   let hrAuditNumber = null;
-  if (type === 'highrank') {
+  if (['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(type)) {
     const submittedAt = new Date().toISOString();
     // The existing high-rank form does not send a client idempotency token.
     // A short-lived fingerprint prevents duplicate clicks/retries without blocking a later new report.
-    const auditRequestId = `highrank-${createHash('sha256').update(JSON.stringify([
-      formData.fullName,
-      formData.rankRange,
-      formData.workLink
-    ])).digest('hex')}`;
+    const auditRequestId = `${type}-${createHash('sha256').update(JSON.stringify([user.id, type, formData])).digest('hex')}`;
     const auditIdempotencyTtl = 600;
     const auditItem = {
       id: '',
@@ -464,16 +461,13 @@ return {number, 1}
 
       try {
         const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/audit?id=${hrAuditNumber}`;
+        // Match the High-Rank workflow: the initial department webhook is a concise
+        // notification. The complete form data is restored into this same message
+        // when the HR reviewer accepts or rejects the application.
         embed = {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
-          fields: [
-            {
-              name: ' Имя Фамилия + Статик',
-              value: String(formData.fullName || 'Не указано').slice(0, 1024),
-              inline: false
-            }
-          ]
+          fields: [{ name: ' Имя Фамилия + Статик', value: String(formData.fullName || 'Не указано').slice(0, 1024), inline: false }]
         };
         discordPayload.embeds = [embed];
 
@@ -506,8 +500,9 @@ return {number, 1}
         }
 
         const previousDeliveryAttempt = Number(storedBeforeSend.deliveryAttempts) > 0
+          || storedBeforeSend.deliveryUnconfirmed === true
           || (Array.isArray(storedBeforeSend.history) && storedBeforeSend.history.some(entry =>
-            ['delivery_attempted', 'delivery_pending', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
+            ['delivery_attempted', 'delivery_pending', 'delivery_unconfirmed', 'delivery_retry_attempted', 'delivery_retry_unconfirmed', 'delivery_retry_failed']
               .includes(entry?.action)
           ));
         if (previousDeliveryAttempt) {
@@ -545,14 +540,14 @@ return {number, 1}
         // Audit submissions use one confirmed attempt. A network timeout is ambiguous,
         // so automatic retries could create duplicate Discord messages.
         result = await sendToDiscord(webhookUrl, discordPayload, 1, { waitForConfirmation: true });
-        if (result.success) {
+        if (result.success && /^\d{17,20}$/.test(String(result.messageId || ''))) {
           const deliveredAt = new Date().toISOString();
           const delivered = {
             ...attempted,
             deliveryPending: false,
             discordPayload: null,
             deliveredAt,
-            deliveryMessageId: result.messageId || null,
+            deliveryMessageId: result.messageId,
             history: [...attempted.history, {
               action: 'delivered',
               at: deliveredAt,
@@ -566,20 +561,28 @@ return {number, 1}
             console.error('Discord accepted HR audit report but Redis delivery state could not be updated:', { number: hrAuditNumber, error: deliveryStateError });
             const persisted = await kv.get(itemKey).catch(() => null);
             if (!(persisted?.deliveryPending === false && persisted.deliveredAt === deliveredAt)) {
+              await kv.set(itemKey, {
+                ...(persisted || attempted), deliveryPending: true, deliveryUnconfirmed: true,
+                history: [...(Array.isArray(persisted?.history) ? persisted.history : attempted.history), {
+                  action: 'delivery_unconfirmed', at: new Date().toISOString(), userId: 'system'
+                }]
+              }).catch(() => {});
               return res.status(200).json({
                 success: true,
                 number: hrAuditNumber,
-                warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил обновление. Не отправляйте заявку повторно; сначала проверьте канал отдела.`
+                warning: `Discord подтвердил заявку №${hrAuditNumber}, но реестр не подтвердил ID сообщения. Повторная отправка заблокирована; сначала проверьте канал отдела.`
               });
             }
           }
         } else {
-          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error });
+          const deliveryUnconfirmed = result.success === true || result.unconfirmed === true;
+          console.error('HR audit application is stored but Discord delivery was not confirmed:', { number: hrAuditNumber, error: result.error, deliveryUnconfirmed });
           const pendingAt = new Date().toISOString();
           const pending = {
             ...attempted,
+            deliveryUnconfirmed,
             history: [...attempted.history, {
-              action: 'delivery_pending',
+              action: deliveryUnconfirmed ? 'delivery_unconfirmed' : 'delivery_pending',
               at: pendingAt,
               userId: 'system'
             }]
@@ -597,7 +600,9 @@ return {number, 1}
           return res.status(200).json({
             success: true,
             number: hrAuditNumber,
-            warning: `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord не подтвердил доставку. Перед повтором проверяющий должен убедиться, что сообщения нет в канале отдела.`
+            warning: deliveryUnconfirmed
+              ? `Заявка №${hrAuditNumber} сохранена, но подтверждение Discord не получено или не вернулся ID сообщения. Автоматический повтор заблокирован — сначала проверьте канал отдела.`
+              : `Заявка №${hrAuditNumber} сохранена в кадровом реестре, но Discord отклонил доставку. Её можно повторить из кадрового аудита.`
           });
         }
       } finally {
@@ -623,7 +628,7 @@ return {number, 1}
 
   // Discord delivery succeeded.
   try {
-    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: type === 'highrank' ? hrAuditNumber : null });
+    await recordSubmissionHistory(user.id, { type, title: embed.title, status: 'sent', auditNumber: hrAuditNumber });
   } catch (historyError) {
     console.error('Submission history update failed after delivery:', historyError);
   }
@@ -647,7 +652,7 @@ return {number, 1}
       const publicResult = await sendToDiscord(webhooks.complaintPublic, {
         embeds: [publicEmbed],
         username: 'Suspect Forms',
-        avatar_url: 'https://i.imgur.com/AfFp7pu.png'
+        avatar_url: 'https://suspect-famq.ru/logo.gif'
       });
       if (!publicResult.success) {
         publicWarning = 'Жалоба сохранена в закрытом канале, но публичная сводка не отправилась. Сообщите администратору.';
@@ -660,7 +665,7 @@ return {number, 1}
     const today = new Date().toISOString().split('T')[0];
     await kv.incr('lspd:stats:total');
     await kv.incr(`lspd:stats:${today}`);
-    if (type === 'highrank') {
+    if (['report', 'highrank', 'promotion', 'transfer', 'transfer-to-lspd', 'hiring', 'resignation', 'reinstatement'].includes(type)) {
     const globalRequest = {
       id: submissionRecordId,
       type: type || 'unknown',
@@ -786,6 +791,7 @@ function buildFields(type, department, targetDepartment, data, leaveType, userId
 
   if (type === 'resignation') return [
     { name: ' Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+    { name: ' Ранг при увольнении', value: data.rankAtDismissal ? `${data.rankAtDismissal} ранг` : 'Не указан', inline: false },
     { name: ' Скриншот планшета', value: data.screenshot || 'Не указано', inline: false },
     ...base
   ];
@@ -819,11 +825,12 @@ function buildFields(type, department, targetDepartment, data, leaveType, userId
 
   if (type === 'weapon-request') {
     const d = getDepartment(data.department);
+    const requestedWeapon = WEAPON_OPTIONS.find(item => item.value === data.weapon || item.label.trim() === String(data.weapon || '').trim());
     return [
       { name: ' Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: ' Отдел', value: d ? d.name : (data.department || 'Не указан'), inline: false },
       { name: ' Ранг', value: data.rank || 'Не указан', inline: false },
-      { name: ' Запрашиваемое оружие', value: data.weapon || 'Не указано', inline: false },
+      { name: ' Запрашиваемое оружие', value: requestedWeapon ? requestedWeapon.label.trim() : 'Не указано', inline: false },
       ...base
     ];
   }
