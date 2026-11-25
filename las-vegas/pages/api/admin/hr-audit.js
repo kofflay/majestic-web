@@ -173,6 +173,7 @@ return {number, 1}
 
   const payload = {
     username: 'Suspect Forms',
+    avatar_url: 'https://suspect-famq.ru/las-vegas/logo.gif',
     content: `<@&1514608894679191597> <@${applicantId}>`,
     embeds: [{
       title: ` Запрос на повышение №${promotion.number}`,
@@ -856,6 +857,7 @@ async function sendDecision(item, reviewer, decision, reason) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Suspect Forms',
+        avatar_url: 'https://suspect-famq.ru/las-vegas/logo.gif',
         embeds: [{
           title: `${item.title || 'Заявка'} №${item.number}`,
           color: accepted ? 0x4CAF50 : 0xDC3545,
