@@ -87,7 +87,7 @@ function validateSubmission(type, data, leaveType) {
     report: ['fullName', 'department', 'currentRank', 'targetRank', 'workLinks'],
     transfer: ['fullName', 'rank', 'currentDepartment', 'targetDepartment', 'reason'],
     highrank: ['fullName', 'rankRange', 'workLink'],
-    resignation: ['fullName', 'screenshot'],
+    resignation: ['fullName', 'rankAtDismissal', 'screenshot'],
     reinstatement: ['fullName', 'rankAtDismissal', 'rankProof', 'wasWarned'],
     'transfer-to-lspd': ['fullName', 'approvalProof', 'rankProof'],
     hiring: ['fullName', 'age', 'experience', 'lawKnowledge', 'passport', 'militaryId', 'medical'],
@@ -115,6 +115,7 @@ function validateSubmission(type, data, leaveType) {
   }
 
   const validRank = value => /^[1-9]$|^1[0-5]$/.test(value || '');
+  if (type === 'resignation' && !validRank(data.rankAtDismissal)) return 'Выберите корректный ранг, с которого увольняется сотрудник.';
   if (type === 'report') {
     if (!getDepartment(data.department)) return 'Выберите существующий отдел.';
     if (!validRank(data.currentRank) || !validRank(data.targetRank)) return 'Выберите корректный ранг.';
@@ -787,6 +788,7 @@ function buildFields(type, department, targetDepartment, data, leaveType, userId
 
   if (type === 'resignation') return [
     { name: ' Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+    { name: ' Ранг при увольнении', value: data.rankAtDismissal ? `${data.rankAtDismissal} ранг` : 'Не указан', inline: false },
     { name: ' Скриншот планшета', value: data.screenshot || 'Не указано', inline: false },
     ...base
   ];
