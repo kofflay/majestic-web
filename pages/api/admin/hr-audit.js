@@ -1,4 +1,4 @@
-import { verifyToken } from '../../../lib/discord';
+import { verifySessionToken } from '../../../lib/discord';
 import { hasHrAuditAccess } from '../../../lib/hr-audit-access';
 import { kv } from '../../../lib/redis.js';
 import { getDepartment, getReportWebhook, getTransferWebhook } from '../../../lib/departments';
