@@ -2025,7 +2025,7 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
 .staff-page { min-height: 100vh; background: #080a0e; }
 .staff-page__content { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 100px; }
 .staff-heading__eyebrow { color: #c5a36a !important; }
-.staff-heading h1 { color: #f3f0e9; }
+.staff-heading h1 { color: #d7b77a; }
 .staff-heading p { color: #b5ad9f; }
 .staff-grid { gap: 18px; }
 .staff-grid > * { border-color: rgba(197,163,106,.25) !important; }
