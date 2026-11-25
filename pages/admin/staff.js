@@ -12,7 +12,7 @@ export default function AdminStaffPage() {
   const [user, setUser] = useState(null);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({ name: '', rank: 'Chief of Police', discord: '', avatar: '' });
+  const [formData, setFormData] = useState({ name: '', rank: 'Director', discord: '', avatar: '' });
 
   useEffect(() => {
     fetch('/api/me', { cache: 'no-store' })
@@ -45,7 +45,7 @@ export default function AdminStaffPage() {
       body: JSON.stringify(formData)
     });
     if (res.ok) {
-      setFormData({ name: '', rank: 'Chief of Police', discord: '', avatar: '' });
+      setFormData({ name: '', rank: 'Director', discord: '', avatar: '' });
       fetchStaff(); // Обновляем список
     } else {
       alert('Ошибка добавления');
@@ -80,8 +80,8 @@ export default function AdminStaffPage() {
         }}>
           <input type="text" placeholder="Имя (ник)" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ ...adminInputStyle, flex: '1 1 200px' }} />
           <select value={formData.rank} onChange={e => setFormData({...formData, rank: e.target.value})} style={{ ...adminInputStyle, flex: '1 1 200px' }}>
-            <option value="Chief of Police">Chief of Police</option>
-            <option value="Deputy Chief">Deputy Chief</option>
+            <option value="Director">Director</option>
+            <option value="Deputy Director">Deputy Director</option>
           </select>
           <input type="text" placeholder="Discord (@tag)" required value={formData.discord} onChange={e => setFormData({...formData, discord: e.target.value})} style={{ ...adminInputStyle, flex: '1 1 200px' }} />
           <input type="text" placeholder="Ссылка на аватарку (URL)" value={formData.avatar} onChange={e => setFormData({...formData, avatar: e.target.value})} style={{ ...adminInputStyle, flex: '1 1 100%' }} />
