@@ -395,9 +395,14 @@ async function publishPersonnelAudit(item, reviewer, decision) {
       title: action.title,
       color: 0x292a2f,
       description: [
-        sourceDescription ? sourceDescription.slice(0, 500) : '',
-        item.type === 'resignation' ? `Уволен с ${rankValue} ранга` : '',
-        `[Запись кадрового аудита №${item.number}](${auditUrl})`
+        item.type === 'resignation' ? `Причина увольнения: ${evidenceLink || textValue(data.screenshot || data.reason)}` :
+        item.type === 'report' || item.type === 'highrank' ? `Причина повышения: ${evidenceLink || textValue(data.workLinks || data.workLink)}` :
+        item.type === 'transfer' || item.type === 'transfer-to-lspd' ? `Причина перевода: ${evidenceLink || textValue(data.reason || data.approvalProof)}` :
+        item.type === 'hiring' ? `Основание трудоустройства: ${evidenceLink || textValue(data.passport)}` :
+        item.type === 'reinstatement' ? `Причина восстановления: ${evidenceLink || textValue(data.rankProof)}` : sourceDescription.slice(0, 500),
+        item.type === 'resignation' ? `Уволен с ${rankValue} ранга` :
+        item.type === 'report' ? `Повышен с ${textValue(data.currentRank)} ранга на ${textValue(data.targetRank)} ранг` :
+        item.type === 'highrank' ? `Повышение: ${textValue(data.rankRange)}` : ''
       ].filter(Boolean).join('\n'),
       fields: fields.slice(0, 25),
       timestamp: item.resolvedAt || new Date().toISOString(),
