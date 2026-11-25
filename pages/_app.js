@@ -3,6 +3,7 @@ import '../styles/globals.css'; // <--- ВОТ ЭТА СТРОЧКА БЫЛА П
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import GlobalLoader from '../components/GlobalLoader';
+import GlobalFooter from '../components/GlobalFooter';
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
@@ -69,6 +70,7 @@ export default function App({ Component, pageProps }) {
       `}</style>
       
       <Component {...pageProps} />
+      <GlobalFooter />
     </>
   );
 }
