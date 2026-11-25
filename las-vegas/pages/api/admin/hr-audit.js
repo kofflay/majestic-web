@@ -389,7 +389,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
   const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
   const payload = {
     username: 'Suspect Forms',
-    avatar_url: 'https://i.imgur.com/AfFp7pu.png',
+    avatar_url: 'https://suspect-famq.ru/las-vegas/logo.gif',
     content: `${reviewerMention} ${action.verb} ${employeeMention}`,
     embeds: [{
       title: action.title,
