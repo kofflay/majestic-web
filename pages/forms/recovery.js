@@ -307,7 +307,7 @@ export default function RecoveryForm() {
                     lineHeight: 1.6,
                   }}
                 >
-                  <strong style={{ color: 'white' }}>📸 Доказательство:</strong> скрин с планшета (планшет → LSPD → склад), на котором видно, что ты положил бинты и капсулы восстановления на склад.
+                  <strong style={{ color: 'white' }}>📸 Доказательство:</strong> скрин с планшета (планшет → FIB → склад), на котором видно, что ты положил бинты и капсулы восстановления на склад.
                 </div>
               </>
             )}
@@ -371,7 +371,7 @@ export default function RecoveryForm() {
         {/* Поля для Бинты+Капсулы */}
         {formData.method === 'supplies' && (
           <div style={{ marginBottom: '20px' }}>
-            <label style={lbl}>Скриншот склада * (планшет → LSPD → склад)</label>
+            <label style={lbl}>Скриншот склада * (планшет → FIB → склад)</label>
             <textarea
               required
               value={formData.suppliesProof}

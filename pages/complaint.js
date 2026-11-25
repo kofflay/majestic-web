@@ -100,7 +100,7 @@ export default function ComplaintForm() {
       title="Жалоба на сотрудника"
       icon="🚨"
       accent="#ef4444"
-      subtitle="Сообщите о нарушении или неправомерных действиях сотрудника LSPD."
+      subtitle="Сообщите о нарушении или неправомерных действиях сотрудника FIB."
       backLink="/applications"
     >
       <div className="form-notice form-notice--danger">
