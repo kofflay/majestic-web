@@ -332,7 +332,7 @@ export default function Header({ user }) {
 
         .brand__logo {
           display: block;
-          width: min(248px, 100%);
+          width: min(168px, 100%);
           height: auto;
         }
 
