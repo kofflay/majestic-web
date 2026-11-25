@@ -72,10 +72,6 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           <div style={{ color: '#d8bd87', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
         </div>
 
-        <div style={{
-          marginTop: 'auto', padding: '18px 12px 20px',
-          color: '#a3a3a3', fontSize: '11px', letterSpacing: '.04em',
-        }}>CLASSIFIED // NOFORN</div>
       </div>
     );
   }
