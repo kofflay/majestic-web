@@ -55,7 +55,6 @@ export default function Home() {
               <h1>Federal<br />Investigation Bureau</h1>
               <p>Федеральное бюро расследований штата San Andreas. Защита граждан,<br className="reference-desktop-break" /> борьба с преступностью и поддержание правопорядка.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
-              <div className="reference-established"><span />EST. 19 DECEMBER 2025<span /></div>
             </div>
           </section>
 
