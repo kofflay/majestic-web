@@ -2575,3 +2575,10 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
 /* White typography throughout the mission section; keep the Suspect word styling unchanged. */
 .fib-landing .reference-mission .reference-section-heading { color: #d7b77a; }
 .fib-landing .reference-mission .reference-mission__copy p { color: #fff; }
+
+
+/* Match section heading accents and use pure white for supporting copy. */
+.fib-landing .reference-command h2 { color: #d7b77a; }
+.fib-landing .reference-command > p { color: #fff; }
+.fib-landing .reference-hero h1 { color: #fff; }
+.fib-landing .reference-hero p { color: #fff; }
