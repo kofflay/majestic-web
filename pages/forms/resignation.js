@@ -9,7 +9,7 @@ export default function ResignationForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState({ fullName: '' });
-  const [formData, setFormData] = useState({ fullName: '', screenshot: '' });
+  const [formData, setFormData] = useState({ fullName: '', rankAtDismissal: '', screenshot: '' });
 
   useEffect(() => {
     fetch('/api/me').then(res => res.json()).then(data => {
@@ -53,6 +53,22 @@ export default function ResignationForm() {
           <label style={lbl}>Имя Фамилия + Статик *</label>
           <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName:e.target.value})} placeholder="Sanya Suspect 270726" style={s} />
           {profile.fullName && <p className="form-field-hint">Загружено из профиля — поле можно изменить.</p>}
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Ранг, с которого увольняется сотрудник *</label>
+          <select required value={formData.rankAtDismissal} onChange={e => setFormData({...formData, rankAtDismissal:e.target.value})} style={s}>
+            <option value="" disabled>Выберите текущий ранг</option>
+            {Array.from({ length: 15 }, (_, index) => String(index + 1)).map(rank => (
+              <option key={rank} value={rank} style={{ background:'#17171c', color:'#fff' }}>{rank} ранг</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={lbl}>Ранг, с которого увольняется сотрудник *</label>
+          <select required value={formData.rankAtDismissal} onChange={e => setFormData({...formData, rankAtDismissal:e.target.value})} style={s}>
+            <option value="" disabled>Выберите текущий ранг</option>
+            {Array.from({ length: 15 }, (_, index) => String(index + 1)).map(rank => <option key={rank} value={rank}>{rank} ранг</option>)}
+          </select>
         </div>
         <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Скриншот планшета *</label>
