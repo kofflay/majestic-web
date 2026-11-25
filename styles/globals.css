@@ -2582,3 +2582,11 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
 .fib-landing .reference-command > p { color: #fff; }
 .fib-landing .reference-hero h1 { color: #fff; }
 .fib-landing .reference-hero p { color: #fff; }
+
+
+/* Shared footer displayed on every application page. */
+.global-site-footer { position:relative; z-index:2; width:min(1180px,calc(100% - 40px)); margin:0 auto; padding:17px 0 22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 20px; color:#9e927b; font:9px 'DM Mono',monospace; letter-spacing:.08em; }
+.global-site-footer a { color:#d4bd91; font-weight:700; text-decoration:none; }
+.global-site-footer a:hover { color:#f3dfb5; }
+.global-site-footer__right { text-align:right; }
+@media(max-width:620px){.global-site-footer{width:calc(100% - 28px);align-items:flex-start;flex-direction:column}.global-site-footer__right{text-align:left}}
