@@ -74,7 +74,7 @@ const FORM_CATEGORY_GROUPS = [
     { id: 'highrank', label: 'Отчёты High-Rank', icon: '◆' },
     { id: 'promotion', label: 'Запросы на повышение', icon: '↑' },
     { id: 'transfer', label: 'Перевод между отделами', icon: '⇄' },
-    { id: 'transfer-to-lspd', label: 'Перевод в LSPD', icon: '＋' },
+    { id: 'transfer-to-lspd', label: 'Перевод в FIB', icon: '＋' },
     { id: 'hiring', label: 'Трудоустройство', icon: '＋' },
     { id: 'reinstatement', label: 'Восстановление', icon: '↺' },
     { id: 'resignation', label: 'Увольнение', icon: '−' }
@@ -125,10 +125,10 @@ function getActionSummary(item) {
     highrank: { title: 'Отчёт High-Rank', text: 'Проверяется отчёт руководящего состава. При одобрении автоматически создаётся отдельный запрос на повышение.' },
     promotion: { title: 'Запрос на повышение', text: 'Проверяется запрос на повышение. Одобрение фиксируется в кадровом аудите; новый запрос автоматически не создаётся.' },
     transfer: { title: 'Перевод между отделами', text: 'Проверяется перевод сотрудника из текущего отдела в выбранный. Одобрение фиксирует решение кадрового аудита и не создаёт запрос на повышение.' },
-    'transfer-to-lspd': { title: 'Перевод в LSPD', text: 'Проверяются подтверждение одобрения перевода и доказательство текущего ранга. Одобрение фиксирует кадровое решение без создания запроса на повышение.' },
-    hiring: { title: 'Трудоустройство в LSPD', text: 'Проверяются анкетные данные, опыт, знание законов и приложенные документы. Одобрение фиксирует решение о трудоустройстве.' },
+    'transfer-to-lspd': { title: 'Перевод в FIB', text: 'Проверяются подтверждение одобрения перевода и доказательство текущего ранга. Одобрение фиксирует кадровое решение без создания запроса на повышение.' },
+    hiring: { title: 'Трудоустройство в FIB', text: 'Проверяются анкетные данные, опыт, знание законов и приложенные документы. Одобрение фиксирует решение о трудоустройстве.' },
     resignation: { title: 'Увольнение', text: 'Проверяется заявление сотрудника и приложенный скриншот планшета. Одобрение фиксирует решение об увольнении.' },
-    reinstatement: { title: 'Восстановление в LSPD', text: 'Проверяются ранг на момент увольнения, подтверждение ранга и сведения о взысканиях. Одобрение фиксирует решение о восстановлении.' }
+    reinstatement: { title: 'Восстановление в FIB', text: 'Проверяются ранг на момент увольнения, подтверждение ранга и сведения о взысканиях. Одобрение фиксирует решение о восстановлении.' }
   };
   const summary = summaries[item.type] || { title: item.title || 'Кадровая заявка', text: 'Проверьте данные и подтверждения, затем зафиксируйте решение кадрового аудита.' };
   const details = item.type === 'transfer'
@@ -260,8 +260,8 @@ export default function HrAuditPage() {
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
   const TYPE_LABELS = {
     report: 'Отчёт о повышении', highrank: 'Отчёт High-Rank', promotion: 'Запрос на повышение',
-    transfer: 'Перевод между отделами', 'transfer-to-lspd': 'Перевод в LSPD', hiring: 'Трудоустройство в LSPD',
-    resignation: 'Увольнение', reinstatement: 'Восстановление в LSPD'
+    transfer: 'Перевод между отделами', 'transfer-to-lspd': 'Перевод в FIB', hiring: 'Трудоустройство в FIB',
+    resignation: 'Увольнение', reinstatement: 'Восстановление в FIB'
   };
   const uniqueValues = values => Array.from(new Set(values.filter(value => value !== null && value !== undefined && String(value).trim() !== '').map(String)));
   const departmentOptions = uniqueValues([

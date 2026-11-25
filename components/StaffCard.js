@@ -1,8 +1,8 @@
 // components/StaffCard.js
 export default function StaffCard({ member, onDelete, isAdminView }) {
   const getRankGradient = (rank) => {
-    if (rank === 'Chief of Police') return 'linear-gradient(45deg, #b18a4e, #dfc58f)';
-    if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #776342, #c5a36a)';
+    if (rank === 'Director of FBI') return 'linear-gradient(45deg, #b18a4e, #dfc58f)';
+    if (rank === 'Deputy Director') return 'linear-gradient(45deg, #776342, #c5a36a)';
     return 'linear-gradient(45deg, #9b8b6b, #f3e6c9)';
   };
 
@@ -61,7 +61,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
         </div>
 
         <div style={{ padding: '18px 18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
-          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>OFFICER NAME</div>
+          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>AGENT NAME</div>
           <div style={{ color: '#fff', fontSize: '19px', fontWeight: 800, lineHeight: 1.3, overflowWrap: 'anywhere' }}>{member.name}</div>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', margin: '18px 0 8px' }}>POSITION</div>
           <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{member.rank}</div>
@@ -191,7 +191,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       <div style={discordStyle}>{member.discord}</div>
 
       <div style={footerStyle}>
-        <span>LSPD SECURE NETWORK</span>
+        <span>FIB SECURE NETWORK</span>
         {isAdminView && (
           <button type="button" onClick={() => onDelete(member.id)} style={{ background: 'transparent', border: 'none', color: '#ff6b7d', cursor: 'pointer', fontSize: '10px', fontWeight: '700', fontFamily: "'DM Mono', monospace", padding: '6px 0' }}>
             [ УДАЛИТЬ ]

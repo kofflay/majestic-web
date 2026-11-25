@@ -7,11 +7,11 @@ export default function PageLayout({ user, children }) {
 
   return (
     <div className="site-page-shell">
-      <div className="lspd-atmosphere" aria-hidden="true">
-        <span className="lspd-atmosphere__grid" />
-        <span className="lspd-atmosphere__glow lspd-atmosphere__glow--gold" />
-        <span className="lspd-atmosphere__glow lspd-atmosphere__glow--red" />
-        <span className="lspd-atmosphere__seal">LSPD</span>
+      <div className="fib-atmosphere" aria-hidden="true">
+        <span className="fib-atmosphere__grid" />
+        <span className="fib-atmosphere__glow fib-atmosphere__glow--gold" />
+        <span className="fib-atmosphere__glow fib-atmosphere__glow--red" />
+        <span className="fib-atmosphere__seal">FBI</span>
       </div>
       <Header user={user} />
       <main className="site-page-content">{children}</main>
@@ -25,7 +25,7 @@ export default function PageLayout({ user, children }) {
             radial-gradient(ellipse at 50% -12%, rgba(197, 163, 106, .19), transparent 48rem),
             linear-gradient(180deg, #171716 0%, #121314 58%, #0e1011 100%);
         }
-        .lspd-atmosphere {
+        .fib-atmosphere {
           position: fixed;
           inset: 0;
           z-index: 0;
@@ -37,7 +37,7 @@ export default function PageLayout({ user, children }) {
           background-size: 72px 72px;
           mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.7) 60%, transparent 100%);
         }
-        .lspd-atmosphere__glow {
+        .fib-atmosphere__glow {
           position: absolute;
           width: min(58vw, 760px);
           aspect-ratio: 1;
@@ -45,17 +45,17 @@ export default function PageLayout({ user, children }) {
           filter: blur(115px);
           opacity: .62;
         }
-        .lspd-atmosphere__glow--gold {
+        .fib-atmosphere__glow--gold {
           top: -38vw;
           left: -18vw;
           background: radial-gradient(circle, rgba(215,183,122,.3), transparent 68%);
         }
-        .lspd-atmosphere__glow--red {
+        .fib-atmosphere__glow--red {
           right: -28vw;
           bottom: -42vw;
           background: radial-gradient(circle, rgba(166,75,82,.18), transparent 70%);
         }
-        .lspd-atmosphere__seal {
+        .fib-atmosphere__seal {
           position: absolute;
           right: 5vw;
           top: 23vh;
@@ -73,11 +73,11 @@ export default function PageLayout({ user, children }) {
         }
         .site-page-content { position: relative; z-index: 1; }
         @media (max-width: 700px) {
-          .lspd-atmosphere { background-size: 48px 48px; }
-          .lspd-atmosphere__seal { top: 18vh; right: -70px; }
+          .fib-atmosphere { background-size: 48px 48px; }
+          .fib-atmosphere__seal { top: 18vh; right: -70px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .lspd-atmosphere__glow { filter: blur(70px); }
+          .fib-atmosphere__glow { filter: blur(70px); }
         }
       `}</style>
     </div>

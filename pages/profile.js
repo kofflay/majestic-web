@@ -294,7 +294,7 @@ export default function Profile() {
                 {copied ? '✓' : '⧉'}
               </button>
             </div>
-            <div className="profile-identity__foot">LOS SANTOS POLICE DEPARTMENT</div>
+            <div className="profile-identity__foot">FEDERAL BUREAU OF INVESTIGATION</div>
           </article>
 
           <article className="profile-record">

@@ -9,7 +9,7 @@ const TYPE_META = {
   highrank: { icon: '🌟', color: '#FF69B4', label: 'Хай Ранги' },
   resignation: { icon: '🚪', color: '#DC3545', label: 'Увольнение' },
   reinstatement: { icon: '🔄', color: '#9C27B0', label: 'Восстановление' },
-  'transfer-to-lspd': { icon: '🏛️', color: '#00BCD4', label: 'Перевод в LSPD' },
+  'transfer-to-lspd': { icon: '🏛️', color: '#00BCD4', label: 'Перевод в подразделение FIB' },
   hiring: { icon: '📝', color: '#4CAF50', label: 'Трудоустройство' },
   'weapon-request': { icon: '🔫', color: '#FF5722', label: 'Вооружение' },
   leave: { icon: '🏖️', color: '#00BCD4', label: 'Отпуск' },
@@ -70,7 +70,7 @@ export default function History() {
       <main className="history-content">
         <div className="history-heading">
           <div>
-            <span className="history-eyebrow">MEMPHIS LSPD / ЛИЧНЫЙ КАБИНЕТ</span>
+            <span className="history-eyebrow">FIB / ЛИЧНОЕ ДЕЛО</span>
             <h1>История обращений</h1>
             <p>Все отправленные вами заявления и обращения в одном месте.</p>
           </div>

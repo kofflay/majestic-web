@@ -24,8 +24,8 @@ export default function Home() {
     if (!router.isReady) return undefined;
     let cancelled = false;
     fetch('/api/me')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
         if (cancelled) return;
         setUser(data?.user || null);
         if (data?.user) fetch('/api/check-criminal', { method: 'POST' }).catch(() => {});
@@ -37,14 +37,14 @@ export default function Home() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/staff', { signal: controller.signal })
-      .then(response => response.ok ? response.json() : [])
-      .then(data => setStaff(Array.isArray(data) ? data : []))
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data) => setStaff(Array.isArray(data) ? data : []))
       .catch(() => {});
     return () => controller.abort();
   }, []);
 
   return (
-    <div className="site-page-shell landing-page lspd-landing reference-start">
+    <div className="site-page-shell landing-page fib-landing reference-start">
       <div className="reference-start__backdrop" aria-hidden="true" />
       <div className="reference-start__content">
         <Header user={user} />
@@ -52,33 +52,43 @@ export default function Home() {
           <section className="reference-hero">
             <div className="reference-hero__inner">
               <div className="reference-kicker"><span>MAJESTIC ROLE PLAY -</span> <strong>MEMPHIS</strong></div>
-              <h1>Los Santos<br />Police Department</h1>
-              <p>Los Santos Police Department — служба, которой доверяют.<br className="reference-desktop-break" /> Защищаем граждан. Работаем честно. Действуем быстро.</p>
+              <h1>Federal<br />Investigation Bureau</h1>
+              <p>Федеральное бюро расследований штата San Andreas. Защита граждан,<br className="reference-desktop-break" /> борьба с преступностью и поддержание правопорядка.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
-              <div className="reference-established"><span /> LSPD · LOS SANTOS · EST. 2026 <span /></div>
             </div>
           </section>
 
           <section className="reference-mission">
-            <div className="reference-section-heading">НАША МИССИЯ</div>
+            <div className="reference-section-heading"><span>НАША МИССИЯ</span></div>
             <div className="reference-mission__copy">
-              <p>Los Santos Police Department служит жителям штата San Andreas, защищает общественный порядок и обеспечивает соблюдение закона. Наша работа основана на дисциплине, профессионализме и ответственности перед городом.</p>
-              <p><strong>Служить и защищать.</strong> Каждый сотрудник LSPD ежедневно работает ради безопасности граждан, справедливости и доверия общества.</p>
+              <p>Федеральное бюро расследований под управлением семьи <span className="suspect-family-popover" tabIndex={0}>
+                  <strong>Suspect</strong>
+                  <span className="suspect-family-popover__card" role="tooltip">
+                    <span className="suspect-family-popover__avatar">S</span>
+                    <span className="suspect-family-popover__body">
+                      <strong className="suspect-family-popover__title">Suspect FamQ</strong>
+                      <span className="suspect-family-popover__description">Одна из сильнейших государственных семей на текущий момент.</span>
+                      <span className="suspect-family-popover__description">Создатели семьи — Lance и Etnaise. Глава семьи Nyash в настоящее время занимает пост директора FIB на 19 сервере Memphis.</span>
+                      <span className="suspect-family-popover__founded">Основана 13.03.2026</span>
+                      <a className="suspect-family-popover__link" href="https://discord.gg/V4khxBQqxy" target="_blank" rel="noopener noreferrer">Discord-сервер семьи</a>
+                    </span>
+                  </span>
+                </span> стремится защищать американский народ и отстаивать Конституцию Соединенных Штатов. Мы работаем над предотвращением террористических атак, борьбой с организованной преступностью и коррупцией на всех уровнях.</p>
+              <p>Наши агенты обладают высочайшей квалификацией и готовы служить закону в любое время суток, обеспечивая безопасность граждан штата San Andreas.</p>
             </div>
           </section>
 
           <section className="landing-command reference-command" aria-labelledby="landing-command-title">
-            <div className="landing-command__eyebrow">LSPD // AUTHORIZED PERSONNEL</div>
-            <h2 id="landing-command-title">Руководство департамента</h2>
-            <p>Командование Los Santos Police Department</p>
+            <h2 id="landing-command-title">Руководство</h2>
+            <p>Высшее командование Федерального бюро расследований</p>
             <div className="landing-command__grid">
-              {staff.map(member => <StaffCard key={member.id} member={member} isAdminView={false} />)}
+              {staff.map((member) => <StaffCard key={member.id} member={member} isAdminView={false} />)}
             </div>
           </section>
         </main>
         <footer className="landing-footer">
-          <span>LSPD SYSTEM // MEMPHIS</span>
-          <span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <a href="https://discord.gg/suspectfmq" target="_blank" rel="noopener noreferrer"><strong>SUSPECT FAMQ</strong></a></span>
+          <span>FEDERAL BUREAU // FIELD OFFICE</span>
+          <span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <a href="https://discord.com" target="_blank" rel="noopener noreferrer"><strong>SUSPECT FAMQ</strong></a></span>
           <span className="landing-footer__author">РАЗРАБОТКА САЙТА <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer"><strong>BY KOFFLAY</strong></a><span className="landing-footer__discord"><a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">DISCORD @kofflay</a></span></span>
           <span>SECURE ACCESS · 2026</span>
         </footer>

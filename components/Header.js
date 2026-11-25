@@ -17,7 +17,7 @@ export default function Header({ user }) {
     }
 
     let active = true;
-    const cacheKey = 'memphis-lspd:admin-access';
+    const cacheKey = 'las-vegas:admin-access';
     const cacheTtl = 5 * 60 * 1000;
     try {
       const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
@@ -50,7 +50,7 @@ export default function Header({ user }) {
       return undefined;
     }
     let active = true;
-    const storageKey = `memphis-lspd:profile-avatar:${user.id}`;
+    const storageKey = `las-vegas:profile-avatar:${user.id}`;
     let cachedAvatar = '';
     try {
       cachedAvatar = window.sessionStorage.getItem(storageKey) || '';
@@ -137,15 +137,13 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="Los Santos Police Department — на главную"
+            aria-label="Federal Investigation Bureau — на главную"
           >
-            <span className="brand__mark" aria-hidden="true">
-              <img className="brand__shield" src="/favicon.svg" alt="" />
-            </span>
-            <span className="brand__text">
-              <strong>LOS SANTOS</strong>
-              <small>POLICE DEPARTMENT</small>
-            </span>
+            <img
+              className="brand__logo"
+              src="/logo.svg"
+              alt="Federal Investigation Bureau"
+            />
           </button>
 
           <nav
@@ -351,8 +349,6 @@ export default function Header({ user }) {
           font-size: 19px;
           box-shadow: 0 0 28px rgba(197, 163, 106, .13);
         }
-
-        .brand__shield { width: 27px; height: 27px; display: block; object-fit: contain; }
 
         .brand__text {
           display: flex;

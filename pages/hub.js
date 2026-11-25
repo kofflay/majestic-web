@@ -3,9 +3,7 @@ import GlobalLoader from '../components/GlobalLoader';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import PageLayout from '../components/PageLayout';
-
-const REQUIRED_ROLE_ID = '1552313180041121802';
-const HIGH_RANK_ROLE_ID = '1514608894679191597';
+const STAFF_ROLE_IDS = ['1552313180041121802'];
 
 // Группируем формы по 4 новым категориям
 const CATEGORIES = [
@@ -15,7 +13,7 @@ const CATEGORIES = [
     items: [
       { id: 'promotion', title: 'Запрос на повышение', description: 'Подать запрос на повышение', code: 'REP-01' },
       { id: 'report', title: 'Отчёт о повышении', description: 'Отчёт для своего отдела', code: 'REP-02' },
-      { id: 'high-rank-report', title: 'Отчёт на повышение (Хай Ранги)', description: 'Повышение для старшего состава', code: 'REP-03', requiredRole: HIGH_RANK_ROLE_ID },
+      { id: 'high-rank-report', title: 'Отчёт на повышение (Хай Ранги)', description: 'Повышение для старшего состава', code: 'REP-03' },
     ]
   },
   {
@@ -54,7 +52,7 @@ export default function HubPage() {
     fetch('/api/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/'); return; }
       setUser(d.user);
-      if (d.user.roles && d.user.roles.includes(REQUIRED_ROLE_ID)) {
+      if (d.user.roles && d.user.roles.some(roleId => STAFF_ROLE_IDS.includes(String(roleId)))) {
         setHasAccess(true);
       }
       setLoading(false);
@@ -80,8 +78,7 @@ export default function HubPage() {
   // Фильтруем формы в зависимости от ролей пользователя
   const filteredCategories = CATEGORIES.map(category => {
     const availableItems = category.items.filter(item => {
-      if (!item.requiredRole) return true;
-      return user.roles && user.roles.includes(item.requiredRole);
+      return true;
     });
     return { ...category, items: availableItems };
   }).filter(category => category.items.length > 0); // Скрываем пустые категории

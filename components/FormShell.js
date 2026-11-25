@@ -7,7 +7,7 @@ const PUBLIC_FORMS = ['hiring', 'transfer-to-lspd', 'reinstatement'];
 export default function FormShell({
   title,
   icon,
-  accent = '#c5a36a',
+  accent = '#3f83f8',
   subtitle = 'Заполните обязательные поля для отправки обращения',
   backLink: customBackLink,
   user,
@@ -53,7 +53,7 @@ export default function FormShell({
               </span>
             )}
             <div className="form-card__heading">
-              <span className="form-card__index">LSPD / FORM</span>
+              <span className="form-card__index">FIB / FORM</span>
               <h1>{title}</h1>
               <p>{subtitle}</p>
             </div>
