@@ -64,13 +64,6 @@ export default function ResignationForm() {
           </select>
         </div>
         <div style={{ marginBottom:'20px' }}>
-          <label style={lbl}>Ранг, с которого увольняется сотрудник *</label>
-          <select required value={formData.rankAtDismissal} onChange={e => setFormData({...formData, rankAtDismissal:e.target.value})} style={s}>
-            <option value="" disabled>Выберите текущий ранг</option>
-            {Array.from({ length: 15 }, (_, index) => String(index + 1)).map(rank => <option key={rank} value={rank}>{rank} ранг</option>)}
-          </select>
-        </div>
-        <div style={{ marginBottom:'20px' }}>
           <label style={lbl}>Скриншот планшета *</label>
           <textarea required value={formData.screenshot} onChange={e => setFormData({...formData, screenshot:e.target.value})} placeholder="Ссылка на скриншот планшета..." rows="4" style={{...s, resize:'vertical', minHeight:'100px'}} />
         </div>
