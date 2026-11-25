@@ -5,7 +5,7 @@ import { fetchUserGuildRoles } from '../../lib/security';
 import { kv } from '../../lib/redis.js';
 import { getDiscordAvatarUrl } from '../../lib/avatar';
 
-const GUILD_ID = '1514608894666735717'; // Твой сервер LSPD
+const GUILD_ID = '1561638801032486952'; // Основной сервер FIB
 const OAUTH_COOKIE_PATH = '/api/auth';
 const CALLBACK_LOCK_TTL_SECONDS = 10 * 60;
 
