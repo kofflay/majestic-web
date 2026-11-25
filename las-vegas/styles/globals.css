@@ -2550,6 +2550,7 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
   display:block;
   margin:0;
   padding:0;
+  font-weight:700;
   color:#f3f0e9!important;
   text-shadow:0 2px 12px rgba(0,0,0,.9);
   line-height:1.2;
