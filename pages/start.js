@@ -87,10 +87,8 @@ export default function Home() {
           </section>
         </main>
         <footer className="landing-footer">
-          <span>FEDERAL BUREAU // FIELD OFFICE</span>
-          <span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <a href="https://discord.com" target="_blank" rel="noopener noreferrer"><strong>SUSPECT FAMQ</strong></a></span>
-          <span className="landing-footer__author">РАЗРАБОТКА САЙТА <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer"><strong>BY KOFFLAY</strong></a><span className="landing-footer__discord"><a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">DISCORD @kofflay</a></span></span>
-          <span>SECURE ACCESS · 2026</span>
+          <span className="landing-footer__left">created by <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">kofflay</a> © 2026</span>
+          <span className="landing-footer__right">Majestic RP Memphis • Federal Bureau of Investigation</span>
         </footer>
       </div>
     </div>
