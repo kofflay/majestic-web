@@ -395,7 +395,7 @@ async function publishPersonnelAudit(item, reviewer, decision) {
       title: action.title,
       color: 0x292a2f,
       description: [
-        item.type === 'resignation' ? `Причина увольнения: ${evidenceLink || textValue(data.screenshot || data.reason)}` :
+        item.type === 'resignation' ? '' :
         item.type === 'report' || item.type === 'highrank' ? `Причина повышения: ${evidenceLink || textValue(data.workLinks || data.workLink)}` :
         item.type === 'transfer' || item.type === 'transfer-to-lspd' ? `Причина перевода: ${evidenceLink || textValue(data.reason || data.approvalProof)}` :
         item.type === 'hiring' ? `Основание трудоустройства: ${evidenceLink || textValue(data.passport)}` :
