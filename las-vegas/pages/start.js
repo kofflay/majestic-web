@@ -61,7 +61,19 @@ export default function Home() {
           <section className="reference-mission">
             <div className="reference-section-heading"><span>НАША МИССИЯ</span></div>
             <div className="reference-mission__copy">
-              <p>Федеральное бюро расследований под управлением семьи <strong>Suspect</strong> стремится защищать американский народ и отстаивать Конституцию Соединенных Штатов. Мы работаем над предотвращением террористических атак, борьбой с организованной преступностью и коррупцией на всех уровнях.</p>
+              <p>Федеральное бюро расследований под управлением семьи <span className="suspect-family-popover" tabIndex={0}>
+                  <strong>Suspect</strong>
+                  <span className="suspect-family-popover__card" role="tooltip">
+                    <span className="suspect-family-popover__avatar">S</span>
+                    <span className="suspect-family-popover__body">
+                      <strong className="suspect-family-popover__title">Suspect FamQ</strong>
+                      <span className="suspect-family-popover__description">Одна из сильнейших государственных семей на текущий момент.</span>
+                      <span className="suspect-family-popover__description">Создатели семьи — Lance и Etnaise. Глава семьи Nyash в настоящее время занимает пост директора FIB на 19 сервере Memphis.</span>
+                      <span className="suspect-family-popover__founded">Основана 13.03.2026</span>
+                      <a className="suspect-family-popover__link" href="https://discord.gg/V4khxBQqxy" target="_blank" rel="noopener noreferrer">Discord-сервер семьи</a>
+                    </span>
+                  </span>
+                </span> стремится защищать американский народ и отстаивать Конституцию Соединенных Штатов. Мы работаем над предотвращением террористических атак, борьбой с организованной преступностью и коррупцией на всех уровнях.</p>
               <p>Наши агенты обладают высочайшей квалификацией и готовы служить закону в любое время суток, обеспечивая безопасность граждан штата San Andreas.</p>
             </div>
           </section>
