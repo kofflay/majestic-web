@@ -2580,7 +2580,7 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
 /* Match section heading accents and use pure white for supporting copy. */
 .fib-landing .reference-command h2 { color: #d7b77a; }
 .fib-landing .reference-command > p { color: #fff; }
-.fib-landing .reference-hero h1 { color: #fff; }
+.fib-landing .reference-hero h1 { color: #d7b77a; }
 .fib-landing .reference-hero p { color: #fff; }
 
 
