@@ -293,6 +293,19 @@ async function getDiscordMessageUrl(webhook, messageId) {
   } catch { return null; }
 }
 
+async function getDiscordSourceMessage(webhook, messageId) {
+  if (!webhook || !DISCORD_ID_PATTERN.test(String(messageId || ''))) return null;
+  try {
+    const messageUrl = new URL(webhook);
+    messageUrl.search = '';
+    messageUrl.hash = '';
+    messageUrl.pathname = `${messageUrl.pathname.replace(/\/$/, '')}/messages/${messageId}`;
+    const response = await fetch(messageUrl.toString(), { method: 'GET', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch { return null; }
+}
+
 async function publishPersonnelAudit(item, reviewer, decision) {
   const webhook = process.env.WEBHOOK_AUDIT_URL || '';
   if (!webhook) return { success: false, reason: 'audit_webhook_not_configured' };
@@ -308,82 +321,88 @@ async function publishPersonnelAudit(item, reviewer, decision) {
     return { success: false, reason: 'audit_delivery_unconfirmed' };
   }
   const applicantId = String(item.submitter?.id || '');
+  const reviewerId = String(reviewer?.id || '');
   const data = item.data || {};
-  const sourceMessageUrl = await getDiscordMessageUrl(getAuditWebhook(item), item.deliveryMessageId);
+  const sourceWebhook = getAuditWebhook(item);
+  const [sourceMessageUrl, sourceMessage] = await Promise.all([
+    getDiscordMessageUrl(sourceWebhook, item.deliveryMessageId),
+    getDiscordSourceMessage(sourceWebhook, item.deliveryMessageId)
+  ]);
   const textValue = (value, fallback = 'Не указано') => {
     const valueText = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
     return (valueText || fallback).slice(0, 1024);
   };
-  const departmentName = value => getDepartment(value)?.name || textValue(value);
-  const titles = {
-    report: 'ПОВЫШЕНИЕ СОТРУДНИКА',
-    highrank: 'ПОВЫШЕНИЕ СОТРУДНИКА (HIGH-RANK)',
-    transfer: 'ПЕРЕВОД СОТРУДНИКА МЕЖДУ ОТДЕЛАМИ',
-    'transfer-to-lspd': 'ПЕРЕВОД СОТРУДНИКА В FIB',
-    hiring: 'ТРУДОУСТРОЙСТВО В FIB',
-    resignation: 'УВОЛЬНЕНИЕ СОТРУДНИКА',
-    reinstatement: 'ВОССТАНОВЛЕНИЕ СОТРУДНИКА В FIB'
-  };
   const employeeName = textValue(data.fullName || item.submitter?.username || applicantId);
+  const reviewerName = textValue(reviewer?.username || reviewerId);
+  const employeeMention = DISCORD_ID_PATTERN.test(applicantId) ? `<@${applicantId}>` : employeeName;
+  const reviewerMention = DISCORD_ID_PATTERN.test(reviewerId) ? `<@${reviewerId}>` : reviewerName;
+  const action = {
+    resignation: { verb: 'увольняет', title: 'Отчет об увольнении сотрудника', employeeLabel: 'Уволен' },
+    report: { verb: 'повышает', title: 'Отчет о повышении сотрудника', employeeLabel: 'Повышен' },
+    highrank: { verb: 'повышает', title: 'Отчет о повышении сотрудника (HIGH-RANK)', employeeLabel: 'Повышен' },
+    transfer: { verb: 'переводит', title: 'Отчет о переводе сотрудника', employeeLabel: 'Переведен' },
+    'transfer-to-lspd': { verb: 'переводит в FIB', title: 'Отчет о переводе сотрудника в FIB', employeeLabel: 'Переведен' },
+    hiring: { verb: 'принимает на службу', title: 'Отчет о трудоустройстве сотрудника', employeeLabel: 'Принят' },
+    reinstatement: { verb: 'восстанавливает', title: 'Отчет о восстановлении сотрудника', employeeLabel: 'Восстановлен' }
+  }[item.type] || { verb: 'оформляет действие', title: item.title || 'Отчет о кадровом действии', employeeLabel: 'Сотрудник' };
+  const sourceEmbed = Array.isArray(sourceMessage?.embeds) ? sourceMessage.embeds[0] || {} : {};
+  const sourceDescription = String(sourceEmbed.description || '').trim();
+  const sourceFields = Array.isArray(sourceEmbed.fields) ? sourceEmbed.fields : [];
+  const sourceField = (...names) => {
+    const field = sourceFields.find(entry => names.some(name => String(entry.name || '').toLowerCase().includes(name.toLowerCase())));
+    return field?.value || '';
+  };
+  const evidenceLink = sourceMessageUrl ? `[Открыть исходную заявку](${sourceMessageUrl})` : '';
+  const rankValue = textValue(data.rankAtDismissal || data.rank || sourceField('ранг'));
   const fields = [];
-  const add = (name, value, inline = false) => fields.push({ name, value: textValue(value), inline });
+  const add = (name, value, inline = true) => fields.push({ name, value: textValue(value), inline });
   if (item.type === 'resignation') {
-    add('Причина увольнения', sourceMessageUrl ? `[Открыть исходное заявление на увольнение](${sourceMessageUrl})` : data.screenshot || data.reason, false);
-    if (data.screenshot) add('Скриншот планшета', data.screenshot, false);
-    add('Уволен с', textValue(data.rankAtDismissal || data.rank) + ' ранга', false);
-    add('Уволен', employeeName, true);
-    add('Discord ID', applicantId, true);
+    add('Причина увольнения', evidenceLink || data.screenshot || data.reason, false);
+    add('Уволен с', `${rankValue} ранга`, false);
   } else if (item.type === 'report' || item.type === 'highrank') {
-    const rankRange = item.type === 'report' ? `${textValue(data.currentRank)} → ${textValue(data.targetRank)}` : textValue(data.rankRange);
-    add('Причина повышения', sourceMessageUrl ? `[Открыть исходный отчёт о повышении](${sourceMessageUrl})` : data.workLink || data.workLinks, false);
-    add('Повышен с ранга', item.type === 'report' ? data.currentRank : rankRange, true);
-    if (item.type === 'report') add('Повышен до ранга', data.targetRank, true);
-    add('Повышен', employeeName, true);
-    add('Discord ID', applicantId, true);
-    if (data.workLinks || data.workLink) add('Проделанная работа', data.workLinks || data.workLink, false);
+    add('Причина повышения', evidenceLink || data.workLinks || data.workLink, false);
+    add('Повышен с ранга', item.type === 'report' ? data.currentRank : String(data.rankRange || '').split(/[→-]/)[0]?.trim(), true);
+    add('Повышен до ранга', item.type === 'report' ? data.targetRank : String(data.rankRange || '').split(/[→-]/)[1]?.trim(), true);
   } else if (item.type === 'transfer' || item.type === 'transfer-to-lspd') {
-    add('Причина перевода', sourceMessageUrl ? `[Открыть исходное заявление на перевод](${sourceMessageUrl})` : data.reason || data.approvalProof, false);
-    if (data.rank) add('Текущий ранг', data.rank, true);
-    if (data.currentDepartment) add('Переводит из отдела', departmentName(data.currentDepartment), true);
-    if (data.targetDepartment || item.type === 'transfer-to-lspd') add('Переводит в отдел', departmentName(data.targetDepartment || 'fib'), true);
-    if (data.approvalProof) add('Подтверждение одобрения', data.approvalProof, false);
-    if (data.rankProof) add('Подтверждение ранга', data.rankProof, false);
-    add('Сотрудник', employeeName, true);
-    add('Discord ID', applicantId, true);
+    add('Причина перевода', evidenceLink || data.reason || data.approvalProof, false);
+    if (data.rank) add('Переведен с', `${data.rank} ранга`, true);
+    add('Переведен из отдела', getDepartment(data.currentDepartment)?.name || data.currentDepartment, true);
+    add('Переведен в отдел', getDepartment(data.targetDepartment || 'fib')?.name || data.targetDepartment || 'FIB', true);
   } else if (item.type === 'hiring') {
-    add('Основание трудоустройства', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
+    add('Основание трудоустройства', evidenceLink || data.passport, false);
     add('Возраст', data.age, true);
     add('Опыт', data.experience, false);
     add('Знание законов', data.lawKnowledge, true);
-    add('Паспорт', data.passport, false);
-    add('Военный билет', data.militaryId, false);
-    add('Медицинская карта', data.medical, false);
-    add('Сотрудник', employeeName, true);
-    add('Discord ID', applicantId, true);
   } else if (item.type === 'reinstatement') {
-    add('Основание восстановления', sourceMessageUrl ? `[Открыть исходное заявление](${sourceMessageUrl})` : data.reason, false);
-    add('Восстановлен на ранг', data.rankAtDismissal || data.rank, true);
-    add('Подтверждение ранга', data.rankProof, false);
-    add('Было ли взыскание', data.wasWarned === 'yes' ? 'Да' : data.wasWarned === 'no' ? 'Нет' : data.wasWarned, true);
-    if (data.stateFractionsProof) add('Одобрение State Fractions', data.stateFractionsProof, false);
-    add('Сотрудник', employeeName, true);
-    add('Discord ID', applicantId, true);
-  } else {
-    for (const [key, value] of Object.entries(data)) add(key, value);
-    if (sourceMessageUrl) add('Исходное сообщение', `[Открыть исходную заявку](${sourceMessageUrl})`);
+    add('Причина восстановления', evidenceLink || data.rankProof, false);
+    add('Восстановлен на', `${rankValue} ранг`, true);
+    add('Взыскание', data.wasWarned === 'yes' ? 'Да' : data.wasWarned === 'no' ? 'Нет' : data.wasWarned, true);
   }
-  add('Заявка', '№' + item.number, true);
+  fields.push(
+    { name: action.employeeLabel + ':', value: employeeMention, inline: true },
+    { name: 'Имя Фамилия:', value: employeeName, inline: true },
+    { name: 'Discord ID:', value: textValue(applicantId), inline: true },
+    { name: action.verb === 'увольняет' ? 'Уволил:' : action.verb === 'повышает' ? 'Повышает:' : 'Оформил:', value: reviewerMention, inline: true },
+    { name: 'Имя Фамилия:', value: reviewerName, inline: true },
+    { name: 'Discord ID:', value: textValue(reviewerId), inline: true }
+  );
   const auditUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://suspect-famq.ru').replace(/\/$/, '')}/las-vegas/audit?id=${encodeURIComponent(item.id)}`;
   const payload = {
     username: 'Suspect Forms',
+    avatar_url: 'https://i.imgur.com/AfFp7pu.png',
+    content: `${reviewerMention} ${action.verb} ${employeeMention}`,
     embeds: [{
-      title: titles[item.type] || item.title || 'КАДРОВОЕ ДЕЙСТВИЕ',
-      color: 0x4CAF50,
-      description: `[Открыть запись кадрового аудита №${item.number}](${auditUrl})`,
+      title: action.title,
+      color: 0x292a2f,
+      description: [
+        sourceDescription ? sourceDescription.slice(0, 500) : '',
+        item.type === 'resignation' ? `Уволен с ${rankValue} ранга` : '',
+        `[Запись кадрового аудита №${item.number}](${auditUrl})`
+      ].filter(Boolean).join('\n'),
       fields: fields.slice(0, 25),
       timestamp: item.resolvedAt || new Date().toISOString(),
       footer: { text: `Suspect Forms • HR Audit • Заявка №${item.number}` }
-    }],
+    }]
   };
   const attemptedAt = new Date().toISOString();
   const attempted = {
