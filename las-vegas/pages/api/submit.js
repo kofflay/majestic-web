@@ -367,7 +367,7 @@ export default async function handler(req, res) {
     content: roleMentions.trim() || undefined,
     embeds: [baseEmbed],
     username: 'Suspect Forms',
-    avatar_url: 'https://i.imgur.com/AfFp7pu.png',
+    avatar_url: 'https://suspect-famq.ru/las-vegas/logo.gif',
     ...(threadId ? { thread_id: threadId } : {})
   };
 
@@ -649,7 +649,7 @@ return {number, 1}
       const publicResult = await sendToDiscord(webhooks.complaintPublic, {
         embeds: [publicEmbed],
         username: 'Suspect Forms',
-        avatar_url: 'https://i.imgur.com/AfFp7pu.png'
+        avatar_url: 'https://suspect-famq.ru/las-vegas/logo.gif'
       });
       if (!publicResult.success) {
         publicWarning = 'Жалоба сохранена в закрытом канале, но публичная сводка не отправилась. Сообщите администратору.';
