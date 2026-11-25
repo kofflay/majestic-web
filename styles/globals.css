@@ -2559,3 +2559,14 @@ tbody tr:hover { background: rgba(197,163,106,.07); }
   margin-top:14px;
   text-shadow:0 2px 10px rgba(0,0,0,.9);
 }
+
+
+/* Compact two-sided footer on the FIB landing page. */
+.fib-landing .landing-footer { justify-content: space-between; flex-direction: row; flex-wrap: wrap; gap: 10px 20px; }
+.fib-landing .landing-footer__left, .fib-landing .landing-footer__right { color: #9e927b; letter-spacing: .08em; }
+.fib-landing .landing-footer__left a { color: #d4bd91 !important; font-weight: 700; }
+.fib-landing .landing-footer__right { text-align: right; }
+@media (max-width: 620px) {
+  .fib-landing .landing-footer { align-items: flex-start; flex-direction: column; }
+  .fib-landing .landing-footer__right { text-align: left; }
+}
