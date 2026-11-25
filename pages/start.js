@@ -1,9 +1,7 @@
-// pages/start.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import StaffCard from '../components/StaffCard';
 import Header from '../components/Header';
-import LivingBackground from '../components/LivingBackground'; // <-- Импорт фона
 
 export default function Home() {
   const router = useRouter();
@@ -13,7 +11,6 @@ export default function Home() {
 
   useEffect(() => {
     if (!router.isReady) return;
-
     if (router.query.error === 'new_account') {
       setError(`Ваш Discord аккаунт создан ${router.query.days || '0'} дней назад. Требуется минимум ${router.query.min || '5'} дней.`);
     } else if (router.query.error === 'access_denied') {
@@ -23,112 +20,69 @@ export default function Home() {
     }
   }, [router.isReady, router.query.error, router.query.days, router.query.min]);
 
-  // Session bootstrap and criminal check run once per page mount.
   useEffect(() => {
     if (!router.isReady) return undefined;
     let cancelled = false;
-
     fetch('/api/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
         if (cancelled) return;
         setUser(data?.user || null);
-        if (data?.user) {
-          fetch('/api/check-criminal', { method: 'POST' }).catch(() => {});
-        }
+        if (data?.user) fetch('/api/check-criminal', { method: 'POST' }).catch(() => {});
       })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      });
-
+      .catch(() => { if (!cancelled) setUser(null); });
     return () => { cancelled = true; };
   }, [router.isReady]);
 
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/staff', { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : []))
-      .then((data) => setStaff(Array.isArray(data) ? data : []))
+      .then(response => response.ok ? response.json() : [])
+      .then(data => setStaff(Array.isArray(data) ? data : []))
       .catch(() => {});
     return () => controller.abort();
   }, []);
 
   return (
-    <div className="site-page-shell landing-page" style={{ position: 'relative' }}>
-      
-      {/* ВСТАВЛЯЕМ ЖИВОЙ ФОН СЮДА */}
-      <LivingBackground />
-
-      {/* Оборачиваем контент, чтобы он был поверх фона */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+    <div className="site-page-shell landing-page lspd-landing reference-start">
+      <div className="reference-start__backdrop" aria-hidden="true" />
+      <div className="reference-start__content">
         <Header user={user} />
-
         <main>
-          <section className="landing-hero">
-            {/* Убираем старые статичные свечения, так как теперь есть LivingBackground */}
-            
-            <div className="landing-hero__content">
-              <div className="landing-kicker"><i /> MAJESTIC ROLE PLAY <b>—</b> MEMPHIS</div>
-              <h1>Закон.<br /><span>Порядок.</span><br />Los Santos.</h1>
-              <p>Los Santos Police Department — служба, которой доверяют.<br />Защищаем граждан. Работаем честно. Действуем быстро.</p>
+          <section className="reference-hero">
+            <div className="reference-hero__inner">
+              <div className="reference-kicker"><span>MAJESTIC ROLE PLAY -</span> <strong>MEMPHIS</strong></div>
+              <h1>Los Santos<br />Police Department</h1>
+              <p>Los Santos Police Department — служба, которой доверяют.<br className="reference-desktop-break" /> Защищаем граждан. Работаем честно. Действуем быстро.</p>
               {error && <div className="landing-error" role="alert">{error}</div>}
+              <div className="reference-established"><span /> LSPD · LOS SANTOS · EST. 2026 <span /></div>
             </div>
-            <div className="landing-orbit" aria-hidden="true"><strong>24</strong><small>HOURS</small></div>
-            <div className="landing-meta landing-meta--left">LSPD / 010</div>
-            <div className="landing-meta landing-meta--center">EST. 2026</div>
-            <div className="landing-meta landing-meta--right">LOS SANTOS, CA</div>
           </section>
 
-          <section className="landing-mission">
-            <div className="landing-section-label"><span>01</span> НАША МИССИЯ</div>
-            <div>
-              <h2>Служить и защищать —<br /><em>это наш выбор.</em></h2>
-              <p>Мы создаём безопасный город, в котором каждый житель может чувствовать себя защищённым. Наша сила — в дисциплине, профессионализме и уважении к закону.</p>
+          <section className="reference-mission">
+            <div className="reference-section-heading">НАША МИССИЯ</div>
+            <div className="reference-mission__copy">
+              <p>Los Santos Police Department служит жителям штата San Andreas, защищает общественный порядок и обеспечивает соблюдение закона. Наша работа основана на дисциплине, профессионализме и ответственности перед городом.</p>
+              <p><strong>Служить и защищать.</strong> Каждый сотрудник LSPD ежедневно работает ради безопасности граждан, справедливости и доверия общества.</p>
             </div>
-            <div className="landing-quote">“</div>
           </section>
 
-          <section className="landing-cards">
-            <a href="/applications"><span>01</span><strong>Заявления</strong><small>Заявления и жалобы</small><b>↗</b></a>
-            <a href="/staff"><span>02</span><strong>Состав LSPD</strong><small>Команда и руководство</small><b>↗</b></a>
-          </section>
-
-          <section className="landing-command" aria-labelledby="landing-command-title">
-            <div className="landing-command__eyebrow">TOP SECRET // CLEARANCE REQUIRED</div>
-            <div className="landing-section-label"><span>03</span> РУКОВОДСТВО</div>
-            <h2 id="landing-command-title">Командование департамента</h2>
-            <p>Высшее руководство Los Santos Police Department</p>
+          <section className="landing-command reference-command" aria-labelledby="landing-command-title">
+            <div className="landing-command__eyebrow">LSPD // AUTHORIZED PERSONNEL</div>
+            <h2 id="landing-command-title">Руководство департамента</h2>
+            <p>Командование Los Santos Police Department</p>
             <div className="landing-command__grid">
-              {staff.map((member) => (
-                <StaffCard key={member.id} member={member} isAdminView={false} />
-              ))}
+              {staff.map(member => <StaffCard key={member.id} member={member} isAdminView={false} />)}
             </div>
           </section>
         </main>
         <footer className="landing-footer">
-          <span>LSPD SYSTEM / MEMPHIS</span>
-          <span className="landing-footer__credit">
-            ЧАСТЬ ПРОЕКТА{' '}
-            <a href="https://discord.gg/suspectfmq" target="_blank" rel="noopener noreferrer">
-              <strong>SUSPECT FAMQ</strong>
-            </a>
-          </span>
-          <span className="landing-footer__author">
-            РАЗРАБОТКА САЙТА{' '}
-            <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">
-              <strong>BY KOFFLAY</strong>
-            </a>
-            <span className="landing-footer__discord">
-              <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">
-                DISCORD @kofflay
-              </a>
-            </span>
-          </span>
+          <span>LSPD SYSTEM // MEMPHIS</span>
+          <span className="landing-footer__credit">ЧАСТЬ ПРОЕКТА <a href="https://discord.gg/suspectfmq" target="_blank" rel="noopener noreferrer"><strong>SUSPECT FAMQ</strong></a></span>
+          <span className="landing-footer__author">РАЗРАБОТКА САЙТА <a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer"><strong>BY KOFFLAY</strong></a><span className="landing-footer__discord"><a href="https://discord.com/users/200102286473691139" target="_blank" rel="noopener noreferrer">DISCORD @kofflay</a></span></span>
           <span>SECURE ACCESS · 2026</span>
         </footer>
       </div>
     </div>
   );
 }
-
-//ку

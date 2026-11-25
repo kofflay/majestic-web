@@ -1,9 +1,9 @@
 // components/StaffCard.js
 export default function StaffCard({ member, onDelete, isAdminView }) {
   const getRankGradient = (rank) => {
-    if (rank === 'Chief of Police') return 'linear-gradient(45deg, #9e6bff, #9fc1ff)';
-    if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #2a2b36, #a0a3ce)';
-    return 'linear-gradient(45deg, #8b8ba7, #ffffff)';
+    if (rank === 'Chief of Police') return 'linear-gradient(45deg, #b18a4e, #dfc58f)';
+    if (rank === 'Deputy Chief') return 'linear-gradient(45deg, #776342, #c5a36a)';
+    return 'linear-gradient(45deg, #9b8b6b, #f3e6c9)';
   };
 
   if (!isAdminView) {
@@ -20,25 +20,25 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           textAlign: 'center',
           color: '#f5f5f5',
           fontFamily: "'Inter', sans-serif",
-          backgroundColor: '#171717',
-          backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0, rgba(255,255,255,.045) 1px, transparent 1px, transparent 10px)',
-          border: '1px solid #303030',
+          backgroundColor: '#101216',
+          backgroundImage: 'repeating-linear-gradient(45deg, rgba(197,163,106,.035) 0, rgba(197,163,106,.035) 1px, transparent 1px, transparent 10px)',
+          border: '1px solid rgba(197,163,106,.22)',
           borderRadius: '27px',
           boxShadow: '0 16px 42px rgba(0,0,0,.28)',
           transition: 'transform .2s ease, border-color .2s ease',
         }}
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.borderColor = 'rgba(71, 215, 176, .55)';
+          e.currentTarget.style.borderColor = 'rgba(194, 157, 91, .55)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.borderColor = '#303030';
+          e.currentTarget.style.borderColor = 'rgba(197,163,106,.22)';
         }}
       >
         <div style={{
           position: 'absolute', top: 0, right: 0, padding: '6px 15px 7px',
-          background: '#245a73', color: '#fff', fontSize: '12px',
+          background: '#6b542f', color: '#fff', fontSize: '12px',
           fontWeight: 800, letterSpacing: '.06em', borderRadius: '0 0 0 13px',
           boxShadow: '0 3px 14px rgba(71,215,176,.14)',
         }}>TOP SECRET</div>
@@ -51,7 +51,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
           <div style={{
             width: '106px', height: '106px', borderRadius: '22px',
             display: 'grid', placeItems: 'center',
-            background: '#202020', border: '1px solid #383838',
+            background: '#171614', border: '1px solid rgba(197,163,106,.2)',
           }}>
             <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#f4f4f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="4" y="10" width="16" height="11" rx="2" />
@@ -61,7 +61,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
         </div>
 
         <div style={{ padding: '18px 18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
-          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>AGENT NAME</div>
+          <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>OFFICER NAME</div>
           <div style={{ color: '#fff', fontSize: '19px', fontWeight: 800, lineHeight: 1.3, overflowWrap: 'anywhere' }}>{member.name}</div>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', margin: '18px 0 8px' }}>POSITION</div>
           <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{member.rank}</div>
@@ -69,13 +69,9 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
 
         <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
           <div style={{ color: '#9ca3af', fontSize: '10px', letterSpacing: '.1em', marginBottom: '8px' }}>CONTACT · DISCORD</div>
-          <div style={{ color: '#78c8dc', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
+          <div style={{ color: '#d8bd87', fontSize: '14px', fontWeight: 700, overflowWrap: 'anywhere' }}>{member.discord}</div>
         </div>
 
-        <div style={{
-          marginTop: 'auto', padding: '18px 12px 20px',
-          color: '#a3a3a3', fontSize: '11px', letterSpacing: '.04em',
-        }}>CLASSIFIED // NOFORN</div>
       </div>
     );
   }
@@ -125,10 +121,10 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
     position: 'absolute',
     top: '14px',
     right: '14px',
-    background: 'rgba(63, 131, 248, .13)',
-    border: '1px solid rgba(63, 131, 248, .28)',
+    background: 'rgba(197, 163, 106, .13)',
+    border: '1px solid rgba(197, 163, 106, .28)',
     borderRadius: '4px',
-    color: '#8dbaff',
+    color: '#dfc58f',
     fontSize: '9px',
     fontWeight: '700',
     padding: '5px 8px',
@@ -153,8 +149,8 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
     : { fontSize: '13px', fontWeight: '700', marginBottom: '18px', background: getRankGradient(member.rank), WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflowWrap: 'anywhere' };
 
   const discordStyle = isAdminView
-    ? { color: '#8db8ff', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' }
-    : { color: '#8db8ff', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' };
+    ? { color: '#dfc58f', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' }
+    : { color: '#dfc58f', fontSize: '12px', marginBottom: '20px', overflowWrap: 'anywhere' };
 
   const footerStyle = isAdminView
     ? { marginTop: 'auto', borderTop: '1px solid rgba(148,163,184,0.12)', paddingTop: '14px', color: '#64748b', fontSize: '9px', letterSpacing: '0.12em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', fontFamily: "'DM Mono', monospace" }
@@ -165,7 +161,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       style={cardStyle}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.borderColor = 'rgba(63, 131, 248, 0.5)';
+        e.currentTarget.style.borderColor = 'rgba(197, 163, 106, 0.5)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translateY(0)';
@@ -195,7 +191,7 @@ export default function StaffCard({ member, onDelete, isAdminView }) {
       <div style={discordStyle}>{member.discord}</div>
 
       <div style={footerStyle}>
-        <span>LSPD INTRANET</span>
+        <span>LSPD SECURE NETWORK</span>
         {isAdminView && (
           <button type="button" onClick={() => onDelete(member.id)} style={{ background: 'transparent', border: 'none', color: '#ff6b7d', cursor: 'pointer', fontSize: '10px', fontWeight: '700', fontFamily: "'DM Mono', monospace", padding: '6px 0' }}>
             [ УДАЛИТЬ ]

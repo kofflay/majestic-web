@@ -7,7 +7,7 @@ export function SkeletonBlock({ width = '100%', height = '16px', borderRadius = 
       width,
       height,
       borderRadius,
-      background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(63,131,248,0.15) 50%, rgba(255,255,255,0.03) 75%)',
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(197,163,106,0.15) 50%, rgba(255,255,255,0.03) 75%)',
       backgroundSize: '200% 100%',
       animation: 'skeletonShimmer 1.5s ease-in-out infinite',
       ...style
@@ -20,7 +20,7 @@ export function SkeletonHeader() {
   return (
     <div style={{ 
       display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-      height: '96px', borderBottom: '1px solid rgba(148, 163, 184, 0.08)', 
+      height: '96px', borderBottom: '1px solid rgba(197, 163, 106, 0.12)', 
       marginBottom: '40px', padding: '0 20px', maxWidth: '1180px', margin: '0 auto 40px'
     }}>
       {/* Логотип */}
@@ -47,7 +47,7 @@ export function SkeletonHeader() {
 // Общий контейнер для скелетонов
 function SkeletonLayout({ children }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 50% 0%, #111827 0%, #030303 70%)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 50% 0%, #17140f 0%, #080a0e 70%)', overflow: 'hidden' }}>
       <style jsx global>{`
         @keyframes skeletonShimmer {
           0% { background-position: 200% 0; }
@@ -69,8 +69,8 @@ export function SkeletonList({ rows = 5 }) {
       <SkeletonBlock width="300px" height="36px" style={{ marginBottom: '12px' }} />
       <SkeletonBlock width="450px" height="16px" style={{ marginBottom: '40px' }} />
 
-      <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(148, 163, 184, 0.15)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(197, 163, 106, .2)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between' }}>
           <SkeletonBlock width="200px" height="12px" />
           <SkeletonBlock width="40px" height="12px" />
         </div>
@@ -98,7 +98,7 @@ export function SkeletonGrid({ cards = 6 }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
         {Array.from({ length: cards }).map((_, i) => (
-          <div key={i} style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)', borderRadius: '4px', padding: '24px', minHeight: '200px' }}>
+          <div key={i} style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(148, 163, 184, 0.1)', borderRadius: '4px', padding: '24px', minHeight: '200px' }}>
             <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
               <SkeletonBlock width="50px" height="50px" />
               <div style={{ flex: 1 }}>
@@ -127,7 +127,7 @@ export function SkeletonProfile() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px' }}>
         {/* Левая колонка (ID-карта) */}
-        <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', padding: '40px 20px', textAlign: 'center' }}>
+        <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', padding: '40px 20px', textAlign: 'center' }}>
           <SkeletonBlock width="120px" height="120px" borderRadius="50%" style={{ margin: '0 auto 24px' }} />
           <SkeletonBlock width="60%" height="24px" style={{ margin: '0 auto 8px' }} />
           <SkeletonBlock width="40%" height="14px" style={{ margin: '0 auto 24px' }} />
@@ -135,11 +135,11 @@ export function SkeletonProfile() {
         </div>
         {/* Правая колонка (Данные) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', padding: '24px' }}>
+          <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', padding: '24px' }}>
             <SkeletonBlock width="150px" height="12px" style={{ marginBottom: '16px' }} />
             <SkeletonBlock width="100%" height="50px" />
           </div>
-          <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', padding: '24px' }}>
+          <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', padding: '24px' }}>
             <SkeletonBlock width="150px" height="12px" style={{ marginBottom: '16px' }} />
             <SkeletonBlock width="100%" height="50px" />
           </div>
@@ -156,8 +156,8 @@ export function SkeletonTable({ rows = 5 }) {
       <SkeletonBlock width="300px" height="36px" style={{ marginBottom: '12px' }} />
       <SkeletonBlock width="450px" height="16px" style={{ marginBottom: '40px' }} />
 
-      <div style={{ background: 'rgba(11, 15, 22, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(148, 163, 184, 0.15)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ background: 'rgba(16, 18, 22, .88)', border: '1px solid rgba(197, 163, 106, .2)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(197, 163, 106, .2)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between' }}>
           <SkeletonBlock width="200px" height="12px" />
           <SkeletonBlock width="80px" height="12px" />
         </div>

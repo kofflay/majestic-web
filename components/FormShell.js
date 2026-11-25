@@ -7,7 +7,7 @@ const PUBLIC_FORMS = ['hiring', 'transfer-to-lspd', 'reinstatement'];
 export default function FormShell({
   title,
   icon,
-  accent = '#3f83f8',
+  accent = '#c5a36a',
   subtitle = 'Заполните обязательные поля для отправки обращения',
   backLink: customBackLink,
   user,

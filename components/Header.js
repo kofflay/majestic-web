@@ -17,10 +17,23 @@ export default function Header({ user }) {
     }
 
     let active = true;
+    const cacheKey = 'memphis-lspd:admin-access';
+    const cacheTtl = 5 * 60 * 1000;
+    try {
+      const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
+      if (cached && Date.now() - cached.checkedAt < cacheTtl) {
+        setIsAdmin(Boolean(cached.isAdmin));
+        return () => { active = false; };
+      }
+    } catch {}
+
     fetch('/api/admin/check')
       .then(res => res.json())
       .then(data => {
-        if (active) setIsAdmin(Boolean(data.isAdmin));
+        if (!active) return;
+        const allowed = Boolean(data.isAdmin);
+        setIsAdmin(allowed);
+        try { window.sessionStorage.setItem(cacheKey, JSON.stringify({ isAdmin: allowed, checkedAt: Date.now() })); } catch {}
       })
       .catch(() => {
         if (active) setIsAdmin(false);
@@ -124,9 +137,11 @@ export default function Header({ user }) {
           <button
             className="brand"
             onClick={() => navigate('/start')}
-            aria-label="LSPD — на главную"
+            aria-label="Los Santos Police Department — на главную"
           >
-            <span className="brand__mark" aria-hidden="true">◈</span>
+            <span className="brand__mark" aria-hidden="true">
+              <img className="brand__shield" src="/favicon.svg" alt="" />
+            </span>
             <span className="brand__text">
               <strong>LOS SANTOS</strong>
               <small>POLICE DEPARTMENT</small>
@@ -317,19 +332,27 @@ export default function Header({ user }) {
           text-align: left;
         }
 
+        .brand__logo {
+          display: block;
+          width: min(168px, 100%);
+          height: auto;
+        }
+
         .brand__mark {
           display: grid;
           place-items: center;
           flex: 0 0 42px;
           width: 42px;
           height: 42px;
-          border: 1px solid rgba(73, 145, 255, .58);
+          border: 1px solid rgba(197, 163, 106, .58);
           border-radius: 12px;
-          background: radial-gradient(circle at 30% 20%, rgba(63, 131, 248, .22), rgba(12, 22, 38, .92) 72%);
-          color: #70adff;
+          background: radial-gradient(circle at 30% 20%, rgba(197, 163, 106, .2), rgba(18, 17, 15, .94) 72%);
+          color: #dfc58f;
           font-size: 19px;
-          box-shadow: 0 0 28px rgba(63, 131, 248, .13);
+          box-shadow: 0 0 28px rgba(197, 163, 106, .13);
         }
+
+        .brand__shield { width: 27px; height: 27px; display: block; object-fit: contain; }
 
         .brand__text {
           display: flex;
@@ -389,8 +412,8 @@ export default function Header({ user }) {
           left: 0;
           height: 2px;
           border-radius: 2px;
-          background: #4b91ff;
-          box-shadow: 0 0 12px rgba(75, 145, 255, .34);
+          background: #c5a36a;
+          box-shadow: 0 0 12px rgba(197, 163, 106, .28);
           content: '';
           transform: scaleX(0);
           transform-origin: center;
@@ -497,10 +520,10 @@ export default function Header({ user }) {
           justify-content: center;
           min-height: 36px;
           padding: 0 14px;
-          border: 1px solid rgba(91, 151, 235, .38);
+          border: 1px solid rgba(197, 163, 106, .38);
           border-radius: 6px;
-          background: rgba(63, 131, 248, .1);
-          color: #b8d4fa;
+          background: rgba(197, 163, 106, .10);
+          color: #dfc58f;
           font-size: 12px;
           font-weight: 600;
           text-decoration: none;
@@ -509,8 +532,8 @@ export default function Header({ user }) {
 
         .profile-link:hover,
         .profile-link[aria-current="page"] {
-          border-color: rgba(104, 166, 255, .72);
-          background: rgba(63, 131, 248, .19);
+          border-color: rgba(223, 197, 143, .72);
+          background: rgba(197, 163, 106, .18);
           color: #fff;
         }
 
@@ -524,7 +547,7 @@ export default function Header({ user }) {
           overflow: hidden;
           border: 1px solid rgba(92, 150, 231, .52);
           border-radius: 50%;
-          background: rgba(63, 131, 248, .12);
+          background: rgba(197, 163, 106, .12);
           color: #a9caff;
           cursor: pointer;
           font-size: 19px;
@@ -532,8 +555,8 @@ export default function Header({ user }) {
         }
 
         .profile-avatar-button:hover {
-          border-color: #75afff;
-          box-shadow: 0 0 0 3px rgba(63, 131, 248, .13), 0 0 20px rgba(63, 131, 248, .16);
+          border-color: #dfc58f;
+          box-shadow: 0 0 0 3px rgba(197, 163, 106, .13), 0 0 20px rgba(197, 163, 106, .16);
           transform: translateY(-1px);
         }
 
@@ -560,8 +583,8 @@ export default function Header({ user }) {
         }
 
         .header-login:hover {
-          background: linear-gradient(135deg, #4b91ff, #3478df);
-          box-shadow: 0 7px 22px rgba(49, 116, 222, .22);
+          background: linear-gradient(135deg, #dfc58f, #b18a4e);
+          box-shadow: 0 7px 22px rgba(197, 163, 106, .22);
           transform: translateY(-1px);
         }
 
@@ -598,7 +621,7 @@ export default function Header({ user }) {
         }
 
         .mobile-menu-toggle:hover {
-          color: #70adff;
+          color: #dfc58f;
         }
 
         .mobile-menu-toggle__icon {
