@@ -11,6 +11,7 @@ export default function SuperAdminPage() {
   const [admins, setAdmins] = useState([]);
   const [denied, setDenied] = useState([]);
   const [newId, setNewId] = useState('');
+  const [logoutAllBusy, setLogoutAllBusy] = useState(false);
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
@@ -58,6 +59,21 @@ export default function SuperAdminPage() {
     else window.toast.error('Не удалось отозвать доступ');
   };
 
+  const logoutAllUsers = async () => {
+    if (!confirm('ВНИМАНИЕ! Все пользователи сайта будут разлогинены и должны будут войти через Discord заново. Продолжить?')) return;
+    setLogoutAllBusy(true);
+    try {
+      const res = await fetch('/api/admin/logout-all', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось завершить все сессии');
+      window.toast.success('Все пользовательские сессии завершены');
+    } catch (error) {
+      window.toast.error(error.message || 'Ошибка завершения сессий');
+    } finally {
+      setLogoutAllBusy(false);
+    }
+  };
+
   const clearDeny = async (id) => {
     if (!confirm('Снять запрет на использование админки?')) return;
     const res = await fetch('/api/admin/super', {
@@ -79,6 +95,13 @@ export default function SuperAdminPage() {
           <button type="submit" style={{ ...adminPrimaryButtonStyle, flex: '0 1 220px' }}>ВЫДАТЬ АДМИНКУ</button>
         </form>
         <button type="button" onClick={() => changeAccess('PUT')} style={{ ...adminDangerButtonStyle, marginBottom: '32px' }}>ЗАПРЕТИТЬ АДМИНКУ ПО ID</button>
+        <div style={{ ...adminPanelStyle, marginBottom: '32px', border: '1px solid rgba(220,53,69,.45)' }}>
+          <div style={{ padding: '18px 20px' }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif", color: '#ff7b88' }}>Принудительный выход всех пользователей</h2>
+            <p style={{ margin: '0 0 14px', color: '#9ca3af', fontSize: '13px', lineHeight: 1.5 }}>Завершает все активные сессии сайта. Пользователям потребуется повторно авторизоваться через Discord. Ваша сессия супер-администратора останется активной.</p>
+            <button type="button" disabled={logoutAllBusy} onClick={logoutAllUsers} style={{ ...adminDangerButtonStyle, opacity: logoutAllBusy ? .6 : 1, cursor: logoutAllBusy ? 'wait' : 'pointer' }}>{logoutAllBusy ? 'ЗАВЕРШЕНИЕ СЕССИЙ…' : 'РАЗЛОГИНИТЬ ВСЕХ'}</button>
+          </div>
+        </div>
         <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" }}>Ручные администраторы</h2>
         <div style={{ ...adminPanelStyle, marginBottom: '32px' }}>
           {admins.map(id => <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '14px 20px', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
