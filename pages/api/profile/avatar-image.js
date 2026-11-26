@@ -1,5 +1,5 @@
 import { kv } from '../../../lib/redis.js';
-import { verifyToken } from '../../../lib/discord';
+import { verifySessionToken } from '../../../lib/discord';
 import { getDiscordAvatarUrl } from '../../../lib/avatar';
 
 function parseRecord(value) {
@@ -10,7 +10,7 @@ function parseRecord(value) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).end(); }
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).end();
   try {
     const key = 'lspd:profile-avatar:' + user.id;
