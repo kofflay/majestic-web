@@ -1,4 +1,4 @@
-import { verifyToken } from '../../../lib/discord';
+import { verifySessionToken } from '../../../lib/discord';
 import { isSuperAdmin, hasAdminAccess } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 import { logAdminAction } from '../../../lib/admin-audit';
@@ -9,7 +9,7 @@ const DENIED_ADMINS_KEY = 'lspd:admin_denied_ids';
 const validId = value => /^\d{15,22}$/.test(String(value || ''));
 
 export default async function handler(req, res) {
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (!isSuperAdmin(user) || !(await hasAdminAccess(user))) return res.status(403).json({ error: 'Только активный супер-администратор может управлять этим' });
 
