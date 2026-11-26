@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import PageLayout from '../components/PageLayout';
 import AdminSectionHeader from '../components/AdminSectionHeader';
-import { verifyToken } from '../lib/discord';
+import { verifySessionToken } from '../lib/discord';
 import { hasHrAuditAccess } from '../lib/hr-audit-access';
 import { DEPARTMENTS, getDepartment } from '../lib/departments';
 
@@ -39,7 +39,7 @@ const button = (color) => ({
 
 export async function getServerSideProps({ req, res }) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
-  const user = verifyToken(req.cookies?.token);
+  const user = await verifySessionToken(req.cookies?.token);
   if (!user) {
     return { redirect: { destination: '/start', permanent: false } };
   }
