@@ -17,15 +17,14 @@ export default async function handler(req, res) {
   try {
     await kv.set(SESSION_VERSION_KEY, '1', { nx: true });
     const nextVersion = await kv.incr(SESSION_VERSION_KEY);
+    const token = createToken({ ...user, sessionVersion: nextVersion }, nextVersion);
+    const secure = process.env.NODE_ENV === 'production' || req.headers['x-forwarded-proto'] === 'https';
+    res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure ? '; Secure' : ''}`);
     await logAdminAction(user, {
       action: 'auth.logout_all',
       description: 'Завершил все пользовательские сессии',
       targetId: 'all'
-    });
-
-    const token = createToken({ ...user, sessionVersion: nextVersion }, nextVersion);
-    const secure = process.env.NODE_ENV === 'production' || req.headers['x-forwarded-proto'] === 'https';
-    res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure ? '; Secure' : ''}`);
+    }).catch(error => console.error('Global logout audit log failed:', error));
     return res.status(200).json({ success: true, sessionVersion: nextVersion });
   } catch (error) {
     console.error('Global session revocation failed:', error);
