@@ -1,4 +1,4 @@
-import { verifyToken } from '../../lib/discord';
+import { verifySessionToken } from '../../lib/discord';
 import { kv } from '../../lib/redis.js';
 import { DEPARTMENTS } from '../../lib/departments';
 
@@ -20,7 +20,7 @@ function normalizeProfile(value) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const key = `lscsd:profile:${user.id}`;
