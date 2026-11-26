@@ -1,12 +1,12 @@
 // pages/api/admin/roles.js
-import { verifyToken } from '../../../lib/discord';
+import { verifySessionToken } from '../../../lib/discord';
 import { hasAdminAccess } from '../../../lib/admins';
 import { kv } from '../../../lib/redis.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (!(await hasAdminAccess(user))) return res.status(403).json({ error: 'Нет доступа' });
 
