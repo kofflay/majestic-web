@@ -1,6 +1,6 @@
 // pages/api/submit.js
 import { createHash } from 'crypto';
-import { verifyToken } from '../../lib/discord';
+import { verifySessionToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { checkSpam } from '../../lib/antispam';
 import { kv } from '../../lib/redis.js';
@@ -250,7 +250,7 @@ async function sendToDiscord(webhookUrl, data, retries = 3, options = {}) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { type, leaveType, submissionId, ...formData } = req.body || {};
