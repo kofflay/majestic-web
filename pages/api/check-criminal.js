@@ -1,6 +1,6 @@
 // pages/api/check-criminal.js
 import { randomUUID } from 'crypto';
-import { verifyToken } from '../../lib/discord';
+import { verifySessionToken } from '../../lib/discord';
 import { kv } from '../../lib/redis.js';
 import { checkCriminalActivity } from '../../lib/security';
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const cacheKey = 'criminal_checked:v1:' + user.id;
