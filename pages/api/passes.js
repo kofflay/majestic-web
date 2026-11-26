@@ -1,5 +1,5 @@
 import { kv } from '../../lib/redis.js';
-import { verifyToken } from '../../lib/discord';
+import { verifySessionToken } from '../../lib/discord';
 import { hasAdminAccess } from '../../lib/admins';
 import { mutateJsonArray, patchJsonArrayItem } from '../../lib/kv-atomic';
 import { logAdminAction } from '../../lib/admin-audit';
@@ -14,7 +14,7 @@ function withPassStatuses(passes) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   if (req.method === 'GET') {
