@@ -1,10 +1,10 @@
-import { verifyToken } from '../../../lib/discord';
+import { verifySessionToken } from '../../../lib/discord';
 import { kv } from '../../../lib/redis.js';
 import { getSubmissionGate, SUBMISSION_GATE_KEY } from '../../../lib/submission-gate';
 import { logAdminAction } from '../../../lib/admin-audit';
 
 export default async function handler(req, res) {
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (String(user.id) !== '200102286473691139') {
     return res.status(403).json({ error: 'Нет доступа к управлению приёмом заявок' });
