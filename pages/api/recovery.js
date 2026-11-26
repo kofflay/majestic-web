@@ -1,4 +1,4 @@
-import { verifyToken } from '../../lib/discord';
+import { verifySessionToken } from '../../lib/discord';
 import { kv } from '../../lib/redis.js';
 import { recordSubmissionHistory } from '../../lib/submission-history';
 import { checkFormRateLimit, isBoundedText, isHttpsUrl, areHttpsUrls } from '../../lib/form-security';
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = verifyToken(req.cookies.token);
+  const user = await verifySessionToken(req.cookies.token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (!Array.isArray(user.roles) || !user.roles.includes(STAFF_ROLE_ID)) {
     return res.status(403).json({ error: 'Для подачи этой формы требуется роль сотрудника LSPD' });
