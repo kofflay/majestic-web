@@ -1,6 +1,6 @@
 // pages/api/auth.js
 import { createHash, timingSafeEqual } from 'crypto';
-import { getDiscordToken, getDiscordUser, createToken, isAccountOldEnough } from '../../lib/discord';
+import { getDiscordToken, getDiscordUser, createToken, isAccountOldEnough, getSessionVersion } from '../../lib/discord';
 import { fetchUserGuildRoles } from '../../lib/security';
 import { kv } from '../../lib/redis.js';
 import { getDiscordAvatarUrl } from '../../lib/avatar';
@@ -257,7 +257,8 @@ export default async function handler(req, res) {
     }
 
     // 5. Создаем сессию, фиксируем успешную обработку и очищаем временные OAuth cookies.
-    const jwtToken = createToken({ ...user, roles: userRoles, guildRoles });
+    const sessionVersion = await getSessionVersion();
+    const jwtToken = createToken({ ...user, roles: userRoles, guildRoles }, sessionVersion);
     await kv.set(callbackKey, 'completed', { ex: CALLBACK_LOCK_TTL_SECONDS });
     callbackLockAcquired = false;
     const secure = process.env.NODE_ENV === 'production' ||
