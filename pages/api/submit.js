@@ -359,7 +359,10 @@ export default async function handler(req, res) {
     title: getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: { name: user.username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
-    fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id),
+    fields: [
+      { name: ' Discord', value: `<@${user.id}>`, inline: true },
+      ...buildFields(type, department, targetDepartment, formData, leaveType, user.id)
+    ],
     footer: { text: 'Suspect Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
@@ -367,7 +370,7 @@ export default async function handler(req, res) {
   if (embedError) return rejectSubmission(res, user, type, formData, leaveType, 400, embedError);
 
   const discordPayload = {
-    content: roleMentions.trim() || undefined,
+    content: [roleMentions.trim(), `<@${user.id}>`].filter(Boolean).join(' '),
     embeds: [baseEmbed],
     username: 'Suspect Forms',
     avatar_url: 'https://suspect-famq.ru/logo.gif',
@@ -467,7 +470,10 @@ return {number, 1}
         embed = {
           ...baseEmbed,
           description: `[Открыть заявку для одобрения или отклонения](${auditUrl})`,
-          fields: [{ name: ' Имя Фамилия + Статик', value: String(formData.fullName || 'Не указано').slice(0, 1024), inline: false }]
+          fields: [
+            { name: ' Discord', value: `<@${user.id}>`, inline: true },
+            { name: ' Имя Фамилия + Статик', value: String(formData.fullName || 'Не указано').slice(0, 1024), inline: false }
+          ]
         };
         discordPayload.embeds = [embed];
 
